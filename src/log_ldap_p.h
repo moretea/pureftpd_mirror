@@ -14,6 +14,10 @@ static int port;
 static char *root;
 static char *pwd;
 static char *base;
+static char *ldap_filter;
+static char *ldap_homedirectory;
+static char *ldap_version_s;
+static int ldap_version;
 static char *default_uid_s;
 static uid_t default_uid;
 static char *default_gid_s;
@@ -25,6 +29,9 @@ static ConfigKeywords ldap_config_keywords[] = {
     { "LDAPBindDN", &root },        
     { "LDAPBindPW", &pwd },
     { "LDAPBaseDN", &base },
+    { "LDAPFilter", &ldap_filter},
+    { "LDAPHomeDir", &ldap_homedirectory },
+    { "LDAPVersion", &ldap_version_s },
     { "LDAPDefaultUID", &default_uid_s },
     { "LDAPDefaultGID", &default_gid_s },
     { NULL, NULL }

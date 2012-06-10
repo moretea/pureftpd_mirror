@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Startup script for the pure-ftpd FTP Server  $Revision: 1.1 $
+# Startup script for the pure-ftpd FTP Server  $Revision: 1.2 $
 #
 # chkconfig: 2345 85 15
 # description: Pure-FTPd is an FTP server daemon based upon Troll-FTPd
@@ -14,26 +14,21 @@
 RETVAL=0
 
 # Path to the pure-ftp binaries.
-prog=pure-ftpd
+prog=pure-config.pl
 fullpath=/usr/local/sbin/$prog
 pureftpwho=/usr/local/sbin/pure-ftpwho
 
 
-# You can list commandline options in /etc/sysconfig/pure-ftpd:
-if [ -f /etc/sysconfig/$prog ] ; then
-	OPTIONS=`egrep -v "^\W*#" /etc/sysconfig/$prog | tr "\n" ' '`
-fi
-
 start() {
 	echo -n $"Starting $prog: "
-	daemon $fullpath $OPTIONS --daemonize
+	$fullpath /etc/pure-ftpd.conf --daemonize
 	RETVAL=$?
 	[ $RETVAL = 0 ] && touch /var/lock/subsys/$prog
 	echo
 }
 stop() {
 	echo -n $"Stopping $prog: "
-	killproc $prog
+	kill $(cat /var/run/pure-ftpd.pid)
 	RETVAL=$?
 	[ $RETVAL = 0 ] && rm -f /var/lock/subsys/$prog
 	echo

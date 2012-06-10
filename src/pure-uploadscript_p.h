@@ -11,12 +11,6 @@
 # ifdef HAVE_SYS_WAIT_H
 #  include <sys/wait.h>
 # endif
-# ifndef WEXITSTATUS
-#  define WEXITSTATUS(st) ((unsigned) (st) >> 8)
-# endif
-# ifndef WIFEXITED
-#  define WIFEXITED(st) (((st) & 0xff) == 0)
-# endif
 
 #ifndef WHOMAXLEN
 # define WHOMAXLEN 127
@@ -46,5 +40,8 @@ static signed char daemonize;
 static uid_t uid;
 static gid_t gid;
 static const char *script;
+
+#define OPEN_TRIES 10U
+#define OPEN_DELAY 1U
 
 #endif

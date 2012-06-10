@@ -6,12 +6,12 @@ export PATH=/usr/local/bin:/usr/local/sbin:$PATH
 
 if [ -z "$dialog" ] ; then
   if [ -n "$DISPLAY" ] ; then
-    Xdialog --msgbox 'Welcome to the PureFTPd configuration tool' 8 60 2> /dev/null && dialog='Xdialog'
-	gauge='--gauge'
+    Xdialog --msgbox 'Welcome to the Pure-FTPd configuration tool' 8 60 2> /dev/null && dialog='Xdialog'
+    gauge='--gauge'
   fi
 fi  
 if [ -z "$dialog" ] ; then
-  dialog --msgbox 'Welcome to the PureFTPd configuration tool' 8 60 2> /dev/null && dialog='dialog'
+  dialog --msgbox 'Welcome to the Pure-FTPd configuration tool' 8 60 2> /dev/null && dialog='dialog'
 
 # Workaround for old versions of 'dialog' (Slackware)
 
@@ -24,10 +24,10 @@ if [ -z "$dialog" ] ; then
   fi    
 fi  
 if [ -z "$dialog" ] ; then
-  lxdialog --msgbox 'Welcome to the PureFTPd configuration tool' 8 60 2> /dev/null && dialog='lxdialog'
+  lxdialog --msgbox 'Welcome to the Pure-FTPd configuration tool' 8 60 2> /dev/null && dialog='lxdialog'
 fi  
 if [ -z "$dialog" ] ; then
-  /usr/src/linux/scripts/lxdialog/lxdialog --msgbox 'Welcome to the PureFTPd configuration tool' 8 60 2> /dev/null && dialog='/usr/src/linux/scripts/lxdialog/lxdialog'
+  /usr/src/linux/scripts/lxdialog/lxdialog --msgbox 'Welcome to the Pure-FTPd configuration tool' 8 60 2> /dev/null && dialog='/usr/src/linux/scripts/lxdialog/lxdialog'
 fi  
 
 if [ -z "$dialog" ] ; then
@@ -54,7 +54,6 @@ trap "rm -f $tmp; exit 1" 1 2 11 15
 $dialog \
 --title 'Compile-time options' \
 --separate-output \
---backtitle 'PureFTPd 1.0.12' \
 --checklist 'Defaults should be fine for most users' \
 20 78 10 \
 'without-standalone' "Don't compile the standalone server code" off \
@@ -102,8 +101,6 @@ done
 
 $dialog \
 --title 'Compile-time options' \
---separate-output \
---backtitle 'PureFTPd 1.0.12' \
 --radiolist 'Choose a language for server messages' \
 20 78 10 \
 'english' "This is the default" on \
@@ -122,8 +119,9 @@ $dialog \
 'swedish' "Contributed by Ulrik Sartipy" off \
 'norwegian' "Contributed by Kurt Inge Smadal" off \
 'russian' "Contributed by Andrey Ulanov" off \
-'traditional-chinese' "Contributed by Fygul Hether" off \
-'simplified-chinese' "Contributed by Fygul Hether" off \
+'traditional-chinese' "Contributed by Hether Fygul" off \
+'simplified-chinese' "Contributed by Hether Fygul" off \
+'czech' "Contributed by Martin Sarfy" off \
 2> $tmp
 
 z=$(cat $tmp)
@@ -131,14 +129,13 @@ cfgline="$cfgline --with-language=$z"
 
 $dialog \
 --title 'Compile-time options' \
---backtitle 'PureFTPd 1.0.12' \
 --inputbox 'Installation prefix (/usr/local is not a bad idea)' \
 10 78 \
 '/usr/local' \
 2> $tmp
 
 prefix=$(cat $tmp)
-rm -f "$tmp"
+rm -f "$tmp" 2>/dev/null >&2
 if [ -n "$prefix" ] ; then
   cfgline="$cfgline --prefix=$prefix"
 else
@@ -155,38 +152,39 @@ fi
 
 if [ -n "$gauge" ] ; then
 (
+  echo "./configure $cfgline" > build.gui.log
   echo 20
-  rm -f config.cache
+  rm -f config.cache 2>/dev/null >&2
   echo 30
-  ./configure $cfgline >> build.gui.log
+  ./configure $cfgline >&2 >> build.gui.log
   echo 50
-  make clean >> build.gui.log
+  make clean >&2 >> build.gui.log
   echo 60
-  make >> build.gui.log
+  make >&2 >> build.gui.log
   echo 80
-  make install-strip >> build.gui.log
+  make install-strip >&2 >> build.gui.log
   export instfailure
   echo 100
 ) | $dialog \
---title 'Compilation and installation' \
---backtitle 'PureFTPd 1.0.12' \
-"$gauge" 'Please wait...' 10 78 10
-else  
-  rm -f config.cache
-  ./configure $cfgline
-  make clean
-  make
-  make install-strip
+  --title 'Compilation and installation' \
+  "$gauge" 'Please wait...' 10 78 10
+else
+  echo "./configure $cfgline" > build.gui.log
+  rm -f config.cache 2>/dev/null >&2
+  ./configure $cfgline >&2 >> build.gui.log
+  make clean >&2 >> build.gui.log
+  make >&2 >> build.gui.log
+  make install-strip >&2 >> build.gui.log
   export instfailure
 fi
 
 touch "$prefix/pure-ftpd" 2> /dev/null || instfailure="yes"
 if [ -z "$instfailure" ] ; then
   $dialog --msgbox \
-"Congratulation, the server is now installed on your system.\nPlease read the documentation to know how to run it." \
-10 78
+  "Congratulation, the server is now installed on your system.\nPlease read the documentation to know how to run it." \
+  10 78
 else
   $dialog --msgbox \
-"Compilation was successful, but you need to be root in\norder to install the files to the selected prefix.\nPlease run 'make install' as root." \
-10 78
+  "Compilation was successful, but you need to be root in\norder to install the files to the selected prefix.\nPlease run 'make install' as root." \
+  10 78
 fi

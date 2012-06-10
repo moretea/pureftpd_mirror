@@ -29,9 +29,16 @@ static int upload_pipe_ropen(void)
 {
     struct stat st;
     int upload_pipe_fd;
-    
+    unsigned int tries = OPEN_TRIES;
+        
+    again:
     if ((upload_pipe_fd =
          open(UPLOAD_PIPE_FILE, O_RDWR | O_NOFOLLOW)) == -1) {
+	if (tries > 0) {
+	    tries--;
+	    (void) sleep(OPEN_DELAY);
+	    goto again;
+	}
         perror("Unable to open " UPLOAD_PIPE_FILE);
         return -1;
     }
@@ -382,7 +389,7 @@ static int run(const char * const who, const char * const file,
             _exit(EXIT_FAILURE);
         }
         fillenv(who, &st);
-        execl(script, script, file, NULL);
+        execl(script, script, file, (char *) NULL);
         _exit(EXIT_FAILURE);
     } else if (pid != (pid_t) -1) {
 #ifdef HAVE_WAITPID

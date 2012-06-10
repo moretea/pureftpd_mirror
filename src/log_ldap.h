@@ -37,6 +37,8 @@
 #define PASSWD_LDAP_SSHA_PREFIX "{ssha}"
 #define LDAP_DEFAULT_SERVER "localhost"
 #define LDAP_DEFAULT_PORT 389
+#define LDAP_DEFAULT_FILTER "(&(objectClass=posixAccount)(uid=\\L))"
+#define LDAP_DEFAULT_VERSION 3
 
 void pw_ldap_parse(const char * const file);
 

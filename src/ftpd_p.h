@@ -32,12 +32,6 @@
 #ifdef HAVE_SYS_WAIT_H
 # include <sys/wait.h>
 #endif
-#ifndef WEXITSTATUS
-# define WEXITSTATUS(st) ((unsigned) (st) >> 8)
-#endif
-#ifndef WIFEXITED
-# define WIFEXITED(st) (((st) & 0xff) == 0)
-#endif
 
 #define DEFAULT_BACKLOG 42
 #define DEFAULT_BACKLOG_DATA 8
@@ -49,6 +43,7 @@
 #define MAX_DIRSCAN_TRIES 50      /* Abort after 50 chdir failures */
 #define DIRSCAN_FAILURE_DELAY (100000UL)  /* Delay after each chdir failure */
 #define ASCII_CHUNKSIZE 65536U
+#define BANNER_MAXLINES 100
 
 #ifndef NO_STANDALONE
 static volatile sig_atomic_t stop_server;

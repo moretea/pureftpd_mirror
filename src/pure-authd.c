@@ -75,7 +75,8 @@ static int init(void)
 {
 #ifndef NON_ROOT_FTP
     if (geteuid() != (uid_t) 0) {
-        fprintf(stderr, "Sorry, but you have to be r00t to run this program\n");
+        fprintf(stderr, 
+		"Sorry, but you have to be r00t to run this program\n");
         return -1;
     }
 #endif
@@ -106,7 +107,8 @@ static int parseoptions(int argc, char *argv[])
 
     while ((fodder =
 #ifndef NO_GETOPT_LONG
-            getopt_long(argc, argv, GETOPT_OPTIONS, long_options, &option_index)
+            getopt_long(argc, argv, GETOPT_OPTIONS, long_options, 
+			&option_index)
 #else
             getopt(argc, argv, GETOPT_OPTIONS)
 #endif
@@ -367,7 +369,7 @@ static void process(const int clientfd)
 #ifdef DO_AUTHD_TIMEOUT
     (void) alarm(AUTHD_SCRIPT_TIMEOUT);
 #endif
-    (void) execl(script, script, NULL);
+    (void) execl(script, script, (char *) NULL);
     
     _exit(EXIT_SUCCESS);
 }

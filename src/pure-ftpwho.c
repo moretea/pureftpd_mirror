@@ -269,12 +269,12 @@ static void html_output_line(const pid_t pid, const char * const account,
             if (pcti > 100) {
                 pcti = 100;           /* should never happen */
             }
-            printf("<td>%llu/%llu (%d%% - %lu Kb/s)</td>\n",
+            printf("<td>%llu/%llu (%d%% - %lu KB/s)</td>\n",
                    (unsigned long long) (current_size / 1024),
                    (unsigned long long) (total_size / 1024), 
                    pcti, bandwidth);
         } else {
-            printf("<td>%llu (%lu Kb/s)</td>\n",
+            printf("<td>%llu (%lu KB/s)</td>\n",
                    (unsigned long long) (current_size / 1024),
                    bandwidth);
         }

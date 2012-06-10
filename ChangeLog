@@ -1,4 +1,71 @@
 
+* Version 1.0.13a:
+    Fix pure-config.pl with old versions of the Perl interpreter.
+    Fix compilation with PostgreSQL, thanks to Sakari Tanhua 
+<stanhua@cc.hut.fi> .
+    
+* Version 1.0.13 :
+    Swap simplified and traditional chinese settings. Reported by Ying-Chieh
+Liao <ijliao@csie.nctu.edu.tw> .
+    Ignore ESTA if a passive IP is forced or the NAT mode is enabled, because
+the private address is probably meaningless.
+    README documentation improvements, contributed by Jeffrey Lim
+<jf_____@fastmail.fm>
+    Avoid NGROUPS_MAX when possible - Idea from tuxfamily.org CVS tree.
+    LDAP schema changed to work with newer OpenLDAP releases.
+    New LDAP directives : LDAPFilter, LDAPHomeDir and LDAPVersion.
+    Be a bit more heavy when creating home directories, it should solve
+troubles users had with path containing extra slashes.
+    Try again when the pipe can't be opened in pure-uploadscript.
+    New --with-boring switch (BORING_MODE macro) .
+    Fix sendfile() support on Solaris, thanks to Emmanuel Hocdet
+<man@t-online.fr>
+    Add uptime support for pure-mrtginfo on FreeBSD. Contributed by
+Ying-Chieh Liao <ijliao@csie.nctu.edu.tw> .
+    Fix error when deleting files with an absolute directory when quotas are
+enabled. Contributed by Johannes Erdfelt <johannes@erdfelt.com> .
+    dobanner() rewritten. It's now the same code to display .message and
+.banner files, and the content is sent line by line. We can't afford to load
+everything and simply call addreply_noformat(), because if a banner starts
+with a digit, it would be complicated to insert spaces to be RFC conformant.
+    Fix typo in the example configuration file (pureftp -> pureftpd) .
+Reported by Kyle Herbert (http://www.firstnetimpressions.com/) .
+    Spanish translation updated (Lluis) .
+    Chinese translation updated (Fygul) .
+    There's now an unique official spelling : "Pure-FTPd".
+    Autoconf 2.54, Automake 1.6.3.
+    Move getloadavg() and similar functions to getloadavg.{h,c}.
+    Get the 5-min load average, not the instant load.
+    Raise the default maxdiskpct from 90% to 99%, as many people don't figure
+out why they can't upload an ISO image when there's 700Mb free on a
+7Gb partition.
+    Relax permissions enforcement in dochmod() when quotas are enabled
+- Thanks to Claudiu.
+    Introduce checkprintable() function in ls.c : don't display files
+whoose name contains characters < 32.
+    Contributed sfv-crc-check has been removed (people reported that it simply
+doesn't work) .
+    PAM sample fixed : ftplockout should really be ftpusers. Add some
+common system accounts by the way.
+    More flexible RPM spec file, contributed by Johannes Erdfelt
+<johannes@erdfelt.com> .
+    New translation : Czech, contributed by Martin Sarfy
+<xsarfy@informatics.muni.cz> .
+    Merge Clive Goodhead's patch to implement MYSQLDefaultGID and
+MYSQLDefaultUID, and port it to PostgreSQL.
+    pure-config.pl has been completely rewritten in a clean way by
+Aristoteles Pagaltzis <pagaltzis@gmx.de> .
+    New contrib : pure-vpopauth.pl .
+    Remove backtitle in gui/build.sh, it breaks radio lists on some
+dialog versions.
+    Enable --without-ascii by default on Win32. It means that text
+files must be in Windows format (CR+LF) on the server, no more in an
+Unix fashion, or clients will get bare LFs (and intelligent clients
+will switch to binary mode, so files sent in Unix format will be
+retrieved in Unix format - great) .
+    redhat.init now uses pure-config.pl as different configuration
+files was confusing people.
+
 * Version 1.0.12 :
     Style : opt_l_ is now an argument of donlist() - no more need to set
 up the global variable before calling the function.
@@ -65,7 +132,7 @@ new official logo contributed by Gabriele Vinci <gabriele@pronto.it> .
 
 * Version 1.0.10 :
     GCC updated to 3.0.4.
-    Automake updated to 1.0.6. configure.ac has zapped deprecated
+    Automake updated to 1.6. configure.ac has zapped deprecated
 constructions.
     Autoconf updated to 2.52i. Autoconf doesn't like conditional *_LDFLAGS
 in Makefiles any more.
@@ -357,7 +424,7 @@ any OS tweaking, it's simpler code, etc.
     Accept pure-pw mkdb without any further argument.
     New pid_file glob.
     Documentation fixups. Contributed by James Metcalf <james@asset-ict.com>
-and http://www.php4hosting.com .
+and http://www.php4hosting.com/ .
 
 * Version 0.99.4 :
     Change uploaded and downloaded to unsigned long long. Display file
@@ -890,7 +957,7 @@ dot_write_forbidden and dot_read_forbidden) . Restricting access to
 directories starting with '.' added many lines of code for such a simple
 operation. However, it's done in a secure way : we don't get fooled by
 relative paths and links.
-    Bandwidth throttling in now in Kb/s (throttling_bandwidth global) . We
+    Bandwidth throttling in now in KB/s (throttling_bandwidth global) . We
 do it the long, but right way, with compensation_delay = (transmitted bytes
 / throttling_bandwidth) - (tn - t0), recalculated between each
 received/transmitted chunk. A bit slow and bloated, however, but more

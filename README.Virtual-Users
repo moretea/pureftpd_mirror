@@ -68,7 +68,7 @@ To add a new user, use the following syntax :
                          [-R <deny client host>[/<mask>][,<deny client host>[/<mask>]]...]
                          [-i <allow local host>[/<mask>][,<allow client host>[/<mask>]]...]
                          [-I <deny local host>[/<mask>][,<deny local host>[/<mask>]]...]
-			 [-y <max number of concurrent sessions>]
+                         [-y <max number of concurrent sessions>]
                          [-z <hhmm>-<hhmm>] [-m]
 
 Let's create "joe", whoose home directory will be /home/ftpusers/joe . The

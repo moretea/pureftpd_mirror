@@ -12,7 +12,7 @@ bin_PROGRAMS = \
 	pure-pwconvert
 
 pure_ftpd_LDADD = \
-	../puredb/src/libpuredb_read.a @LDAP_SSL_LIBS@
+	../puredb/src/libpuredb_read.a @LDAP_SSL_LIBS@ @GETLOADAVG_LIBS@
 
 pure_ftpd_CFLAGS = -DINCLUDE_IO_WRAPPERS=1
 
@@ -61,6 +61,7 @@ pure_ftpd_SOURCES = \
 	ftp_parser.c \
 	dynamic.c \
 	dynamic.h \
+	messages_cs_cz.h \
 	messages_da.h \
 	messages_de.h \
 	messages_en.h \
@@ -104,7 +105,9 @@ pure_ftpd_SOURCES = \
 	diraliases.h \
 	diraliases.c \
 	ftpwho-read.h \
-	ftpwho-read.c
+	ftpwho-read.c \
+	getloadavg.h \
+	getloadavg.c
 
 pure_mrtginfo_CFLAGS = -DIN_PURE_MRTGINFO=1
 
@@ -196,4 +199,3 @@ pure_authd_SOURCES = \
 
 EXTRA_DIST = \
 	messages_check.pl
-

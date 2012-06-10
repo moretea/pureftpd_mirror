@@ -1,4 +1,4 @@
-/* $Id: diraliases.c,v 1.6 2002/03/08 10:13:30 chrysalis Exp $ */
+/* $Id: diraliases.c,v 1.7 2002/09/21 22:20:22 chrysalis Exp $ */
 
 /*
 
@@ -62,7 +62,7 @@ int init_aliases(void)
     char alias[MAXALIASLEN + 1U];
     char dir[MAXPATHLEN + 1U];
 
-    if ((fp = fopen(ALIASES_FILE, "rt")) == NULL) {
+    if ((fp = fopen(ALIASES_FILE, "r")) == NULL) {
 	return 0;
     }
     while (fgets(alias, sizeof alias, fp) != NULL) {

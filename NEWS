@@ -1,4 +1,46 @@
 
+* Version 1.0.13a :
+ - The previous release broken compilation with PostgreSQL, and it
+didn't work any more with very old versions of the Perl interpreter.
+Both issues were fixed. No other change has been made - If 1.0.13
+works for you, there's absolutely no need to upgrade.
+
+* Version 1.0.13 :
+ - Traditional and simplified chinese translations are not messed any
+more (Thanks to Ying-Chieh Liao) .
+ - The documentation has been improved.
+ - OpenLDAP 2.1.x is now supported.
+ - New LDAP directives were added to provide more flexibility
+(LDAPFilter, LDAPHomeDir and LDAPVersion, see README.LDAP) .
+ - On-demand directories are now also created when path contains extra
+slashes.
+ - pure-uploadscript will no more immediately give up when the server
+hasn't been started before.
+ - Files whoose names contains non-printable characters are not listed
+any more.
+ - A new switch (--with-boring) has been introduced to produce more
+professional-looking messages.
+ - Zero-copy transfers of large files have been fixed on Solaris,
+thanks to Emmanuel Hocdet.
+ - Larger banner messages can now be displayed.
+ - Owner-readability is now only enforced for files when quotas are
+enabled (Claudiu) .
+ - A new Czech translation has been added. Contributed by Martin Sarfy
+<xsarfy@informatics.muni.cz>
+ - Default UID and GID can now be used for SQL-based authentication,
+contributed by Clive Goodhead, adapted to PostgreSQL as well.
+ - A Vpopmail authentication module has been added
+(contrib/pure-vpopauth.pl) .
+ - "make -f Makefile.gui" should work again on most today's Linux
+distributions.
+ - The Win32 port was slightly improved. The server is now compiled as
+non-root (but binds port 21), and ASCII transfers are not mangled any
+more.
+ - The RPM initialization script (redhat.init, installed as
+/etc/init.d/pure-ftpd) now calls pure-config.pl . It means that
+/etc/sysconfig/pure-ftpd is deprecated, and you must use
+/etc/pure-ftpd.conf instead.
+
 * Version 1.0.12 :
  - New workarounds and conformance fixes were added to improve client
 compatibility.
@@ -478,7 +520,7 @@ so that a super-server is no more required.
  - New '-x' and '-X' option to prevent users from reading/writing
 dot-files, even if they own them to protect files like .ssh, .qmail,
 and .history .(Thanks to William Kern for the suggestion) .
- - Bandwidth throttling is now specified in exact Kb/s.
+ - Bandwidth throttling is now specified in exact KB/s.
 
 * Version 0.97pre4
  - Added '-D' option to force 'ls' display dot-files even when a

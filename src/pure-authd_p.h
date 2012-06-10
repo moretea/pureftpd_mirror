@@ -13,12 +13,6 @@
 #ifdef HAVE_SYS_WAIT_H
 # include <sys/wait.h>
 #endif
-#ifndef WEXITSTATUS
-# define WEXITSTATUS(st) ((unsigned) (st) >> 8)
-#endif
-#ifndef WIFEXITED
-# define WIFEXITED(st) (((st) & 0xff) == 0)
-#endif
 
 #include <sys/un.h>
 

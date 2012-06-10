@@ -487,7 +487,7 @@ static int fetch_pw_account(const char * const file, PWInfo * const pwinfo,
         fprintf(stderr, "bad arguments to fetch account\n");
         return -1;
     }
-    if ((fp = fopen(file, "rt")) == NULL) {
+    if ((fp = fopen(file, "r")) == NULL) {
         perror("Unable to open the passwd file");
         return -1;
     }
@@ -524,7 +524,7 @@ static FILE *create_newpasswd(const char * const file,
     size_t skip_login_len;
     char line[LINE_MAX];
     
-    fp = fopen(file, "rt");    
+    fp = fopen(file, "r");    
     if ((fd2 = open(file2, O_EXCL | O_NOFOLLOW |
                     O_CREAT | O_WRONLY, (mode_t) 0700)) == -1) {
         if (fp != NULL) {
@@ -532,7 +532,7 @@ static FILE *create_newpasswd(const char * const file,
         }        
         return NULL;
     }
-    if ((fp2 = fdopen(fd2, "wt")) == NULL) {
+    if ((fp2 = fdopen(fd2, "w")) == NULL) {
         if (fp != NULL) {
             fclose(fp);
         }
@@ -1090,8 +1090,7 @@ static void do_show(const char * const file, const PWInfo * const pwinfo)
            SHOW_IFEN(fetched_info.has_time, fetched_info.time_begin),
            SHOW_IFEN(fetched_info.has_time, fetched_info.time_end),
            SHOW_STATE(fetched_info.has_time),
-	   SHOW_IFEN(fetched_info.per_user_max, fetched_info.per_user_max),
-	   SHOW_STATE(fetched_info.per_user_max));
+	   fetched_info.per_user_max, SHOW_STATE(fetched_info.per_user_max));
 }
 
 static void do_passwd(const char * const file,
@@ -1136,7 +1135,7 @@ static void do_mkdb(const char *dbfile, const char * const file)
         fprintf(stderr, "Missing passwd file\n");
         return;
     }    
-    if ((fp = fopen(file, "rt")) == NULL) {
+    if ((fp = fopen(file, "r")) == NULL) {
         perror("Unable to open the passwd file");
         return;
     }

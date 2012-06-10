@@ -2,7 +2,7 @@
 If you never heard about LDAP before, *DON'T* enable LDAP support in
 Pure-FTPd. LDAP is useless if you don't have to manage many shared accounts.
 But well... if you want to learn about LDAP anyway, here's a good starting
-point : http://www.openldap.org
+point : http://www.openldap.org/
 
 
        ------------------------ LDAP SUPPORT ------------------------
@@ -13,7 +13,7 @@ When LDAP is enabled, all account info is fetched from a central LDAP
 directory.
 
 To compile the server with LDAP support, you first have to build and install
-OpenLDAP. OpenLDAP is freely available from http://www.openldap.org and
+OpenLDAP. OpenLDAP is freely available from http://www.openldap.org/ and
 binary packages are included in many major distributions. But if you choose
 a binary form, don't forget to also install the development packages if they
 are available separately.
@@ -83,6 +83,16 @@ LDAPBindDN/LDAPBindPW.
 
 - LDAPDefaultUID and LDAPDefaultGID are default values for objects without
 any entry for them.
+
+- LDAPFilter is the filter to use in order to find the object to authenticate
+against. The special sequence \L is replaced with the login of the user. The
+default filter is (&(objectClass=posixAccount)(uid=\L)) .
+
+- LDAPHomeDir is the attribute to get the home directory ('homeDirectory' by
+default) .
+
+- LDAPVersion is the protocol version to use. Version 3 is recommended, and
+needed with OpenLDAP servers. It is the default.
 
 In fact, the only mandatory keyword is LDAPBaseDN. Other keywords are
 optional, and defaults are ok for local testing.
@@ -156,7 +166,7 @@ directory (/usr/local/etc/openldap/schema in this example), and add the
 appropriate line to your slapd.conf, like so:
 
 
-include		/usr/local/etc/openldap/pureftpd.schema
+include         /usr/local/etc/openldap/pureftpd.schema
 
 
 This schema defines a new objectClass, PureFTPdUser, which contains the
@@ -182,7 +192,7 @@ FTPDownloadRatio: 5
 FTPUploadRatio: 1
 
 The example is mostly self-explanatory. FTPQuotaMBytes is the quota size in
-megabytes. FTPDownloadBandwidth and FTPUploadBandwidth are in Kb/sec.
+megabytes. FTPDownloadBandwidth and FTPUploadBandwidth are in KB/sec.
 
 FTPStatus should be either "enabled" or "disabled". If the FTPStatus field
 exists and is set to anything except "enabled", the user will not be

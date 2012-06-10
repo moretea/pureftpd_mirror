@@ -98,20 +98,21 @@ const char *getname(const uid_t uid)
         pwd = getpwuid(uid);
     }
     if ((p = malloc(sizeof *p)) == NULL) {
-        return "?       ";
+        die_mem();
     }
     p->uid = uid;
-    p->name = malloc(9);
-
-    if (p->name) {
-        if (pwd) {
-            if (SNCHECK(snprintf(p->name, 9, "%-8.8s", pwd->pw_name), 9)) {
-                _EXIT(EXIT_FAILURE);
-            }
-        } else {
-            if (SNCHECK(snprintf(p->name, 9, "%-8d", uid), 9)) {
-                _EXIT(EXIT_FAILURE);
-            }
+    if ((p->name = malloc((size_t) 9U)) == NULL) {
+        die_mem();
+    }
+    if (pwd != NULL) {
+        if (SNCHECK(snprintf(p->name, (size_t) 9U, 
+                             "%-8.8s", pwd->pw_name), (size_t) 9U)) {
+            _EXIT(EXIT_FAILURE);
+        }
+    } else {
+        if (SNCHECK(snprintf(p->name, (size_t) 9U, "%-8d", uid), 
+                    (size_t) 9U)) {
+            _EXIT(EXIT_FAILURE);
         }
     }
     p->next = user_head;
@@ -138,19 +139,21 @@ const char *getgroup(const gid_t gid)
         pwd = getgrgid(gid);
     }
     if ((p = malloc(sizeof *p)) == NULL) {
-        return "?       ";        
+        die_mem();
     }
     p->gid = gid;
-    p->name = malloc(9);
-    if (p->name) {
-        if (pwd) {
-            if (SNCHECK(snprintf(p->name, 9, "%-8.8s", pwd->gr_name), 9)) {
-                _EXIT(EXIT_FAILURE);
-            }
-        } else {
-            if (SNCHECK(snprintf(p->name, 9, "%-8d", gid), 9)) {
-                _EXIT(EXIT_FAILURE);
-            }
+    if ((p->name = malloc((size_t) 9U)) == NULL) {
+        die_mem();
+    }
+    if (pwd != NULL) {
+        if (SNCHECK(snprintf(p->name, (size_t) 9U, "%-8.8s",
+                             pwd->gr_name), (size_t) 9U)) {
+            _EXIT(EXIT_FAILURE);
+        }
+    } else {
+        if (SNCHECK(snprintf(p->name, (size_t) 9U, "%-8d", gid), 
+                    (size_t) 9U)) {
+            _EXIT(EXIT_FAILURE);
         }
     }
     p->next = group_head;
@@ -163,7 +166,7 @@ const char *getgroup(const gid_t gid)
 static void addfile(const char *name, const char *suffix)
 {
     struct filename *p;
-    int l;
+    unsigned int l;
 
     if (!name || !suffix) {
         return;
@@ -172,18 +175,17 @@ static void addfile(const char *name, const char *suffix)
         return;
     }
     matches++;
-    l = (int) (strlen(name) + strlen(suffix));
+    l = (unsigned int) (strlen(name) + strlen(suffix));
     if (l > colwidth) {
         colwidth = l;
     }
-    /* Fixed off-by-one -J. */
     if ((p = malloc(offsetof(struct filename, line) + l + 1U)) == NULL) {
         return;
     }
     if (SNCHECK(snprintf(p->line, l + 1U, "%s%s", name, suffix), l + 1U)) {
         _EXIT(EXIT_FAILURE);
     }
-    if (tail) {
+    if (tail != NULL) {
         tail->down = p;
     } else {
         head = p;
@@ -394,7 +396,7 @@ static int listfile(const FileInfo * const fi,  const char *name)
 
 static void outputfiles(int f)
 {
-    int n;
+    unsigned int n;
     struct filename *p;
     struct filename *q;
 
@@ -403,17 +405,17 @@ static void outputfiles(int f)
     }
     tail->down = NULL;
     tail = NULL;
-    colwidth = (colwidth | 7) + 1;
+    colwidth = (colwidth | 7U) + 1U;
     if (opt_l != 0 || opt_C == 0) {
-        colwidth = 75;
+        colwidth = 75U;
     }
     /* set up first column */
     p = head;
     p->top = 1;
-    if (colwidth > 75) {
+    if (colwidth > 75U) {
         n = filenames;
     } else {
-        n = (filenames + (75 / colwidth) - 1) / (75 / colwidth);
+        n = (filenames + (75U / colwidth) - 1U) / (75U / colwidth);
     }
     while (n && p) {
         p = p->down;
@@ -459,7 +461,7 @@ static void outputfiles(int f)
             if (q->right) {
                 memset(pad, '\t', sizeof pad - 1U);
                 pad[(sizeof pad) - 1] = 0;
-                pad[(colwidth + 7 - strlen(q->line)) / 8] = 0;
+                pad[(colwidth + 7U - strlen(q->line)) / 8] = 0;
             } else {
                 pad[0] = '\r';
                 pad[1] = '\n';
@@ -474,8 +476,8 @@ static void outputfiles(int f)
 
     /* reset variables for next time */
     head = tail = NULL;
-    colwidth = 0;
-    filenames = 0;
+    colwidth = 0U;
+    filenames = 0U;
 }
 
 /* functions to to sort for qsort() */
@@ -550,8 +552,8 @@ static FileInfo *sreaddir(char **names_pnt)
         free(names);
         return NULL;
     }
-    while ((de = readdir(d)) != NULL) {        
-        if (lstat(de->d_name, &st) < 0) {
+    while ((de = readdir(d)) != NULL) {
+        if (checkprintable(de->d_name) != 0 || lstat(de->d_name, &st) < 0) {
             continue;
         }
         name_len = strlen(de->d_name) + (size_t) 1U;        
@@ -622,7 +624,7 @@ static FileInfo *sreaddir(char **names_pnt)
     return files_info;
 }
 
-/* have to change to the directory first ( speed hack for -R ) */
+/* have to change to the directory first (speed hack for -R) */
 static void listdir(unsigned int depth, int f, const char *name)
 {
     FileInfo *dir;

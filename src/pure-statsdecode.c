@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
     if (*file == '-' && file[1] == 0) {
         fp = stdin;
     } else {
-        if ((fp = fopen(file, "rt")) == NULL) {
+        if ((fp = fopen(file, "r")) == NULL) {
             perror("Can't open file: ");
             return -1;
         }

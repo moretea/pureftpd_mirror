@@ -70,7 +70,7 @@ static char *pw_mysql_escape_string(MYSQL * const id_sql_server,
 #ifdef HAVE_MYSQL_REAL_ESCAPE_STRING
     tolen = mysql_real_escape_string(id_sql_server, to, from, from_len);
 #else
-/* MySQL 3.22.x and earlier are obsolete. Better use 3.23.x or 4.x */
+    /* MySQL 3.22.x and earlier are obsolete. Better use 3.23.x or 4.x */
     tolen = mysql_escape_string(to, from, from_len);    
 #endif
     if (tolen >= to_len || 
@@ -283,8 +283,8 @@ void pw_mysql_check(AuthResult * const result,
 {
     MYSQL *id_sql_server = NULL;
     const char *spwd = NULL;           /* stored password */
-    const char *uid = NULL;            /* stored system login/uid */
-    const char *gid = NULL;            /* stored system group/gid */
+    const char *uid = sql_default_uid; /* stored system login/uid */
+    const char *gid = sql_default_gid; /* stored system group/gid */
     const char *dir = NULL;            /* stored home directory */
 #ifdef QUOTAS
     const char *sqta_fs = NULL;        /* stored quota files */    
@@ -370,16 +370,22 @@ void pw_mysql_check(AuthResult * const result,
                                   escaped_decimal_ip)) == NULL) {
         goto bye;
     }
-    if ((uid = pw_mysql_getquery(id_sql_server, sqlreq_getuid,
-                                 escaped_account, escaped_ip, 
-                                 escaped_port, escaped_peer_ip,
-                                 escaped_decimal_ip)) == NULL) {
+    if (uid == NULL) {
+        uid = pw_mysql_getquery(id_sql_server, sqlreq_getuid,
+                                escaped_account, escaped_ip, 
+                                escaped_port, escaped_peer_ip,
+                                escaped_decimal_ip);
+    }
+    if (uid == NULL) {
         goto bye;
     }
-    if ((gid = pw_mysql_getquery(id_sql_server, sqlreq_getgid,
-                                 escaped_account, escaped_ip,
-                                 escaped_port, escaped_peer_ip,
-                                 escaped_decimal_ip)) == NULL) {
+    if (gid == NULL) {
+        gid = pw_mysql_getquery(id_sql_server, sqlreq_getgid,
+                                escaped_account, escaped_ip,
+                                escaped_port, escaped_peer_ip,
+                                escaped_decimal_ip);
+    }
+    if (gid == NULL) {
         goto bye;
     }
     if ((dir = pw_mysql_getquery(id_sql_server, sqlreq_getdir,
@@ -546,8 +552,8 @@ void pw_mysql_check(AuthResult * const result,
             result->throttling_dl_changed = 1;
         }
     }
-#endif    
-    result->slow_tilde_expansion = 1;
+#endif
+    result->slow_tilde_expansion = !tildexp;
     result->auth_ok =- result->auth_ok;
     bye:
     if (committed == 0) {
@@ -615,7 +621,8 @@ void pw_mysql_check(AuthResult * const result,
 void pw_mysql_parse(const char * const file)
 {
     if (generic_parser(file, mysql_config_keywords) != 0) {
-        die(421, LOG_ERR, MSG_CONF_ERR ": " MSG_ILLEGAL_CONFIG_FILE_SQL ": %s" , file);
+        die(421, LOG_ERR, MSG_CONF_ERR ": " MSG_ILLEGAL_CONFIG_FILE_SQL ": %s",
+	    file);
     }    
     if (server == NULL && socket_path == NULL) {
         die(421, LOG_ERR, MSG_SQL_MISSING_SERVER);        
@@ -624,6 +631,13 @@ void pw_mysql_parse(const char * const file)
         free(socket_path);
         socket_path = NULL;
     }
+    if (tildexp_s != NULL) {
+	if ((tildexp = atoi(tildexp_s)) < 0) {
+	    tildexp = 0;
+	}
+	free(tildexp_s);
+	tildexp_s = NULL;	
+    }        
     if (port_s != NULL) {
         port = atoi(port_s);
         if (port <= 0 || port > 65535) {
@@ -649,7 +663,9 @@ void pw_mysql_exit(void)
     ZFREE(transactions);
     ZFREE(sqlreq_getpw);
     ZFREE(sqlreq_getuid);
+    ZFREE(sql_default_uid);
     ZFREE(sqlreq_getgid);
+    ZFREE(sql_default_gid);
     ZFREE(sqlreq_getdir);
 #ifdef QUOTAS
     ZFREE(sqlreq_getqta_fs);

@@ -2,7 +2,7 @@
 If you never heard about MySQL before, *DON'T* enable MySQL support in
 Pure-FTPd. MySQL is useless if you don't have to manage many shared
 accounts. But well... if you want to learn about MySQL anyway, here's a good
-starting point : http://www.mysql.com
+starting point : http://www.mysql.com/ .
 
 
        ------------------------ MYSQL SUPPORT ------------------------
@@ -14,7 +14,7 @@ database.
 
 To compile the server with MySQL support, you first have to build and
 install the MySQL client libraries. MySQL is freely available from
-http://www.mysql.com and binary packages are included in many major
+http://www.mysql.com/ and binary packages are included in many major
 distributions. But if you choose a binary form, don't forget to also install
 the development packages if they are available separately.
 
@@ -147,6 +147,17 @@ Please note that a login can only contains common characters : A...Z, a...z,
 0...9, -, ., _, space, :, @ and ' . For security purposes, other characters
 are forbidden.
 
+You can also remove uid and gid fields in your tables, and use default
+values instead (thus saving useless lookups) . Two directives are
+useful to serve that purpose : MYSQLDefaultUID and MYSQLDefaultGID.
+
+Obvious example :
+
+MYSQLDefaultUID 1000
+MYSQLDefaultGID 1000
+
+Using these directives overrides MYSQLGetUID and MYSQLGetGID.
+
 
      ------------------------ PER-USER SETTINGS ------------------------
 
@@ -171,11 +182,16 @@ MySQLGetRatioUL SELECT ULRatio FROM users WHERE User="\L"
 MySQLGetRatioDL SELECT DLRatio FROM users WHERE User="\L"
 
 - MySQLGetBandwidthUL and MySQLGetBandwidthDL are optional upload and
-download bandwidth restrictions. Returned values should be in Kb/s.
+download bandwidth restrictions. Returned values should be in KB/s.
 
 Example :
 MySQLGetBandwidthUL SELECT ULBandwidth FROM users WHERE User="\L"
 MySQLGetBandwidthDL SELECT DLBandwidth FROM users WHERE User="\L"
+
+- MySQLForceTildeExpansion is yet another optional feature, to enable "~"
+expansion in paths. 0 disables it (default), 1 enables it. Only enable this
+if real (system) users and virtual (MySQL) users match. In all other cases,
+don't enable it blindly.
 
 
        ------------------------ TRANSACTIONS ------------------------

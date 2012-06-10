@@ -151,7 +151,7 @@
 #define MSG_RENAME_NORNFR "T'as rien compris a la vie"
 #define MSG_RENAME_FAILURE "Ahaahaha, ca a foire, bien fait"
 #define MSG_RENAME_SUCCESS "Bon voila, c'est fait"
-#define MSG_NO_SUPERSERVER "PureFTPd faut le lancer a partir d'un super-serveur"
+#define MSG_NO_SUPERSERVER "Pure-FTPd faut le lancer a partir d'un super-serveur"
 #define MSG_NO_FTP_ACCOUNT "Y a meme pas de compte 'ftp' sur cette becane de merde"
 #define MSG_CONF_ERR "Ta conf elle est pourrie"
 #define MSG_NO_VIRTUAL_FILE "Et le fichier de conf avec les users, il est ou?"

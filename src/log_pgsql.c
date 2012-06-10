@@ -340,8 +340,8 @@ void pw_pgsql_check(AuthResult * const result,
 {
     PGconn *id_sql_server = NULL;
     const char *spwd = NULL;           /* stored password */
-    const char *uid = NULL;            /* stored system login/uid */
-    const char *gid = NULL;            /* stored system group/gid */
+    const char *uid = sql_default_uid; /* stored system login/uid */
+    const char *gid = sql_default_gid; /* stored system group/gid */
     const char *dir = NULL;            /* stored home directory */
 #ifdef QUOTAS
     const char *sqta_fs = NULL;        /* stored quota files */    
@@ -425,16 +425,22 @@ void pw_pgsql_check(AuthResult * const result,
                                   escaped_decimal_ip)) == NULL) {
         goto bye;
     }
-    if ((uid = pw_pgsql_getquery(id_sql_server, sqlreq_getuid,
-                                 escaped_account, escaped_ip, 
-                                 escaped_port, escaped_peer_ip,
-                                 escaped_decimal_ip)) == NULL) {
+    if (uid == NULL) {
+        uid = pw_pgsql_getquery(id_sql_server, sqlreq_getuid,
+                                escaped_account, escaped_ip, 
+                                escaped_port, escaped_peer_ip,
+                                escaped_decimal_ip);
+    }
+    if (uid == NULL) {
         goto bye;
     }
-    if ((gid = pw_pgsql_getquery(id_sql_server, sqlreq_getgid,
-                                 escaped_account, escaped_ip,
-                                 escaped_port, escaped_peer_ip,
-                                 escaped_decimal_ip)) == NULL) {
+    if (gid == NULL) {
+        gid = pw_pgsql_getquery(id_sql_server, sqlreq_getgid,
+                                escaped_account, escaped_ip,
+                                escaped_port, escaped_peer_ip,
+                                escaped_decimal_ip);
+    }
+    if (gid == NULL) {
         goto bye;
     }
     if ((dir = pw_pgsql_getquery(id_sql_server, sqlreq_getdir,
@@ -671,7 +677,9 @@ void pw_pgsql_exit(void)
     ZFREE(crypto);
     ZFREE(sqlreq_getpw);
     ZFREE(sqlreq_getuid);
+    ZFREE(sql_default_uid);
     ZFREE(sqlreq_getgid);
+    ZFREE(sql_default_gid);
     ZFREE(sqlreq_getdir);
 #ifdef QUOTAS
     ZFREE(sqlreq_getqta_fs);
