@@ -1,5 +1,5 @@
 %define name       pure-ftpd
-%define version    1.0.21
+%define version    1.0.22
 %define builddir   $RPM_BUILD_DIR/%{name}-%{version}
 %define no_install_post_compress_docs    1
 %define con_pam    0
@@ -85,7 +85,7 @@ Name:              %{name}
 Version:           %{version}
 Release:           %{release}
 Vendor:            Generic
-Packager:          Frank DENIS <j@pureftpd.org>
+Packager:          Frank DENIS <j at pureftpd dot org>
 URL:               http://www.pureftpd.org/
 Source:            ftp://ftp.pureftpd.org/pub/pure-ftpd/releases/%{name}-%{version}.tar.gz
 Group:             System Environment/Daemons
@@ -192,7 +192,7 @@ CFLAGS="$RPM_OPT_FLAGS" ./configure --prefix=%{prefix} \
   --with-tls \
 %endif  
 %if %{con_rfc2640}
-  --with-rfc2640
+  --with-rfc2640 \
 %endif
 %if %{con_sysquotas}
   --with-sysquotas \
@@ -299,7 +299,7 @@ install -m 755 configuration-file/pure-config.pl_replaced $RPM_BUILD_ROOT%{prefi
 %{_mandir}/man8/*
 
 %defattr(-, root, root)
-%doc FAQ THANKS README.Donations README.MacOS-X README.Authentication-Modules README.Windows README.Virtual-Users README.Debian README README.Contrib README.Configuration-File pureftpd.schema AUTHORS CONTACT HISTORY NEWS README.LDAP README.PGSQL README.MySQL README.Netfilter README.TLS pureftpd-ldap.conf pureftpd-mysql.conf pureftpd-pgsql.conf
+%doc FAQ THANKS README.Donations README.MacOS-X README.Authentication-Modules README.Windows README.Virtual-Users README.Debian README README.Contrib README.Configuration-File pureftpd.schema AUTHORS CONTACT HISTORY NEWS README.LDAP README.PGSQL README.MySQL README.TLS pureftpd-ldap.conf pureftpd-mysql.conf pureftpd-pgsql.conf
 
 %config(noreplace) %{sysconfdir}/*.conf
 %if %{con_pam}
@@ -310,19 +310,22 @@ install -m 755 configuration-file/pure-config.pl_replaced $RPM_BUILD_ROOT%{prefi
 %endif
 
 %changelog
-* Mon Feb 06 2006 Frank Denis <j@pureftpd.org>
+* Mon Apr 25 2009 Frank Denis <j at pureftpd dot org>
+- README.Netfilter is no more.
+
+* Mon Feb 06 2006 Frank Denis <j at pureftpd dot org>
 - New con_rfc2640 switch.
 
-* Thu May 19 2005 Frank DENIS <j@pureftpd.org>
+* Thu May 19 2005 Frank DENIS <j at pureftpd dot org>
 - Rendezvous has been renamed Bonjour.
 
-* Sun Oct 03 2004 Frank DENIS <j@pureftpd.org>
+* Sun Oct 03 2004 Frank DENIS <j at pureftpd dot org>
 - Rendezvous has been renamed Opentalk.
 
-* Sun Feb 29 2004 Frank DENIS <j@pureftpd.org>
+* Sun Feb 29 2004 Frank DENIS <j at pureftpd dot org>
 - Add a knob for rendezvous.
 
-* Wed Nov 20 2002 Frank DENIS <j@pureftpd.org>
+* Wed Nov 20 2002 Frank DENIS <j at pureftpd dot org>
 - Remove --with-everything and add lotsa new knobs.
 
 * Mon Aug  5 2002 Johannes Erdfelt <johannes@erdfelt.com>
@@ -334,5 +337,5 @@ install -m 755 configuration-file/pure-config.pl_replaced $RPM_BUILD_ROOT%{prefi
 * Tue Jun 11 2002 Bernhard Weisshuhn <bkw@weisshuhn.de>
 - Added with_pcap
 
-* Tue Dec 26 2001 Frank DENIS <j@pureftpd.org>
+* Tue Dec 26 2001 Frank DENIS <j at pureftpd dot org>
 - Added with_ldap, with_pgsql and with_mysql

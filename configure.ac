@@ -1,10 +1,10 @@
 dnl AM_ACLOCAL_INCLUDE(m4)
 
-AC_PREREQ(2.59)
-AC_INIT([pure-ftpd],[1.0.21],[bugs@pureftpd.org])
+AC_PREREQ(2.61)
+AC_INIT([pure-ftpd],[1.0.22],[bugs at pureftpd dot org])
 AC_CONFIG_SRCDIR(src/ftpd.c)
 AC_CONFIG_HEADERS([config.h])
-AM_INIT_AUTOMAKE([1.6 dist-bzip2])
+AM_INIT_AUTOMAKE([1.9 dist-bzip2])
 AC_CONFIG_LIBOBJ_DIR(src)
 
 AC_SUBST(VERSION)
@@ -16,8 +16,9 @@ dnl Checks for programs.
 AC_PROG_INSTALL
 AC_PROG_RANLIB
 AC_PROG_CC
-AC_AIX
-AC_ISC_POSIX
+AM_PROG_CC_C_O
+AC_USE_SYSTEM_EXTENSIONS
+AC_SEARCH_LIBS([strerror],[cposix])
 
 
 AC_ARG_VAR(PERL,local path to the perl interpreter)
@@ -27,8 +28,6 @@ AC_PATH_PROG(PERL,perl,/usr/bin/env perl,$perl_possible_path)
 AC_ARG_VAR(PYTHON,local path to the python interpreter)
 python_possible_path="/usr/bin:/usr/local/bin:/bin:/opt/python/bin:/opt/python/usr/bin:/opt/python/usr/local/bin"
 AC_PATH_PROG(PYTHON,python,/usr/bin/env python,$python_possible_path)
-
-CPPFLAGS="$CPPFLAGS -D_GNU_SOURCE=1"
 
 if test -d /usr/local/include; then
   CPPFLAGS="$CPPFLAGS -I/usr/local/include"
@@ -42,12 +41,9 @@ if test -d /usr/local/lib; then
   LDFLAGS="$LDFLAGS -L/usr/local/lib"
 fi
 
-if uname | fgrep SunOS > /dev/null 2> /dev/null ; then
-  CPPFLAGS="$CPPFLAGS -D__EXTENSIONS__=1 -D_XPG4_2=1"
-fi
-
 dnl Checks for header files
 
+AC_SYS_LARGEFILE
 AC_HEADER_STDC
 AC_HEADER_STAT
 AC_HEADER_TIME
@@ -77,8 +73,6 @@ AC_CHECK_HEADERS(openssl/ssl.h)
 AC_CHECK_HEADERS(CoreFoundation/CoreFoundation.h)
 AC_CHECK_HEADERS(iconv.h)
 AC_SYS_POSIX_TERMIOS
-AC_SYS_LARGEFILE
-AC_DEFINE(WITH_LARGE_FILES,,[with largefile])
 
 if test "x$ac_cv_sys_posix_termios" = "xyes"; then
 AC_DEFINE(HAVE_POSIX_TERMIOS,,[Define if you have POSIX termios])
@@ -91,10 +85,12 @@ dnl Checks for types
 
 AC_TYPE_SIGNAL
 AC_TYPE_SIZE_T
+AC_TYPE_SSIZE_T
 AC_TYPE_UID_T
 AC_TYPE_PID_T
 AC_TYPE_OFF_T
 AC_TYPE_MODE_T
+AC_STRUCT_TM
 AC_STRUCT_TIMEZONE
 AC_CHECK_MEMBER(struct tm.tm_gmtoff, [AC_DEFINE(STRUCT_TM_TM_GMTOFF,,[Define if you have struct tm/tm_gmtoff])],,[
 #include <sys/types.h>
@@ -181,23 +177,23 @@ AC_CHECK_TYPE(socklen_t, , [AC_DEFINE(socklen_t, int, [socklen_t type])],
 #endif
 #include <sys/types.h>
 #include <sys/socket.h>
+#ifdef HAVE_NETINET_IN_SYSTM_H
+# include <netinet/in_systm.h>
+#endif
+#include <netinet/in.h>
 ])
 
-AC_CHECK_TYPE(ssize_t, , [AC_DEFINE(ssize_t, long int, [ssize_t type])],
+AC_CHECK_TYPE(in_port_t, , [AC_DEFINE(in_port_t, unsigned short, [in_port_t type])],
 [
-#include <stdio.h>
-#ifdef STDC_HEADERS
-# include <stdlib.h>
-# include <stddef.h>
-#else
-# if HAVE_STDLIB_H
-#  include <stdlib.h>
-# endif
-#endif
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
 #endif
 #include <sys/types.h>
+#include <sys/socket.h>
+#ifdef HAVE_NETINET_IN_SYSTM_H
+# include <netinet/in_systm.h>
+#endif
+#include <netinet/in.h>
 ])
 
 AC_CHECK_TYPE(sig_atomic_t, , [AC_DEFINE(sig_atomic_t, signed char, [sig_atomic_t type])],
@@ -361,7 +357,7 @@ AC_ARG_WITH(minimal,
     AC_DEFINE(WITHOUT_ASCII)    
     AC_DEFINE(NO_BANNER)
     AC_DEFINE(BORING_MODE)
-    CFLAGS="$CFLAGS -Os -ftracer -fomit-frame-pointer -fssa -fgcse -falign-functions=2 -falign-jumps=2 -fno-unroll-loops "
+    CFLAGS="$CFLAGS -Os -fomit-frame-pointer -fgcse -falign-functions=2 -falign-jumps=2 -fno-unroll-loops "
     LDFLAGS="$LDFLAGS -s "
   fi ])
 
@@ -718,12 +714,6 @@ AC_ARG_WITH(ftpwho,
     AC_DEFINE(FTPWHO,,[with ftpwho])
   fi ])
 
-AC_ARG_WITH(largefile,
-[AS_HELP_STRING(--with-largefile,Support for files > 2 Gb)],
-[ if test "x$withval" = "xyes" ; then
-    AC_MSG_WARN(Support for large files is now enabled by default)
-  fi ])
-
 AC_ARG_WITH(welcomemsg,
 [AS_HELP_STRING(--with-welcomemsg,Support welcome.msg backward compatibility (deprecated))],
 [ if test "x$withval" = "xyes" ; then
@@ -791,6 +781,9 @@ AC_ARG_WITH(everything,
     AC_DEFINE(FTPWHO)
     AC_DEFINE(WITH_DIRALIASES)
     AC_DEFINE(PER_USER_LIMITS)
+if test "x$non_root_ftp" != "xyes" ; then
+    AC_DEFINE(WITH_PRIVSEP)
+fi
     with_bonjour='yes'
   fi ])
 
@@ -872,19 +865,22 @@ AC_FUNC_LSTAT
 AC_FUNC_FORK
 AC_FUNC_ERROR_AT_LINE
 AC_FUNC_CLOSEDIR_VOID
+AC_FUNC_CHOWN
+AC_FUNC_MALLOC
+AC_FUNC_REALLOC
 AC_C_VOLATILE
 
 
 AC_CHECK_FUNCS(initgroups setrlimit waitpid setproctitle getopt_long)
 AC_CHECK_FUNCS(seteuid setreuid setresuid setegid setregid setresgid)
-AC_CHECK_FUNCS(statvfs statfs putenv getpagesize realpath pread ptrace)
+AC_CHECK_FUNCS(statvfs statfs putenv setenv unsetenv getpagesize realpath pread ptrace)
 AC_CHECK_FUNCS(strtoull strtoq)
 AC_CHECK_FUNCS(strlcpy strlcat)
 AC_CHECK_FUNCS(memset munmap strdup fileno mapviewoffile madvise)
 AC_CHECK_FUNCS(getaddrinfo getnameinfo inet_ntop inet_pton)
 AC_CHECK_FUNCS(setusershell setgroups snprintf vsnprintf vfprintf gethostname)
-AC_CHECK_FUNCS(setlocale)
-AC_CHECK_FUNCS(utime utimes mknod mkfifo)
+AC_CHECK_FUNCS(setlocale timegm)
+AC_CHECK_FUNCS(tzset utime utimes mknod mkfifo)
 AC_CHECK_FUNCS(random srandomdev)
 AC_CHECK_FUNCS(closefrom)
 
@@ -1284,7 +1280,7 @@ AC_ARG_WITH(certfile,
     certfile="$withval"
     AC_SUBST(certfile)
     CPPFLAGS="$CPPFLAGS -DTLS_CERTIFICATE_FILE='\"$certfile\"'"
-    if test -e "$certfile"; then
+    if test ! -e "$certfile"; then
       AC_MSG_WARN(No certificate is installed in $certfile yet)
     fi
   fi ])
@@ -1311,7 +1307,7 @@ AC_ARG_WITH(bonjour,
 
 if test "x$with_bonjour" = "xyes" ; then
   if test "x$ac_cv_header_CoreFoundation_CoreFoundation_h" = "xyes" ; then
-    AC_DEFINE(WITH_OSX_BONJOUR,,[Enable Bonjour on MacOS X])
+    AC_DEFINE(WITH_BONJOUR,,[Enable Bonjour on MacOS X])
     BONJOUR_LDADD='-framework CoreFoundation -framework CoreServices'
   fi
 fi

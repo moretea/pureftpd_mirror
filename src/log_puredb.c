@@ -228,7 +228,7 @@ static int pw_puredb_parseline(char *line, const char * const pwd,
     if (result->uid <= (uid_t) 0 || result->gid <= (gid_t) 0) {
         return -1;
     }
-    if ((line = my_strtok2(NULL, *PW_LINE_SEP)) == NULL) {   /* gecos */
+    if (my_strtok2(NULL, *PW_LINE_SEP) == NULL) {   /* gecos */
         return -1;
     }
     if ((line = my_strtok2(NULL, *PW_LINE_SEP)) == NULL || *line == 0) {   /* home */

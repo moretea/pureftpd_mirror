@@ -94,6 +94,9 @@ default) .
 - LDAPVersion is the protocol version to use. Version 3 is recommended and
 needed with OpenLDAP servers. It is the default.
 
+- LDAPUseTLS can be True or False. True means that the server should use TLS
+to connect to the LDAP server.
+
 In fact, the only mandatory keyword is LDAPBaseDN. Other keywords are
 optional and defaults are ok for local testing.
 
@@ -233,5 +236,5 @@ compromised, the attacker could also easily compromise the FTP server.
 
 
 
-          -Frank DENIS <j@pureftpd.org>.
-          -Ben Gertzfield <che@debian.org.
+          -Frank DENIS <j at pureftpd dot org>.
+          -Ben Gertzfield <che at debian dot org>.

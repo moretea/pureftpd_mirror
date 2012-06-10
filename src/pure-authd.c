@@ -299,6 +299,11 @@ static void callback_client_peer_host(const char *str)
     newenv_str(ENV_AUTHD_PEER_HOST, str);
 }
 
+static void callback_client_encrypted(const char *str)
+{
+    newenv_str(ENV_AUTHD_ENCRYPTED, str);
+}
+
 static void callback_client_end(const char *str)
 {
     (void) str;

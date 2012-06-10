@@ -73,11 +73,8 @@ commands:
 * Solaris : mount -F lofs /var/incoming /home/john/incoming
             mount -F lofs /var/incoming /home/joe/incoming
 
-* BSD     : mount_null /var/incoming /home/john/incoming
+* FreeBSD : mount_null /var/incoming /home/john/incoming
             mount_null /var/incoming /home/joe/incoming
-
-Warning: FreeBSD's mount_null is broken and causes kernel crashes with all
-FreeBSD systems prior to release 4.4 .
 
 Another alternative is to compile Pure-FTPd with --with-virtualchroot as a
 ./configure option. With virtual chroot, symbolic links pointing outside a
@@ -744,7 +741,7 @@ reserve ports 10000 to 20000 for your FTP server, but not 30000 to 40000.
   ---------------------------- Cut here ----------------------------
   
 #! /bin/sh
-# Simple bandwidth limiter - <j@4u.net>
+# Simple bandwidth limiter - <j at pureftpd.org>
 
 # Change this to your link bandwidth
 # (for cable modem, DSL links, etc. put the maximal bandwidth you can
@@ -871,6 +868,19 @@ server and a TLS-enabled client, but that firewall is unable to handle
 encrypted FTP sessions. Unfortunately, there's no simple workaround against
 this. Try to switch your client to active mode and use 1:1 NAT, but SSL/TLS,
 firewalls and FTP don't mix very well.
+
+
+
+* Slow TLS operations.
+
+-> When clients connect with TLS encryption, listing directories and
+downloading files are slow operations. Nothing happens after a command is
+sent, things only start moving after a 5 secondes delay.
+
+Check the host name of your certificate. It should be a fully-qualified host
+name and if possible, it shouldn't be a CNAME entry.
+
+Also check your DNS cache servers.
 
 
 

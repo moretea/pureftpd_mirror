@@ -15,45 +15,6 @@
 # include <dmalloc.h>
 #endif
 
-static size_t prv_PQescapeString(char * const to, const char * const from,
-                                 const size_t length)
-{
-    register const char *source = from;
-    register char *target = to;
-    size_t remaining = length;
-    
-    while (remaining > (size_t) 0U) {
-        switch (*source) {
-        case 0:
-            remaining = (size_t) 1U;
-            break;
-        case '\r':
-            *target++ = '\\';
-            *target++ = 'r';            
-            break;
-        case '\n':
-            *target++ = '\\';
-            *target++ = 'n';
-            break;
-        case '\b':
-            *target++ = '\\';
-            *target++ = 'b';
-            break;            
-        case '\\':
-        case '\'':
-        case '"':
-            *target++ = '\\';
-        default:
-            *target++ = *source;
-        }
-        source++;
-        remaining--;        
-    }    
-    *target = 0;
-    
-    return (size_t) (target - to);
-}
-
 static int pw_pgsql_validate_name(const char *name)
 {
     if (name == NULL || *name == 0) {
@@ -76,12 +37,16 @@ static int pw_pgsql_validate_name(const char *name)
     return 0;
 }
 
-static char *pw_pgsql_escape_string(const char *from)
+static char *pw_pgsql_escape_string(PGconn * const id_sql_server,
+                                    const char *from)
 {
     size_t from_len;
     size_t to_len;
     char *to;
-    size_t tolen;    
+    size_t tolen;
+    unsigned int t;
+    unsigned char t1, t2;    
+    int error;
             
     if (from == NULL) {
         return NULL;
@@ -91,14 +56,32 @@ static char *pw_pgsql_escape_string(const char *from)
     if ((to = malloc(to_len)) == NULL) {
         return NULL;
     }
-    tolen = prv_PQescapeString(to, from, from_len);
-    if (tolen >= to_len) {
+    t = zrand();
+    t1 = t & 0xff;
+    t2 = (t >> 8) & 0xff;
+    to[to_len] = (char) t1;
+    to[to_len + 1] = (char) t2;
+    /*
+     * I really hate giving a buffer without any size to a 3rd party function.
+     * The "to" buffer is allocated on the heap, not on the stack, if
+     * PQescapeStringConn() is buggy, the stack shouldn't be already
+     * smashed at this point, but data from other malloc can be corrupted and
+     * bad things can happen. It make sense to wipe this area as soon as
+     * possible instead of doing anything with the heap. We'll end up with
+     * a segmentation violation, but without any possible exploit.
+     */
+    tolen = PQescapeStringConn(id_sql_server, to, from, from_len, &error);
+    if (tolen >= to_len || 
+        (unsigned char) to[to_len] != t1 ||
+        (unsigned char) to[to_len + 1] != t2) {
         for (;;) {
             *to++ = 0;
         }
     }
     to[tolen] = 0;
-                
+    if (error != 0) {
+        return NULL;
+    }                
     return to;
 }
 
@@ -206,6 +189,75 @@ static char *sqlsubst(const char *orig_str, char * const query,
     return query;
 }
 
+static size_t pw_pgsql_escape_conninfo_(char * const to,
+                                        const char * const from,
+                                        const size_t length)
+{
+    register const char *source = from;
+    register char *target = to;
+    size_t remaining = length;
+    
+    while (remaining > (size_t) 0U) {
+        switch (*source) {
+        case 0:
+            remaining = (size_t) 1U;
+            break;
+        case '\r':
+            *target++ = '\\';
+            *target++ = 'r';            
+            break;
+        case '\n':
+            *target++ = '\\';
+            *target++ = 'n';
+            break;
+        case '\b':
+            *target++ = '\\';
+            *target++ = 'b';
+            break;
+        case '\'':
+            *target++ = '\'';
+            *target++ = '\'';
+            break;
+        case '\\':
+        case '"':
+            *target++ = '\\';
+        default:
+            *target++ = *source;
+        }
+        source++;
+        remaining--;        
+    }    
+    *target = 0;
+    
+    return (size_t) (target - to);
+}
+
+static char *pw_pgsql_escape_conninfo(const char *from)
+{
+    size_t from_len;
+    size_t to_len;
+    char *to;
+    size_t tolen;    
+            
+    if (from == NULL) {
+        return NULL;
+    }
+    from_len = strlen(from);
+    to_len = from_len * 2U + (size_t) 1U;
+    if ((to = malloc(to_len)) == NULL) {
+        return NULL;
+    }
+    tolen = pw_pgsql_escape_conninfo_(to, from, from_len);
+    if (tolen >= to_len) {
+        for (;;) {
+            *to++ = 0;
+        }
+    }
+    to[tolen] = 0;
+                
+    return to;
+}
+
 static int pw_pgsql_connect(PGconn ** const id_sql_server)
 {
     char *conninfo = NULL;
@@ -218,10 +270,10 @@ static int pw_pgsql_connect(PGconn ** const id_sql_server)
 
     *id_sql_server = NULL;
     
-    if ((escaped_server = pw_pgsql_escape_string(server)) == NULL ||
-        (escaped_db = pw_pgsql_escape_string(db)) == NULL ||        
-        (escaped_user = pw_pgsql_escape_string(user)) == NULL ||
-        (escaped_pw = pw_pgsql_escape_string(pw)) == NULL) {
+    if ((escaped_server = pw_pgsql_escape_conninfo(server)) == NULL ||
+        (escaped_db = pw_pgsql_escape_conninfo(db)) == NULL ||
+        (escaped_user = pw_pgsql_escape_conninfo(user)) == NULL ||
+        (escaped_pw = pw_pgsql_escape_conninfo(pw)) == NULL) {
         goto bye;
     }
     
@@ -241,11 +293,10 @@ static int pw_pgsql_connect(PGconn ** const id_sql_server)
     }    
     if ((*id_sql_server = PQconnectdb(conninfo)) == NULL ||
         PQstatus(*id_sql_server) == CONNECTION_BAD) {
-        free(conninfo);
-    if (server_down == 0) {
-        server_down++;
-        logfile(LOG_ERR, MSG_SQL_DOWN);
-    }
+        if (server_down == 0) {
+            server_down++;
+            logfile(LOG_ERR, MSG_SQL_DOWN);
+        }
         goto bye;
     }
     server_down = 0;
@@ -387,23 +438,23 @@ void pw_pgsql_check(AuthResult * const result,
         goto bye;
     }
     if ((escaped_account = 
-         pw_pgsql_escape_string(account)) == NULL) {
+         pw_pgsql_escape_string(id_sql_server, account)) == NULL) {
         goto bye;
     }
     if ((escaped_ip = 
-         pw_pgsql_escape_string(hbuf)) == NULL) {
+         pw_pgsql_escape_string(id_sql_server, hbuf)) == NULL) {
         goto bye;
     }
     if ((escaped_port = 
-         pw_pgsql_escape_string(pbuf)) == NULL) {
+         pw_pgsql_escape_string(id_sql_server, pbuf)) == NULL) {
         goto bye;
     }
     if ((escaped_peer_ip = 
-         pw_pgsql_escape_string(phbuf)) == NULL) {
+         pw_pgsql_escape_string(id_sql_server, phbuf)) == NULL) {
         goto bye;
     }
     if ((escaped_decimal_ip = 
-         pw_pgsql_escape_string(decimal_ip)) == NULL) {
+         pw_pgsql_escape_string(id_sql_server, decimal_ip)) == NULL) {
         goto bye;
     }
     if (pw_pgsql_simplequery(id_sql_server, PGSQL_TRANSACTION_START) == 0) {
@@ -572,7 +623,7 @@ void pw_pgsql_check(AuthResult * const result,
     }
 #endif    
     result->slow_tilde_expansion = 1;
-    result->auth_ok =- result->auth_ok;
+    result->auth_ok = -result->auth_ok;
     bye:
     if (committed == 0) {
         (void) pw_pgsql_simplequery(id_sql_server, PGSQL_TRANSACTION_END);

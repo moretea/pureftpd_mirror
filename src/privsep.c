@@ -20,7 +20,7 @@ static int privsep_sendcmd(const int psfd, const void * const cmdarg,
     while ((sent = send(psfd, cmdarg, cmdarg_len, 0)) == (ssize_t) -1 &&
            errno == EINTR);
     if (sent != (ssize_t) cmdarg_len) {
-    return -1;
+        return -1;
     }    
     return 0;
 }
@@ -29,7 +29,7 @@ static int privsep_recvcmd(const int psfd, void * const cmdarg,
                            const size_t cmdarg_len)
 {
     ssize_t received;
-        
+    
     while ((received = recv(psfd, cmdarg, cmdarg_len, 0)) == (ssize_t) -1 &&
            errno == EINTR);
     if (received != (ssize_t) cmdarg_len) {
@@ -39,18 +39,22 @@ static int privsep_recvcmd(const int psfd, void * const cmdarg,
 }
 
 int privsep_sendfd(const int psfd, const int fd)
-{    
+{
     char *buf;
     int *fdptr;
     struct cmsghdr *cmsg;    
     struct msghdr msg;
     struct iovec vec;
     const size_t sizeof_buf = CMSG_SPACE(sizeof *fdptr);
+    size_t sizeof_buf_ = sizeof_buf;
     PrivSepCmd fodder = PRIVSEPCMD_ANSWER_FD;
     ssize_t sent;
     
-    if ((buf = ALLOCA(sizeof_buf)) == NULL) {
-    return -1;
+    if (sizeof_buf_ < sizeof *cmsg) {
+        sizeof_buf_ = sizeof *cmsg;
+    }
+    if ((buf = ALLOCA(sizeof_buf_)) == NULL) {
+        return -1;
     }
     memset(&msg, 0, sizeof msg);
     vec.iov_base = (void *) &fodder;
@@ -63,22 +67,22 @@ int privsep_sendfd(const int psfd, const int fd)
     msg.msg_controllen = sizeof_buf;
     msg.msg_flags = 0;
     if ((cmsg = CMSG_FIRSTHDR(&msg)) == NULL) {
-    ALLOCA_FREE(buf);
-    return -1;
+        ALLOCA_FREE(buf);
+        return -1;
     }
     cmsg->cmsg_len = CMSG_LEN(sizeof fd);
     cmsg->cmsg_level = SOL_SOCKET;
     cmsg->cmsg_type = SCM_RIGHTS;
     if ((fdptr = (int *) CMSG_DATA(cmsg)) == NULL) {
-    ALLOCA_FREE(buf);    
-    return -1;
+        ALLOCA_FREE(buf);    
+        return -1;
     }
     *fdptr = fd;
     msg.msg_controllen = cmsg->cmsg_len;
     while ((sent = sendmsg(psfd, &msg, 0)) == (ssize_t) -1 && errno == EINTR);
     ALLOCA_FREE(buf);    
     if (sent != (ssize_t) sizeof fodder) {
-    return -1;
+        return -1;
     }
     return 0;
 }    
@@ -91,11 +95,15 @@ int privsep_recvfd(const int psfd)
     struct msghdr msg;
     struct iovec vec;
     const size_t sizeof_buf = CMSG_SPACE(sizeof *fdptr);
-    PrivSepCmd fodder;    
+    size_t sizeof_buf_ = sizeof_buf;
+    PrivSepCmd fodder = 0;
     ssize_t received;
     
-    if ((buf = ALLOCA(sizeof_buf)) == NULL) {
-    return -1;
+    if (sizeof_buf_ < sizeof *cmsg) {
+        sizeof_buf_ = sizeof *cmsg;
+    }
+    if ((buf = ALLOCA(sizeof_buf_)) == NULL) {
+        return -1;
     }
     memset(&msg, 0, sizeof msg);
     vec.iov_base = (void *) &fodder;
@@ -108,19 +116,25 @@ int privsep_recvfd(const int psfd)
     msg.msg_controllen = sizeof_buf;
     msg.msg_flags = 0;
     if ((cmsg = CMSG_FIRSTHDR(&msg)) == NULL ||
-    (fdptr = (int *) CMSG_DATA(cmsg)) == NULL) {    
-    ALLOCA_FREE(buf);
-    return -1;    
+        (fdptr = (int *) CMSG_DATA(cmsg)) == NULL) {    
+        ALLOCA_FREE(buf);
+        return -1;    
     }    
     *fdptr = -1;
     while ((received = recvmsg(psfd, &msg, 0)) == (ssize_t) -1 && 
            errno == EINTR);
+# if defined(MSG_TRUNC) && defined(MSG_CTRUNC)        
+    if ((msg.msg_flags & MSG_TRUNC) || (msg.msg_flags & MSG_CTRUNC)) {
+        ALLOCA_FREE(buf);
+        return -1;        
+    }
+# endif
     if (received != (ssize_t) sizeof fodder ||
-    fodder != PRIVSEPCMD_ANSWER_FD ||
-    (cmsg = CMSG_FIRSTHDR(&msg)) == NULL ||
-    (fdptr = (int *) CMSG_DATA(cmsg)) == NULL) {
-    ALLOCA_FREE(buf);
-    return -1;
+        fodder != PRIVSEPCMD_ANSWER_FD ||
+        (cmsg = CMSG_FIRSTHDR(&msg)) == NULL ||
+        (fdptr = (int *) CMSG_DATA(cmsg)) == NULL) {
+        ALLOCA_FREE(buf);
+        return -1;
     }
     return *fdptr;
 }
@@ -156,8 +170,8 @@ int privsep_removeftpwhoentry(void)
 int privsep_privpart_bindresport(const int psfd, 
                                  const PrivSepQuery * const query)
 {
-    static const unsigned short portlist[] = FTP_ACTIVE_SOURCE_PORTS;
-    const unsigned short *portlistpnt = portlist;    
+    static const in_port_t portlist[] = FTP_ACTIVE_SOURCE_PORTS;
+    const in_port_t *portlistpnt = portlist;    
     int fd;
     int on = 1;
     int ret;
@@ -184,7 +198,7 @@ int privsep_privpart_bindresport(const int psfd,
 # ifdef USE_ONLY_FIXED_DATA_PORT
         (void) sleep(1U);
 # else
-        if (*portlistpnt == (unsigned short) 0U) {
+        if (*portlistpnt == (in_port_t) 0U) {
             break;
         }
         portlistpnt++;
@@ -286,10 +300,10 @@ int privsep_init(void)
         return -1;
     }
     if (pid != (pid_t) 0) {
-	(void) close(sv[0]);
-	psfd = sv[1];
-	
-	return 0;
+        (void) close(sv[0]);
+        psfd = sv[1];
+        
+        return 0;
     }
     (void) close(sv[1]);        
     psfd = sv[0];

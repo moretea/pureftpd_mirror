@@ -81,7 +81,7 @@ void pw_unix_check(AuthResult * const result,
     result->gid = pw.pw_gid;
     result->dir = dir;
     result->slow_tilde_expansion = 0;
-    result->auth_ok =- result->auth_ok;
+    result->auth_ok = -result->auth_ok;
     return;
     
     bye:

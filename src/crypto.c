@@ -141,7 +141,7 @@ static char *debase64ify(char * const result, const unsigned char *encoded,
         size_encoded -= (size_t) 4U;        
     }
     *size_decoded = (size_t) (result_pnt - result) - extra;
-    *result_pnt++ = 0;
+    *result_pnt = 0;
     
     return result;
 }

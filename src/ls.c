@@ -20,8 +20,17 @@ static void wrstr(const int f, const char *s)
     
     if (s == NULL) {
         if (outcnt > (size_t) 0U) {
-            if (safe_write(f, outbuf, outcnt) != 0) {
-                return;
+#ifdef WITH_TLS
+            if (data_protection_level == CPL_PRIVATE) {
+                if (secure_safe_write(outbuf, outcnt) < 0) {
+                    return;
+                } 
+            } else
+#endif      
+            {
+                if (safe_write(f, outbuf, outcnt) != 0) {
+                    return;
+                }
             }
         }
         outcnt = (size_t) 0U;
@@ -42,15 +51,37 @@ static void wrstr(const int f, const char *s)
         s += rest;
         l -= rest;
     }
-    if (safe_write(f, outbuf, sizeof outbuf) != 0) {
-        return;
-    }
-    while (l > sizeof outbuf) {
-        if (safe_write(f, s, sizeof outbuf) != 0) {
+#ifdef WITH_TLS
+    if (data_protection_level == CPL_PRIVATE) {
+        if (secure_safe_write(outbuf, sizeof outbuf) < 0) {
+            return;
+        } 
+    } else
+#endif
+    {       
+        if (safe_write(f, outbuf, sizeof outbuf) != 0) {
             return;
         }
-        s += sizeof outbuf;
-        l -= sizeof outbuf;
+    }
+#ifdef WITH_TLS
+    if (data_protection_level == CPL_PRIVATE) {    
+        while (l > sizeof outbuf) {
+            if (secure_safe_write(s, sizeof outbuf) < 0) {
+                return;
+            }
+            s += sizeof outbuf;
+            l -= sizeof outbuf;
+        } 
+    } else
+#endif
+    {
+        while (l > sizeof outbuf) {
+            if (safe_write(f, s, sizeof outbuf) != 0) {
+                return;
+            }
+            s += sizeof outbuf;
+            l -= sizeof outbuf;
+        }
     }
     if (l > (size_t) 0U) {
         memcpy(outbuf, s, l);          /* safe, l <= sizeof outbuf */
@@ -61,17 +92,17 @@ static void wrstr(const int f, const char *s)
 #ifdef NO_FTP_USERS
 const char *getname(const uid_t uid)
 {
-    static char number[9];
+    static char number[11];
 
-    snprintf(number, sizeof number, "%-8d", uid);
+    snprintf(number, sizeof number, "%-10d", uid);
     return number;
 }
 
 const char *getgroup(const gid_t gid)
 {
-    static char number[9];
+    static char number[11];
 
-    snprintf(number, sizeof number, "%-8d", gid);
+    snprintf(number, sizeof number, "%-10d", gid);
     return number;
 }
 #else
@@ -97,17 +128,17 @@ const char *getname(const uid_t uid)
         die_mem();
     }
     p->uid = uid;
-    if ((p->name = malloc((size_t) 9U)) == NULL) {
+    if ((p->name = malloc((size_t) 11U)) == NULL) {
         die_mem();
     }
     if (pwd != NULL) {
-        if (SNCHECK(snprintf(p->name, (size_t) 9U, 
-                             "%-8.8s", pwd->pw_name), (size_t) 9U)) {
+        if (SNCHECK(snprintf(p->name, (size_t) 11U, 
+                             "%-10.10s", pwd->pw_name), (size_t) 11U)) {
             _EXIT(EXIT_FAILURE);
         }
     } else {
-        if (SNCHECK(snprintf(p->name, (size_t) 9U, "%-8d", uid), 
-                    (size_t) 9U)) {
+        if (SNCHECK(snprintf(p->name, (size_t) 11U, "%-10d", uid), 
+                    (size_t) 11U)) {
             _EXIT(EXIT_FAILURE);
         }
     }
@@ -138,17 +169,17 @@ const char *getgroup(const gid_t gid)
         die_mem();
     }
     p->gid = gid;
-    if ((p->name = malloc((size_t) 9U)) == NULL) {
+    if ((p->name = malloc((size_t) 11U)) == NULL) {
         die_mem();
     }
     if (pwd != NULL) {
-        if (SNCHECK(snprintf(p->name, (size_t) 9U, "%-8.8s",
-                             pwd->gr_name), (size_t) 9U)) {
+        if (SNCHECK(snprintf(p->name, (size_t) 11U, "%-10.10s",
+                             pwd->gr_name), (size_t) 11U)) {
             _EXIT(EXIT_FAILURE);
         }
     } else {
-        if (SNCHECK(snprintf(p->name, (size_t) 9U, "%-8d", gid), 
-                    (size_t) 9U)) {
+        if (SNCHECK(snprintf(p->name, (size_t) 11U, "%-10d", gid), 
+                    (size_t) 11U)) {
             _EXIT(EXIT_FAILURE);
         }
     }
@@ -213,7 +244,8 @@ static int listfile(const PureFileInfo * const fi,  const char *name)
         if ((alloca_nameline = ALLOCA(sizeof_nameline)) == NULL) {
             return 0;
         }
-        if ((rval = modernformat(n, alloca_nameline, sizeof_nameline)) < 0) {
+        if ((rval = modernformat(n, alloca_nameline,
+                                 sizeof_nameline, "")) < 0) {
             ALLOCA_FREE(alloca_nameline);            
             return 0;
         }
@@ -237,10 +269,24 @@ static int listfile(const PureFileInfo * const fi,  const char *name)
         name = FI_NAME(fi);
     }
 #if defined(WITH_VIRTUAL_CHROOT) && defined(S_IFLNK) && defined(S_IFDIR)
-    if (S_ISLNK(st.st_mode) && name[0] == '.' && name[1] == '.' && name[2] == 0) {
+    if (S_ISLNK(st.st_mode) && name[0] == '.' &&
+        name[1] == '.' && name[2] == 0) {
         st.st_mode &= ~S_IFLNK;
         st.st_mode |= S_IFDIR;
     }  /* Hack to please some Windows client that dislike ../ -> ../ */
+#endif
+#if !defined(MINIMAL) && !defined(ALWAYS_SHOW_SYMLINKS_AS_SYMLINKS)
+    if (
+# ifndef ALWAYS_SHOW_RESOLVED_SYMLINKS
+        broken_client_compat != 0 &&
+# endif
+        S_ISLNK(st.st_mode)) {
+        struct stat sts;
+        
+        if (stat(name, &sts) == 0 && !S_ISLNK(sts.st_mode)) {
+            st = sts;
+        }
+    } /* Show non-dangling symlinks as files/directories */
 #endif
 #ifdef DISPLAY_FILES_IN_UTC_TIME
     t = gmtime((time_t *) &st.st_mtime);
@@ -328,28 +374,15 @@ static int listfile(const PureFileInfo * const fi,  const char *name)
             if ((alloca_nameline = ALLOCA(sizeof_nameline)) == NULL) {
                 return 0;
             }
-#ifdef WITH_LARGE_FILES
             if (SNCHECK(snprintf(alloca_nameline, sizeof_nameline,
-                                 "%s %4u %s %s %8llu %s %2d %s %s", 
+                                 "%s %4u %s %s %10llu %s %2d %s %s", 
                                  m, (unsigned int) st.st_nlink,
-				 getname(st.st_uid),
+                                 getname(st.st_uid),
                                  getgroup(st.st_gid), 
                                  (unsigned long long) st.st_size,
                                  months[t->tm_mon],
                                  t->tm_mday, timeline, name),
-                        sizeof_nameline))
-#else
-            if (SNCHECK(snprintf(alloca_nameline, sizeof_nameline,
-                                 "%s %4u %s %s %8lu %s %2d %s %s", 
-                                 m, (unsigned int) st.st_nlink,
-				 getname(st.st_uid),
-                                 getgroup(st.st_gid), 
-                                 (unsigned long) st.st_size,
-                                 months[t->tm_mon],
-                                 t->tm_mday, timeline, name),
-                        sizeof_nameline))
-#endif
-            {
+                        sizeof_nameline)) {
                 ALLOCA_FREE(alloca_nameline);
                 _EXIT(EXIT_FAILURE);
             }
@@ -474,9 +507,9 @@ static void outputfiles(int f)
                 pad[2] = 0;
             }
 #ifdef WITH_RFC2640
-	    c_buf = charset_fs2client(q->line);
+        c_buf = charset_fs2client(q->line);
             wrstr(f, c_buf);
-	    free(c_buf);
+        free(c_buf);
 #else
             wrstr(f, q->line);
 #endif
@@ -786,7 +819,7 @@ void donlist(char *arg, const int on_ctrl_conn, const int opt_l_,
         }
     }
     if (on_ctrl_conn == 0) {
-    opendata();
+        opendata();
         if ((c = xferfd) == -1) {
             return;
         }
@@ -796,7 +829,15 @@ void donlist(char *arg, const int on_ctrl_conn, const int opt_l_,
         }
     } else {                           /* STAT command */
         c = 1;
-        safe_write(c, "213-STAT" CRLF, sizeof "213-STAT" CRLF - 1U);
+#ifdef WITH_TLS
+        if (data_protection_level == CPL_PRIVATE) {
+            secure_safe_write("213-STAT" CRLF, sizeof "213-STAT" CRLF - 1U);
+        }
+        else
+#endif
+        {
+            safe_write(c, "213-STAT" CRLF, sizeof "213-STAT" CRLF - 1U);
+        }
     }        
     if (arg != NULL && *arg != 0) {
         int justone;
@@ -896,6 +937,9 @@ void donlist(char *arg, const int on_ctrl_conn, const int opt_l_,
     }
     wrstr(c, NULL);
     if (on_ctrl_conn == 0) {
+#ifdef WITH_TLS
+        closedata();
+#endif    
         close(c);
     } else {
         addreply_noformat(213, "End.");

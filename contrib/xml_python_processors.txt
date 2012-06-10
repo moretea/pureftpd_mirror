@@ -1,41 +1,4 @@
-From - Thu May 31 22:07:39 2001
-X-UIDL: 991284065.4950.limousin.fr.clara.net
-X-Mozilla-Status: 0001
-X-Mozilla-Status2: 00000000
-Return-Path: <pureftpd-users-admin@lists.sourceforge.net>
-Delivered-To: jedi@claranet.fr
-Received: from usw-sf-list1.sourceforge.net (usw-sf-fw2.sourceforge.net [216.136.171.252])
-	by mail.fr.clara.net (Postfix) with ESMTP id 96251DB5B
-	for <jedi@claranet.fr>; Thu, 31 May 2001 06:41:04 +0200 (CEST)
-Received: from localhost ([127.0.0.1] helo=usw-sf-list1.sourceforge.net)
-	by usw-sf-list1.sourceforge.net with esmtp (Exim 3.22 #1 (Debian))
-	id 155KEg-0005O4-00; Wed, 30 May 2001 21:39:02 -0700
-Received: from dsl-64-192-96-25.telocity.com ([64.192.96.25] helo=orr.falooley.org)
-	by usw-sf-list1.sourceforge.net with esmtp (Exim 3.22 #1 (Debian))
-	id 155KDt-0005Kt-00
-	for <pureftpd-users@lists.sourceforge.net>; Wed, 30 May 2001 21:38:13 -0700
-Received: from news by orr.falooley.org with local (Exim 3.22 #1 (Debian))
-	id 155KDi-0005lO-00
-	for <pureftpd-users@lists.sourceforge.net>; Thu, 31 May 2001 00:38:02 -0400
-From: j@falooley.org (Jason Lunz)
-To: pureftpd-users@lists.sourceforge.net
-Message-Id: <E155KDi-0005lO-00@orr.falooley.org>
-Date: Thu, 31 May 2001 00:38:02 -0400
-Subject: [Pureftpd-users] xml toys
-Sender: pureftpd-users-admin@lists.sourceforge.net
-Errors-To: pureftpd-users-admin@lists.sourceforge.net
-X-BeenThere: pureftpd-users@lists.sourceforge.net
-X-Mailman-Version: 2.0.5
-Precedence: bulk
-List-Help: <mailto:pureftpd-users-request@lists.sourceforge.net?subject=help>
-List-Post: <mailto:pureftpd-users@lists.sourceforge.net>
-List-Subscribe: <http://lists.sourceforge.net/lists/listinfo/pureftpd-users>,
-	<mailto:pureftpd-users-request@lists.sourceforge.net?subject=subscribe>
-List-Id: Pure FTPd discussions <pureftpd-users.lists.sourceforge.net>
-List-Unsubscribe: <http://lists.sourceforge.net/lists/listinfo/pureftpd-users>,
-	<mailto:pureftpd-users-request@lists.sourceforge.net?subject=unsubscribe>
-X-UIDL: 991284065.4950.limousin.fr.clara.net
-Status: RO 
+From: Jason Lunz
 
 I've been fooling around with parsing the XML output of "pure-ftpwho -x"
 in python and doing things with it. The results could be useful to a lot
@@ -310,10 +273,3 @@ totals per account.
 suggestions/patches welcome,
 
 Jason
-
-_______________________________________________
-Pureftpd-users mailing list
-Pureftpd-users@lists.sourceforge.net
-http://lists.sourceforge.net/lists/listinfo/pureftpd-users
-
-

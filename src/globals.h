@@ -9,6 +9,7 @@
 # define GLOBAL(A, B) extern A
 #endif
 
+GLOBAL(char default_tz_for_putenv[], "TZ=UTC+00:00");                /* default value for TZ */
 GLOBAL0(unsigned long long downloaded);                /* bytes downloaded */
 GLOBAL0(unsigned long long uploaded);                /* bytes uploaded */
 GLOBAL0(signed char anon_only);         /* allows only anonymous connections */
@@ -33,7 +34,7 @@ GLOBAL0(char *root_directory);                /* root directory, for chroot'd en
 GLOBAL0(signed char loggedin);                    /* != 0 if the user if logged in */
 GLOBAL0(char account[MAX_USER_LENGTH + 1U]);      /* user login */
 GLOBAL0(char *renamefrom);
-GLOBAL0(unsigned short int serverport);    /* local server port */
+GLOBAL0(in_port_t serverport);    /* local server port */
 GLOBAL0(signed char userchroot);                /* don't chroot() by default for regular users */
 GLOBAL0(signed char chrooted);                     /* if we already chroot()ed */
 GLOBAL0(uid_t chroot_trustedgid);
@@ -74,7 +75,7 @@ GLOBAL0(signed char force_ls_a);
 GLOBAL0(struct sockaddr_storage peer);
 GLOBAL0(struct sockaddr_storage force_passive_ip);
 GLOBAL0(const char *force_passive_ip_s);
-GLOBAL0(unsigned short int peerdataport);
+GLOBAL0(in_port_t peerdataport);
 GLOBAL0(double maxload);
 GLOBAL(unsigned int maxusers, DEFAULT_MAX_USERS);
 #ifdef PER_USER_LIMITS
@@ -164,6 +165,7 @@ GLOBAL0(signed char be_customer_proof);
 
 #ifdef WITH_TLS
 GLOBAL0(signed char enforce_tls_auth);
+GLOBAL0(int data_protection_level); 
 #endif
 
 GLOBAL0(char *atomic_prefix);

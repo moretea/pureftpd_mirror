@@ -1,4 +1,4 @@
-.TH "pure-authd" "8" "1.0.21" "Pure-FTPd team" "Pure-FTPd"
+.TH "pure-authd" "8" "1.0.22" "Pure-FTPd team" "Pure-FTPd"
 .SH "NAME"
 .LP 
 pure\-authd \- External authentication agent for Pure\-FTPd.
@@ -37,6 +37,8 @@ AUTHD_LOCAL_IP
 AUTHD_LOCAL_PORT
 
 AUTHD_REMOTE_IP
+
+AUTHD_ENCRYPTED
 .TP 
 The authentication program should take appropriate actions to fetch account info according to these arguments, and reply to the standard output a structure like the following one :
 
@@ -126,7 +128,7 @@ echo 'dir:/home/j'
 echo 'end'
 .SH "AUTHORS"
 .LP 
-Frank DENIS <j@pureftpd.org>
+Frank DENIS <j at pureftpd dot org>
 .SH "SEE ALSO"
 .BR "ftp(1)" ,
 .BR "pure-ftpd(8)"

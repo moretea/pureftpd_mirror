@@ -1,3 +1,59 @@
+* Version 1.0.22:
+ - New catalan translation, by Taik0.
+ - TLS support for LDAP, contributed by Marc Balmer.
+ - pureftpd.schema contained two errors. Reported by Ulrich Zehl.
+ - Fix usage of MySQL 5 stored procedures, by Bernhard Fischer.
+ - Don't issue a warning in ./configure when the certfile does exist.
+Reported by Michael Bowe.
+ - Have LDAP FTPStatus work since the schema changed. Thanks to David Majorel.
+ - Compatibility with newer OpenLDAP versions. Thanks to Johan Ström.
+ - Don't hang up during uploads if we get any other command than QUIT and
+ABORT.
+ - SITE UTIME reads UTC time
+ - A space is needed for inline content in response to the MLST command.
+ - Time zone issues should be fixed for good. We have to redefine TZ,
+tzset() is not enough on Linux when we are in a chroot environment.
+ - Correctly respond to FEAT without removing extra features when passive
+mode is disabled. Thanks to upb.
+ - Better process name change setup for Linux.
+ - Auto-created home directories are now created with mode 0777 (and
+directory umask is applied), per common request. It's very important to
+double check your umask.
+ - Extend gid / uid to 10 digits in ls output. Extend file size as well.
+ - Brazilian portuguese translation was updated.
+ - Support new MySQL password scrambling, thanks to Jan Hudoba.
+ - Larger mmap() chunks: downloads needs less CPU usage on platforms with
+slow mmap() like OpenBSD.
+ - Fix SecureFX compatibility.
+ - Use PQescapeStringConn() for PostgreSQL instead of hand-made escaping.
+ - messages_check.pl had to leave the package as it was GPL-licenced.
+ - Don't respond to server that an upload succeeded before the temporary
+file has been renamed.
+ - TLS support on data channels, contributed by Rajat Upadhyaya from Novell
+and Christian Cier-Zniewski.
+ - Use sendfile() on recent Solaris versions in place of sendfilev().
+ - Don't use a deprecated interface for Bonjour registration.
+ - Tell authentication handlers if the connection is encrypted or not,
+through a new AUTHD_ENCRYPTED environment variable. Suggested by Koczka
+Ferenc.
+ - README.Netfilter has been removed.
+ - Create all directories, not only the basement when on-demand directory
+creation is enabled and the user's home directory looks like /basement/./user.
+Suggested by Frederico Gendorf.
+ - Fixed error reporting when TLS support was compiled in, but TLS wasn't
+enabled on the current session. Thanks to Arkadiusz Miskiewicz.
+ - Log full path on file deletion. Thanks to Arkadiusz Miskiewicz.
+ - Handle "ftp" and "anonymous" like normal accounts (with passwords) if -E
+(no anonymous logins) is specified. Thanks to Arkadiusz Miskiewicz.
+ - Sleep before answering a password failure, not the other way round. From
+PLD Linux.
+ - Fix gcc warning in puredb.
+ - In broken mode, show symlinks as their real target. It can have side
+effects, don't forget that broken mode is... broken mode.
+ - Respect aliasing rules for sockaddr_storage usage.
+ - Privsep is enabled by default in the installation GUI.
+ - --with-everything now includes privsep.
+ - update: fix compilation with gcc 2.x, reported by John Lightsey.
 
 * Version 1.0.21:
     When SHA1HANDSOFF is defined, we shouldn't cast a pointer to a large union
@@ -6,7 +62,8 @@ to a char buffer, because of alignment required by some architectures.
 fixes throttling with extauth. Reported and fixed by Marcus Merighi
 <mcmer@tor.at> through Brad our beloved OpenBSD maintainer.
     Rendezvous has been renamed Bonjour.
-    A double-close in the CHMOD command has been fixed.
+    A double-close in the CHMOD command has been fixed, reported by Christer
+Mjellem Strand.
     The old PAM sample has been removed.
     -F option added to pure-pw.
     MAX_USER_LENGTH has been bumped to 127 due to popular demand.

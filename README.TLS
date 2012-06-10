@@ -3,15 +3,11 @@
        ------------------------ SSL/TLS SUPPORT ------------------------  
 
   Starting with version 1.0.16, Pure-FTPd has experimental support for
-encryption of the control channel using SSL/TLS security mechanisms.
+encryption of the control and data channels using SSL/TLS security mechanisms.
 
   When this extra security layer is enabled, login and passwords are no more
 sent cleartext. Neither are other commands sent by your client nor replies
 made by the server.
-
-  However, the data channel is not affected by SSL/TLS. This combination
-brings no significant decrease of performance and the FXP protocol keeps
-working even when mixing SSL/TLS-enabled and non SSL/TLS-enabled servers.
 
 
          ------------------------ COMPILATION ------------------------
@@ -27,9 +23,6 @@ compilation :
   make install-strip
 
   If something goes wrong, try to bring your OpenSSL library up-to-date.  
-  Using at least version 0.9.6 is strongly advised, not only for full
-compatibility with Pure-FTPd, but also because there are known vulnerabilities
-in previous versions of the library.
 
   If your system does not have a working randomness device like /dev/srandom,
 /dev/arandom or /dev/random, please have a look at the OpenSSL FAQ in order to
@@ -148,10 +141,15 @@ pure-ftpd daemon with the -Y (or --tls=) switch. Example :
 - With "--tls=0", support for SSL/TLS is disabled. This is the default.
 
 - With "--tls=1", clients can connect either the traditional way or through an
-SSL/TLS layer.
+SSL/TLS layer. This is probably the setting you need if you want to enable
+TLS without having too much angry customers.
 
 - With "--tls=2", cleartext sessions are refused and only SSL/TLS compatible
 clients are accepted.
+
+- With "--tls=3", cleartext sessions are refused and only SSL/TLS compatible 
+clients are accepted. Clear data connections are also refused, so private 
+data connections are enforced. This is an extreme setting.
 
 When SSL/TLS has been successfully negociated for a connection, you'll see
 something similar to this in log files :
@@ -234,39 +232,18 @@ tab and :
 and Robert Vasvari.
 
 
-* FTPTLS (OpenBSD, possibly other Unices as well)
-  URL: http://www-user.tu-chemnitz.de/~grmo/ftptls/
-  Port: http://www-user.tu-chemnitz.de/~grmo/ftptls/port/ftptls-port.tar.gz
-  
-  This is the OpenBSD's default FTP client with TLS support merged in.
-  It perfectly works with Pure-FTPd with no special tuning.
-  
-
 * Glub Tech Secure FTP Client (at least Unix, MacOS X and Windows)
   URL: http://secureftp.glub.com/
 
   SSL/TLS is automatically detected and works out of the box.
 
 
-* FileZilla (Windows)
-  URL: http://filezilla.sourceforge.net
+* FileZilla (Windows, OSX, Linux)
+  URL: http://filezilla-project.org/
   
   SSL/TLS works. In the "Site details" dialog box, pick "FTP over TLS
 (explicit encryption)" as the "Servertype".
   Reported by Philip Hallstrom.
-
-
-The following clients are _not_ compatible with Pure-FTPd's TLS :
-
-* WS_FTP Pro 8
-
-  Only the old authentication scheme (AUTH SSL) seems to be implemented, the
-recommended one (AUTH TLS) is missing.
-  Workaround: none.
- 
- 
-* FTP Voyager 9
-
-  No support for AUTH TLS.
   
-  
+  Using recent versions (> 3) is recommended.
+

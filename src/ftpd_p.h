@@ -228,7 +228,7 @@ static sigset_t old_sigmask;
 #ifndef NO_PROCNAME_CHANGE
 # if defined(__linux__) && !defined(HAVE_SETPROCTITLE)
 static char **argv0;
-static int argv_lth;
+static size_t argv_lth;
 # endif
 #endif
 

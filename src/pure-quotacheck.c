@@ -19,6 +19,7 @@ static const char *startpath;
 static unsigned long long total_size;
 static unsigned long long total_files;
 static signed char isroot;
+static char default_tz_for_putenv[] = "TZ=UTC+00:00";
 
 /*
  * To avoid races/loop attacks, we keep track of inode and
@@ -38,6 +39,29 @@ static void oom(void)
 {
     fputs("Out of memory error!\n", stderr);
     exit(EXIT_FAILURE);
+}
+
+static int init_tz(void)
+{
+    char stbuf[10];                                                             
+    struct tm *tm;                                                              
+    time_t now;                                                                 
+    
+#ifdef HAVE_TZSET
+    tzset();
+#endif
+#ifdef HAVE_PUTENV    
+    time(&now);                                                                 
+    if ((tm = localtime(&now)) == NULL ||
+        strftime(stbuf, sizeof stbuf, "%z", tm) != (size_t) 5U) {
+        return -1;
+    }
+    snprintf(default_tz_for_putenv, sizeof default_tz_for_putenv,
+             "TZ=UTC%c%c%c:%c%c", (*stbuf == '-' ? '+' : '-'),                                       
+             stbuf[1], stbuf[2], stbuf[3], stbuf[4]);
+    putenv(default_tz_for_putenv);
+#endif   
+    return 0;
 }
 
 static int traversal(const char * const s)
@@ -232,7 +256,6 @@ static int writequota(const char * const quota_file)
         goto bye;
     }
     towrite = (ssize_t) strlen(buf);
-    bufpnt = buf;
     while (towrite > (ssize_t) 0) {
         for (;;) {
             if ((written = write(fd, bufpnt,
@@ -289,7 +312,7 @@ int main(int argc, char *argv[])
 # endif
 #endif           
 
-    tzset();
+    init_tz();
 	
     while ((fodder = getopt(argc, argv, "d:g:u:h")) != -1) {
         switch(fodder) {

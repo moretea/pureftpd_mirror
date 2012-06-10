@@ -219,3 +219,8 @@
 #define MSG_TLS_NEEDED "Ecoute-moi connard : t'as 10 secondes pour configurer\n" \
     "ton client de merde en SSL/TLS. En attendant, degage."
 #define MSG_ILLEGAL_CHARSET "Ton jeu de caractere il puxore grave."
+#define MSG_TLS_NO_CTX "SSL/TLS: Context not found. Exiting."
+#define MSG_PROT_OK "Data protection level set to \"%s\""
+#define MSG_PROT_PRIVATE_NEEDED "Data connection cannot be opened with this PROT setting."
+#define MSG_PROT_UNKNOWN_LEVEL "Protection level %s not understood. Fallback to \"%s\""
+#define MSG_PROT_BEFORE_PBSZ "PROT must be preceded by a successful PBSZ command"

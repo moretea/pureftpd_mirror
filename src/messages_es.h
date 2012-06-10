@@ -219,3 +219,8 @@
 #define MSG_TLS_NEEDED "Lo siento. No se aceptan sesiones sin cifrar en este servidor.\n" \
     "Por favor, vuelva a conectar utilizando mecanismos de seguridad SSL/TLS."
 #define MSG_ILLEGAL_CHARSET "Illegal charset"
+#define MSG_TLS_NO_CTX "SSL/TLS: Context not found. Exiting."
+#define MSG_PROT_OK "Data protection level set to \"%s\""
+#define MSG_PROT_PRIVATE_NEEDED "Data connection cannot be opened with this PROT setting."
+#define MSG_PROT_UNKNOWN_LEVEL "Protection level %s not understood. Fallback to \"%s\""
+#define MSG_PROT_BEFORE_PBSZ "PROT must be preceded by a successful PBSZ command"

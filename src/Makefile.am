@@ -93,8 +93,8 @@ pure_ftpd_SOURCES = \
 	bsd-getopt_long.h \
 	upload-pipe.c \
 	upload-pipe.h \
-	ipv4stack.c \
-	ipv4stack.h \
+	ipstack.c \
+	ipstack.h \
 	altlog.c \
 	altlog.h \
 	crypto.c \
@@ -118,8 +118,8 @@ pure_ftpd_SOURCES = \
 	privsep.c \
 	tls.h \
 	tls.c \
-	osx-extensions.h \
-	osx-extensions.c
+	bonjour.h \
+	bonjour.c
 
 pure_mrtginfo_CFLAGS = -DIN_PURE_MRTGINFO=1
 
@@ -143,8 +143,8 @@ pure_ftpwho_SOURCES = \
 	fakesnprintf.c \
 	mysnprintf.c \
 	mysnprintf.h \
-	ipv4stack.c \
-	ipv4stack.h
+	ipstack.c \
+	ipstack.h
 
 pure_uploadscript_SOURCES = \
 	pure-uploadscript.c \
@@ -212,6 +212,3 @@ pure_authd_SOURCES = \
 
 ptracetest_SOURCES = \
 	ptracetest.c
-
-EXTRA_DIST = \
-	messages_check.pl

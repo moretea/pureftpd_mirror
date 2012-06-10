@@ -1,5 +1,5 @@
 /*
- * snprintf() / vsnprintf() re-implementation by Frank Denis <j@pureftpd.org>
+ * snprintf() / vsnprintf() re-implementation by Frank Denis <j at pureftpd dot org>
  *
  * These functions understand :
  * - characters ("%c") .

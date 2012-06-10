@@ -1,6 +1,6 @@
 
-  Thanks to Stefan Hornburg <racke@linuxia.de>, there are now official and
-maintained packages for Pure-FTPd in Debian unstable, available from your
+  Thanks to Stefan Hornburg <racke at linuxia dot de>, there are now official
+and maintained packages for Pure-FTPd in Debian unstable, available from your
 preferred repository.
 
   Currently available packages are :
@@ -10,13 +10,5 @@ preferred repository.
  - pure-ftpd-ldap
  - pure-ftpd-mysql
  
-  Have fun with apt-get and please report any bug in order to improve these
+  Have fun with "aptitude" and please report any bug in order to improve these
 packages.
-
-  These packages are also available from your favorite Pure-FTPd
-mirror in the "debian" directory.
-
-  Snapshots are usually available for testing from the following sources :
-  
-(woody) deb http://debian.cobolt.net/ pure-ftpd-test main
-(sid)   deb http://debian.cobolt.net/ pure-ftpd-sid main
