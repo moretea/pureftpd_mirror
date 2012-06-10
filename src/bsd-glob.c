@@ -126,7 +126,7 @@ static int globextend(const Char *, glob_t *, size_t *);
 static const Char *globtilde(const Char *, Char *, size_t, glob_t *);
 #endif
 static int globexp1(const Char *, glob_t *, int);
-static int globexp2(const Char *, const Char *, glob_t *, int *, int);
+static int globexp2(const Char *, const Char *, glob_t *, int);
 static int match(Char *, Char *, Char *);
 static int glob_(const char *pattern,
                  int flags,
@@ -151,12 +151,17 @@ static int glob_(const char *pattern,
     pglob->gl_pathc = 0;
     pglob->gl_pathv = NULL;
 
+    if (pglob->gl_offs < 0 || pglob->gl_pathc < 0 ||
+        pglob->gl_offs >= INT_MAX || pglob->gl_pathc >= INT_MAX ||
+        pglob->gl_pathc >= INT_MAX - pglob->gl_offs - 1) {
+        return (GLOB_NOSPACE);
+    }
     bufnext = patbuf;
     bufend = bufnext + MAXPATHLEN;
     if (flags & GLOB_NOESCAPE) {
         while (bufnext < bufend && (c = *patnext++) != EOS) {
             *bufnext++ = (Char) c;
-	}
+        }
     } else {
         /* Protect the quoted characters. */
         while (bufnext < bufend && (c = *patnext++) != EOS) {
@@ -204,7 +209,6 @@ sglob(char *pattern,
 static int globexp1(const Char * pattern, glob_t * pglob, int recursion)
 {
     const Char *ptr = pattern;
-    int rv = 0;
 
     if (pglob->gl_maxdepth > 0 && recursion > pglob->gl_maxdepth) {
         errno = 0;
@@ -216,8 +220,9 @@ static int globexp1(const Char * pattern, glob_t * pglob, int recursion)
 
     while ((ptr =
             (const Char *) g_strchr((const Char *) ptr, LBRACE)) != NULL) {
-        if (!globexp2(ptr, pattern, pglob, &rv, recursion + 1))
-            return rv;
+        if (!globexp2(ptr, pattern, pglob, recursion + 1)) {
+            return 0;
+        }
     }
 
     return glob0(pattern, pglob);
@@ -231,9 +236,9 @@ static int globexp1(const Char * pattern, glob_t * pglob, int recursion)
  */
 static int
 globexp2(const Char * ptr,
-         const Char * pattern, glob_t * pglob, int *rv, int recursion)
+         const Char * pattern, glob_t * pglob, int recursion)
 {
-    int i;
+    int i, rv;
     Char *lm, *ls;
     const Char *pe, *pm, *pl;
     Char patbuf[MAXPATHLEN + 1];
@@ -269,8 +274,7 @@ globexp2(const Char * ptr,
 
     /* Non matching braces; just glob the pattern */
     if (i != 0 || *pe == EOS) {
-        *rv = glob0(patbuf, pglob);
-        return 0;
+        return glob0(patbuf, pglob);
     }
 
     for (i = 0, pl = pm = ptr; pm <= pe; pm++) {
@@ -311,8 +315,10 @@ globexp2(const Char * ptr,
                 for (pl = pe + 1; (*lm++ = *pl++) != EOS;);
 
                 /* Expand the current pattern */
-                *rv = globexp1(patbuf, pglob, recursion + 1);
-
+                rv = globexp1(patbuf, pglob, recursion + 1);
+                if (rv && rv != GLOB_NOMATCH) {
+                    return rv;
+                }
                 /* move after the comma, to the next string */
                 pl = pm + 1;
             }
@@ -322,7 +328,6 @@ globexp2(const Char * ptr,
             break;
         }
     }
-    *rv = 0;
     return 0;
 }
 
