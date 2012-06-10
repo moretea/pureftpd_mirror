@@ -1,7 +1,7 @@
 dnl AM_ACLOCAL_INCLUDE(m4)
 
 AC_PREREQ(2.61)
-AC_INIT([pure-ftpd],[1.0.24],[bugs at pureftpd dot org])
+AC_INIT([pure-ftpd],[1.0.25],[bugs at pureftpd dot org])
 AC_CONFIG_SRCDIR(src/ftpd.c)
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([1.9 dist-bzip2])
@@ -395,7 +395,9 @@ AC_ARG_WITH(pam,
   fi ])
 
 if test "x`uname`" = "xDarwin"; then
-  with_pam="yes"
+  if test "x$with_pam" = "x"; then
+    with_pam="yes"
+  fi
 fi
 
 if test "x$with_pam" = "xyes" ; then
@@ -875,14 +877,13 @@ AC_FUNC_FORK
 AC_FUNC_ERROR_AT_LINE
 AC_FUNC_CLOSEDIR_VOID
 AC_FUNC_CHOWN
-AC_FUNC_MALLOC
-AC_FUNC_REALLOC
 AC_C_VOLATILE
 
 
 AC_CHECK_FUNCS(initgroups setrlimit waitpid setproctitle getopt_long)
 AC_CHECK_FUNCS(seteuid setreuid setresuid setegid setregid setresgid)
-AC_CHECK_FUNCS(statvfs statfs putenv setenv unsetenv getpagesize realpath pread ptrace)
+AC_CHECK_FUNCS(statvfs statfs putenv setenv unsetenv getpagesize realpath)
+AC_CHECK_FUNCS(pread posix_fadvise ptrace)
 AC_CHECK_FUNCS(strtoull strtoq)
 AC_CHECK_FUNCS(strlcpy strlcat)
 AC_CHECK_FUNCS(memset munmap strdup fileno mapviewoffile madvise)
@@ -941,7 +942,7 @@ int main(void)
     return 0;
 }
 ]])],[CONF_SNPRINTF_TYPE=`cat conftestval`
-],[],[])
+],[],[CONF_SNPRINTF_TYPE=8])
 AC_MSG_RESULT(done)
 if test "x$CONF_SNPRINTF_TYPE" = "x" ; then
   AC_MSG_WARN(your operating system doesn't implement snprintf)
@@ -973,7 +974,7 @@ int main(void)
 AC_MSG_RESULT(yes)
 AC_DEFINE(SAFE_GETGROUPS_0,,[Define is getgroups(0, NULL) works on your system])
 ],[AC_MSG_RESULT(no)
-],[])
+],[AC_MSG_RESULT(suppose that it doesnt)])
 
 AC_MSG_CHECKING(whether realpath likes unreadable directories)
 AC_RUN_IFELSE([AC_LANG_SOURCE([[
@@ -1034,7 +1035,8 @@ AC_DEFINE(REALPATH_WORKS_WITH_UNREADABLE_DIRECTORIES,,
 [Define if realpath() works on unreadable directories])
 ],[AC_MSG_RESULT(no)
 AC_DEFINE(USE_BUILTIN_REALPATH)
-],[])
+],[AC_MSG_RESULT(no)
+AC_DEFINE(USE_BUILTIN_REALPATH)])
 
 AC_MSG_CHECKING(whether you already have a standard MD5 implementation)
 AC_RUN_IFELSE([AC_LANG_SOURCE([[
@@ -1061,7 +1063,7 @@ AC_MSG_RESULT(yes)
 AC_DEFINE(USE_SYSTEM_CRYPT_MD5,,[Define if you already have standard
 MD5 functions])
 ],[AC_MSG_RESULT(no)
-],[])
+],[AC_MSG_RESULT(assuming no)])
 
 AC_MSG_CHECKING(whether you already have a standard SHA1 implementation)
 AC_RUN_IFELSE([AC_LANG_SOURCE([[
@@ -1087,7 +1089,7 @@ AC_MSG_RESULT(yes)
 AC_DEFINE(USE_SYSTEM_CRYPT_SHA1,,[Define if you already have standard
 SHA1 functions])
 ],[AC_MSG_RESULT(no)
-],[])
+],[AC_MSG_RESULT(assuming no)])
 
 AC_MSG_CHECKING([whether we are inside a Virtuozzo virtual host])
 if test -d /proc/vz; then
@@ -1194,9 +1196,8 @@ AC_ARG_WITH(mysql,
       LDFLAGS="$LDFLAGS -L${withval}/lib -L${withval}/lib/mysql -L${withval}/mysql/lib"
       CPPFLAGS="$CPPFLAGS -I${withval}/include -I${withval}/include/mysql -I${withval}/mysql/include"
     else
-      LD_RUN_PATH="/usr/local/mysql/lib:/usr/local/mysql/lib/mysql:/usr/lib/mysql:/usr/mysql/lib:/usr/mysql/lib/mysql:/usr/local/lib/mysql:${LD_RUN_PATH:+:}${LD_RUN_PATH}"
-      LDFLAGS="$LDFLAGS -L/usr/local/mysql/lib -L/usr/lib/mysql -L/usr/mysql/lib -L/usr/local/lib/mysql -L/usr/local/mysql/lib/mysql -L/usr/mysql/lib/mysql"
-      CPPFLAGS="$CPPFLAGS -I/usr/local/mysql/include -I/usr/include/mysql -I/usr/mysql/include -I/usr/local/include/mysql -I/usr/local/mysql/include/mysql -I/usr/mysql/include/mysql"
+      CFLAGS="$CFLAGS `mysql_config --cflags`"
+      LDFLAGS="$LDFLAGS `mysql_config --libs`"
     fi
     AC_CHECK_LIB(m, floor)
     AC_CHECK_LIB(z, gzclose)
@@ -1215,8 +1216,7 @@ AC_ARG_WITH(mysql,
       }
       ]])],[],[
         AC_MSG_RESULT(no)
-        AC_MSG_ERROR(Your MySQL client libraries aren't properly installed)
-      
+        AC_MSG_ERROR(Your MySQL client libraries aren't properly installed)      
     ],[])
     AC_MSG_RESULT(yes)
     AC_CHECK_FUNCS(mysql_real_escape_string)
@@ -1226,13 +1226,13 @@ AC_ARG_WITH(pgsql,
 [AS_HELP_STRING(--with-pgsql,Users database is a PostgreSQL database (see doc))],
 [ if test "x$withval" != "xno" ; then
     if test "x$withval" != "x" && test "x$withval" != "xyes" ; then
-      LD_RUN_PATH="${withval}/lib${LD_RUN_PATH:+:}${LD_RUN_PATH}"    
+      LD_RUN_PATH="${withval}/lib${LD_RUN_PATH:+:}${LD_RUN_PATH}"
       LDFLAGS="$LDFLAGS -L${withval}/lib -L${withval}/lib/pgsql -L${withval}/lib/postgresql -L${withval}/pgsql/lib -L${withval}/postgresql/lib"
       CPPFLAGS="$CPPFLAGS -I${withval}/include -I${withval}/include/pgsql -I${withval}/include/postgresql -I${withval}/pgsql/include -I${withval}/postgresql/include"
     else
-      LD_RUN_PATH="/usr/local/pgsql/lib:/usr/local/pgsql/lib/pgsql:/usr/lib/pgsql:/usr/pgsql/lib:/usr/pgsql/lib/pgsql:/usr/local/lib/pgsql:/usr/local/postgresql/lib:/usr/local/postgresql/lib/postgresql:/usr/lib/postgresql:/usr/postgresql/lib:/usr/postgresql/lib/postgresql:/usr/local/lib/postgresql:${LD_RUN_PATH:+:}${LD_RUN_PATH}"
-      LDFLAGS="$LDFLAGS -L/usr/local/pgsql/lib -L/usr/lib/pgsql -L/usr/pgsql/lib -L/usr/local/lib/pgsql -L/usr/local/pgsql/lib/pgsql -L/usr/pgsql/lib/pgsql -L/usr/local/postgresql/lib -L/usr/lib/postgresql -L/usr/postgresql/lib -L/usr/local/lib/postgresql -L/usr/local/postgresql/lib/postgresql -L/usr/postgresql/lib/postgresql"
-      CPPFLAGS="$CPPFLAGS -I/usr/local/pgsql/include -I/usr/include/pgsql -I/usr/pgsql/include -I/usr/local/include/pgsql -I/usr/local/pgsql/include/pgsql -I/usr/pgsql/include/pgsql -I/usr/local/postgresql/include -I/usr/include/postgresql -I/usr/postgresql/include -I/usr/local/include/postgresql -I/usr/local/postgresql/include/postgresql -I/usr/postgresql/include/postgresql"
+      LD_RUN_PATH="`pg_config --libdir`${LD_RUN_PATH:+:}${LD_RUN_PATH}"
+      CPPFLAGS="$CPPFLAGS -I`pg_config --includedir`"
+      LDFLAGS="$LDFLAGS -L`pg_config --libdir`"
     fi
     AC_CHECK_LIB(m, floor)
     AC_CHECK_LIB(z, gzclose)
@@ -1251,8 +1251,7 @@ AC_ARG_WITH(pgsql,
       }
       ]])],[],[
         AC_MSG_RESULT(no)
-        AC_MSG_ERROR(Your PostgreSQL client libraries aren't properly installed)
-      
+        AC_MSG_ERROR(Your PostgreSQL client libraries aren't properly installed)      
     ],[])    
     AC_MSG_RESULT(yes)
   fi ])
@@ -1331,7 +1330,7 @@ if test "x$localstatedir" = 'xNONE' || test "x$localstatedir" = 'x'; then
   LOCALSTATEDIR='/var'
 else
   if test "x$localstatedir" = 'x${prefix}/var'; then
-    if test "x$prefix" = 'xNONE' || test "x$prefix" = 'x/usr'; then
+    if test "x$prefix" = 'xNONE' || test "x$prefix" = 'x/usr' || test "x$localstatedir" = 'x${prefix}/var' ; then
       LOCALSTATEDIR='/var'
     else
       LOCALSTATEDIR="$localstatedir"
@@ -1354,6 +1353,9 @@ if test -r /dev/random; then
   AC_DEFINE(HAVE_DEV_RANDOM,,[Define if you have /dev/random])
 fi
 
+CONFDIR=`eval echo "$CONFDIR"`
+LOCALSTATEDIR=`eval echo "$LOCALSTATEDIR"`
+
 sysconfdir="$CONFDIR"
 AC_SUBST(sysconfdir)
 localstatedir="$LOCALSTATEDIR"
@@ -1369,7 +1371,7 @@ AC_CONFIG_FILES(Makefile src/Makefile pam/Makefile man/Makefile
 gui/Makefile configuration-file/Makefile contrib/Makefile m4/Makefile
 configuration-file/pure-ftpd.conf configuration-file/pure-config.pl
 configuration-file/pure-config.py puredb/Makefile puredb/src/Makefile
-pure-ftpd.spec
+iphone/Makefile pure-ftpd.spec
 man/pure-ftpd.8 man/pure-ftpwho.8 man/pure-mrtginfo.8 man/pure-uploadscript.8
 man/pure-statsdecode.8 man/pure-quotacheck.8 man/pure-pw.8 man/pure-pwconvert.8
 man/pure-authd.8)

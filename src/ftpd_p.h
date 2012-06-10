@@ -32,6 +32,11 @@
 # include <sys/wait.h>
 #endif
 
+#ifdef __IPHONE__
+# include <setjmp.h>
+static jmp_buf jb;
+#endif
+
 #define DEFAULT_BACKLOG 42
 #define DEFAULT_BACKLOG_DATA 8
 #define NICE_VALUE 10
@@ -52,6 +57,18 @@ static const char *standalone_ip;
 static volatile unsigned int nb_children;
 static volatile int listenfd = -1;
 static volatile int listenfd6 = -1;
+#endif
+#ifdef __IPHONE__
+static volatile sig_atomic_t suspend_client_connections;
+static AuthResult embedded_simple_pw_check(const char *account, const char *password);
+static void (*logout_callback)(void *user_data);
+static void *logout_callback_user_data;
+static void (*login_callback)(void *user_data);
+static void *login_callback_user_data;
+static void (*log_callback)(int crit, const char *message, void *user_data);
+static void *log_callback_user_data;
+static int  (*simple_auth_callback)(const char *account, const char *password, void *user_data);
+static void *simple_auth_callback_user_data;
 #endif
 
 struct reply {
@@ -295,16 +312,17 @@ typedef struct DLHandler_ {
     int f;
     void *tls_fd;
     off_t file_size;
-    size_t min_mmap_size;
-    size_t mmap_size;
-    off_t mmap_gap;    
+    size_t min_dlmap_size;
+    size_t dlmap_size;
     off_t cur_pos;
     off_t chunk_size;    
     off_t min_chunk_size;
     off_t default_chunk_size;
     off_t max_chunk_size;
-    off_t mmap_pos;
+    off_t dlmap_pos;
+    off_t dlmap_fdpos;    
     off_t total_downloaded;
+    size_t sizeof_map;
     unsigned char *map;
     unsigned char *map_data;    
     int ascii_mode;
@@ -345,8 +363,8 @@ typedef struct ULHandler_ {
 static struct passwd *fakegetpwnam(const char * const name);
 # define getpwnam(A) fakegetpwnam(A)
 # define getpwuid(A) fakegetpwnam(NULL)
-# define WIN32_ANON_DIR "/ftp"
 #endif
+#define NON_ROOT_ANON_DIR "/ftp"
 
 #ifdef PROBE_RANDOM_AT_RUNTIME
 static const char *random_device;

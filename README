@@ -1,6 +1,6 @@
 
                               .:. PURE-FTPD .:.
-                      Documentation for version 1.0.24
+                      Documentation for version 1.0.25
 
 
            ------------------------ BLURB ------------------------
@@ -13,7 +13,7 @@ The server has been designed to be secure in default configuration, it has no
 known vulnerability, it is really trivial to set up and it is especially
 designed for modern kernels. It was successfully ported to Linux, FreeBSD,
 DragonflyBSD, NetBSD, OpenBSD, ISOS, MirBSD, BSDi, Solaris, Darwin, Tru64,
-Irix, AIX and HPUX.
+Irix, AIX, HPUX and iPhone.
 
 Features include chroot()ed and/or virtual chroot()ed home directories,
 virtual domains, built-in 'ls', anti-warez system, configurable ports for
@@ -29,9 +29,6 @@ virtual users, virtual quotas, privilege separation, SSL/TLS and more.
 Many people new to Unix are running Pure-FTPd because they find it easy to
 install. But that software is also used on embedded systems and highly loaded
 production servers, especially for hosting services.
-
-Pure-FTPd was also part of a crack-a-machine challenge with other software,
-and that machine never got compromised.
 
 For large sites with centralized user management, Pure-FTPd provides flexible
 authentication schemes including SQL and LDAP backends, plus the ability to
@@ -220,7 +217,8 @@ listened by default in standalone mode. If you want to use the nonroot mode,
 you must compile and *install* the software (./configure --prefix=... &&
 make install-strip) . /sbin, /bin and /man directories will be created in
 that prefix. But you must also add an /etc directory (readable and writeable
-by the user pure-ftpd will run as) .
+by the user pure-ftpd will run as) . You can change the anonymous FTP root
+directory through an environment variable named FTP_ANON_DIR.
 
 --with-pam: use pluggable authentification modules. Don't use this option
 if your login/passwd pairs are always refused (but the real fix would be to
@@ -357,9 +355,6 @@ from these filesystems, you have to use the --without-sendfile switch to
 enable a workaround. It was also reported that PA-Risc Linux systems need this
 flag.
 
---without-cork: disable TCP_CORK optimization. Needed for some Linux
-variants like on Playstation.
-
 --without-shadow: ignore the shadow passwords, even though they are
 auto-detected. Usually a bad idea, unless you use PAM, LDAP or SQL.
 Pure-FTPd support expiration dates of shadow passwords (both for accounts
@@ -382,8 +377,15 @@ some people find this not user-friendly.
  --------------/
 
 
-Other traditional autoconf options are of course recognised, like
-"--prefix=" to change the installation prefix, that defaults to "/usr/local/".
+Other traditional autoconf options are of course recognised, in particular:
+
+- "--prefix=" to change the installation prefix, that defaults to "/usr/local/"
+
+- "--sysconfdir=" to change the configuration files directory (defaults to
+"/etc" unless you specified a prefix with --prefix)
+
+- "--localstatedir=" to change the runtime files directory (defaults to
+"/var" even if you specified a prefix with --prefix)
 
 FYI, the binary RPM packages of Pure-FTPd are configured with the following
 command line:
@@ -668,7 +670,8 @@ Note: 'root' (uid 0) always has full filesystem access.
 
 If you want to chroot() everyone, but root, use the following flag:
 
-- '-A': chroot() everyone, but root.
+- '-A': chroot() everyone, but root. There's no such thing as a trusted
+group. '-A' and '-a <gid>' are mutually exclusive.
 
 - '-b': Ignore parts of RFC standards in order to deal with some totally
 broken FTP clients, or broken firewalls/NAT boxes. Also, non-dangling

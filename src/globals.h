@@ -23,6 +23,7 @@ GLOBAL0(unsigned long throttling_bandwidth_dl);
 GLOBAL0(unsigned long throttling_bandwidth_ul);
 GLOBAL0(signed char allowfxp);                    /* 0=no fxp 1=authenticated 2=everybody */
 GLOBAL0(signed char passive);
+GLOBAL(int clientfd, 0);                   /* command connection file descriptor */
 GLOBAL(int datafd, -1);                    /* data connection file descriptor */
 GLOBAL0(struct sockaddr_storage ctrlconn);    /* stdin/stdout, for using the same ip number */
 GLOBAL0(signed char v6ready);                    /* IPv6 supported or not */
@@ -35,7 +36,7 @@ GLOBAL0(signed char loggedin);                    /* != 0 if the user if logged 
 GLOBAL0(char account[MAX_USER_LENGTH + 1U]);      /* user login */
 GLOBAL0(char *renamefrom);
 GLOBAL0(in_port_t serverport);    /* local server port */
-GLOBAL0(signed char userchroot);                /* don't chroot() by default for regular users */
+GLOBAL0(signed char userchroot);                /* 0=don't chroot() by default for regular users 1=chroot except members of the trusted group 2=chroot everyone */
 GLOBAL0(signed char chrooted);                     /* if we already chroot()ed */
 GLOBAL0(uid_t chroot_trustedgid);
 GLOBAL0(signed char broken_client_compat);         /* don't enable workarounds by default */
@@ -183,3 +184,8 @@ GLOBAL(iconv_t iconv_fd_utf82fs, NULL);
 GLOBAL0(void * tls_cnx);
 GLOBAL0(void * tls_data_cnx);
 #endif
+
+#ifdef NON_ROOT_FTP
+GLOBAL0(const char *home_directory);
+#endif
+    

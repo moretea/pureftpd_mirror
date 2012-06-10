@@ -1,5 +1,5 @@
 %define name       pure-ftpd
-%define version    1.0.24
+%define version    1.0.25
 %define builddir   $RPM_BUILD_DIR/%{name}-%{version}
 %define no_install_post_compress_docs    1
 %define con_pam    0
@@ -297,7 +297,7 @@ install -m 755 configuration-file/pure-config.pl_replaced $RPM_BUILD_ROOT%{prefi
 %{_mandir}/man8/*
 
 %defattr(-, root, root)
-%doc FAQ THANKS README.Donations README.MacOS-X README.Authentication-Modules README.Windows README.Virtual-Users README.Debian README README.Contrib README.Configuration-File pureftpd.schema AUTHORS CONTACT HISTORY NEWS README.LDAP README.PGSQL README.MySQL README.TLS pureftpd-ldap.conf pureftpd-mysql.conf pureftpd-pgsql.conf
+%doc FAQ THANKS README.Donations README.Authentication-Modules README.Windows README.Virtual-Users README.Debian README README.Contrib README.Configuration-File pureftpd.schema AUTHORS CONTACT HISTORY NEWS README.LDAP README.PGSQL README.MySQL README.TLS pureftpd-ldap.conf pureftpd-mysql.conf pureftpd-pgsql.conf
 
 %config(noreplace) %{sysconfdir}/*.conf
 %if %{con_pam}
