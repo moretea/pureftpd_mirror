@@ -1,4 +1,15 @@
 
+* Version 1.0.19:
+    Until OpenBSD has UBC, we need to explicitely call msync() to
+synchronize data written by mmap() and read by read().
+    Real disk space is no more shown unless SHOW_REAL_DISK_SPACE is defined.
+    Fygul's email address has changed.
+    Don't try to catch SIGKILL any more, it's uncatchable.
+    PureUserAdmin was added to the contribs.
+    getopt_long() was resynced with the OpenBSD version.
+    The client socket switches to non-blocking mode before forking in
+accept_client() - reported by Agri <agri@desnol.ru>.
+
 * Version 1.0.18:
     Autoconf was bumped to 2.59, automake to 1.8.
     The sample source code in README.Authentication-Modules was bogus

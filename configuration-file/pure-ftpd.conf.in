@@ -12,7 +12,7 @@
 # @prefix@/sbin/pure-config.pl @prefix@/etc/pure-ftpd.conf
 #
 # Please don't forget to have a look at documentation at
-# http://www.pureftpd.org/documentation.html for a complete list of
+# http://www.pureftpd.org/documentation.shtml for a complete list of
 # options.
 
 # Cage in every user in his home directory
@@ -241,9 +241,9 @@ MinUID                      100
 
 
 
-# Allow FXP transfers for authenticated users only.
+# Allow FXP transfers for authenticated users.
 
-AllowUserFXP                yes
+AllowUserFXP                no
 
 
 

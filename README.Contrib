@@ -193,3 +193,16 @@ your server efficiently, and groovy interfaces for virtual users and hosts
 management.
 
   URL : http://jeanmatthieu.free.fr/pureftpd/
+
+
+* PureUserAdmin (author: Michiel van Baak)
+
+  PureUserAdmin is a PHP based webbased application.
+  
+  Sys admins can use it to easily manage the virtual users for their FTP
+server
+
+ PureUserAdmin is developed to be used with Pure-FTPd but it should be able
+to be used with other FTP servers as long as the FTP server gets the
+useraccount info from MySQL or PostgreSQL.
+

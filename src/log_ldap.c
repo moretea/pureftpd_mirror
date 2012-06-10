@@ -18,9 +18,9 @@
 void pw_ldap_parse(const char * const file)
 {
     if (generic_parser(file, ldap_config_keywords) != 0) {
-    illegal_config:
+        illegal_config:
         die(421, LOG_ERR, MSG_CONF_ERR ": " MSG_ILLEGAL_CONFIG_FILE_LDAP 
-        ": %s" , file);
+            ": %s" , file);
     }
     if (ldap_host == NULL) {
         if ((ldap_host = strdup(LDAP_DEFAULT_SERVER)) == NULL) {
@@ -43,30 +43,30 @@ void pw_ldap_parse(const char * const file)
         }
     }
     {
-    register char *t;
-    
-    if (strchr(ldap_filter, '%') != NULL) {
-        goto illegal_config;
-    }
-    if ((t = strchr(ldap_filter, '\\')) != NULL) {
-        if (t[1] != 'L') {
-        goto illegal_config;
+        register char *t;
+        
+        if (strchr(ldap_filter, '%') != NULL) {
+            goto illegal_config;
         }
-        *t++ = '%';
-        *t = 's';        
-    }
+        if ((t = strchr(ldap_filter, '\\')) != NULL) {
+            if (t[1] != 'L') {
+                goto illegal_config;
+            }
+            *t++ = '%';
+            *t = 's';        
+        }
     }
     if (ldap_homedirectory == NULL) {
         if ((ldap_homedirectory = strdup(LDAP_HOMEDIRECTORY)) == NULL) {
-        die_mem();
+            die_mem();
         }
     }
     if (ldap_version_s != NULL) {
         ldap_version = atoi(ldap_version_s);
         free(ldap_version_s);
-    ldap_version_s = NULL;
+        ldap_version_s = NULL;
     } else {
-    ldap_version = LDAP_DEFAULT_VERSION;
+        ldap_version = LDAP_DEFAULT_VERSION;
     }
     if (default_uid_s != NULL) {
         default_uid = (uid_t) strtoul(default_uid_s, NULL, 10);        

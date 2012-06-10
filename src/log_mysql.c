@@ -553,8 +553,12 @@ void pw_mysql_check(AuthResult * const result,
         mysql_close(id_sql_server);
     }
     free((void *) spwd);
-    free((void *) uid);
-    free((void *) gid); 
+    if (uid != sql_default_uid) {
+        free((void *) uid);
+    }
+    if (gid != sql_default_gid) {
+        free((void *) gid); 
+    }
     free((void *) dir);
 #ifdef QUOTAS
     free((void *) sqta_fs);

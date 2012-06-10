@@ -125,6 +125,7 @@ static int access_ip_match(const struct sockaddr_storage * const sa,
                 ip = (ip_raw[0] << 24) | (ip_raw[1] << 16) |
                     (ip_raw[2] << 8) | ip_raw[3];
                 netbits = 32U;
+                freeaddrinfo(res);
                 goto ipcheck_ipdone;
             }
         }
