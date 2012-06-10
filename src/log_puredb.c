@@ -119,7 +119,7 @@ static int access_ip_match(const struct sockaddr_storage * const sa,
             } else {
                 const unsigned char * const ip_raw =
                     (const unsigned char *) &
-                    (((const struct sockaddr_in *) 
+                    (((const struct sockaddr_in *) (void *)
                       (res->ai_addr))->sin_addr.s_addr);
                 
                 ip = (ip_raw[0] << 24) | (ip_raw[1] << 16) |
@@ -225,9 +225,11 @@ static int pw_puredb_parseline(char *line, const char * const pwd,
         return -1;
     }
     result->gid = (gid_t) strtoul(line, NULL, 10);
+#ifndef ACCEPT_ROOT_VIRTUAL_USERS
     if (result->uid <= (uid_t) 0 || result->gid <= (gid_t) 0) {
         return -1;
     }
+#endif
     if (my_strtok2(NULL, *PW_LINE_SEP) == NULL) {   /* gecos */
         return -1;
     }

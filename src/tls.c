@@ -11,6 +11,7 @@
 # include "globals.h"
 # include "messages.h"
 # include "globals.h"
+# include "alt_arc4random.h"
 
 # ifndef DISABLE_SSL_RENEGOTIATION
 #  ifndef SSL3_FLAGS_ALLOW_UNSAFE_LEGACY_RENEGOTIATION
@@ -205,11 +206,13 @@ static void ssl_info_cb(const SSL *cnx, int where, int ret)
 int tls_init_library(void) 
 {
     unsigned int rnd;
+    long options;
     
     tls_cnx_handshaked = 0;
     tls_data_cnx_handshaked = 0;
     SSL_library_init();
     SSL_load_error_strings();
+    OpenSSL_add_all_algorithms();
     while (RAND_status() == 0) {
         rnd = zrand();
         RAND_seed(&rnd, (int) sizeof rnd);
@@ -218,11 +221,15 @@ int tls_init_library(void)
         tls_error(__LINE__, 0);
     }
 # ifdef SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION
-    SSL_CTX_set_options(tls_ctx, SSL_OP_NO_SSLv2 | SSL_OP_ALL | SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION);
+    options = SSL_OP_NO_SSLv2 | SSL_OP_ALL |
+        SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION;
 # else
-    SSL_CTX_set_options(tls_ctx, SSL_OP_NO_SSLv2 | SSL_OP_ALL);
+    options = SSL_OP_NO_SSLv2 | SSL_OP_ALL;
 # endif
-    
+    if (ssl_disabled != 0) {
+        options |= SSL_OP_NO_SSLv3;
+    }
+    SSL_CTX_set_options(tls_ctx, options);
     if (SSL_CTX_use_certificate_chain_file(tls_ctx,
                                            TLS_CERTIFICATE_FILE) != 1) {
         die(421, LOG_ERR,
@@ -275,11 +282,12 @@ void tls_free_library(void)
         SSL_CTX_free(tls_ctx);
         tls_ctx = NULL;
     }
+    EVP_cleanup();
 }
 
 int tls_init_new_session(void)
 {
-    SSL_CIPHER *cipher;
+    const SSL_CIPHER *cipher;
     int ret;
     int ret_;
     
@@ -321,7 +329,7 @@ int tls_init_new_session(void)
 
 int tls_init_data_session(const int fd, const int passive)
 {
-    SSL_CIPHER *cipher;
+    const SSL_CIPHER *cipher;
     int ret;
     int ret_;
     

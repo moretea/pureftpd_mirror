@@ -18,6 +18,10 @@
 #  include <stdlib.h>
 # endif
 #endif
+#include <sys/types.h>
+#ifdef HAVE_STDINT_H
+# include <stdint.h>
+#endif
 #ifdef HAVE_LOCALE_H
 # include <locale.h>
 #endif
@@ -48,7 +52,6 @@
 #  include <time.h>
 # endif
 #endif
-#include <sys/types.h>
 #include <sys/stat.h>
 #ifdef HAVE_FCNTL_H
 # include <fcntl.h>
@@ -255,7 +258,12 @@
 extern int errno;
 #endif
 #ifndef environ
+# ifdef __APPLE_CC__
+#  include <crt_externs.h>
+#  define environ (*_NSGetEnviron())
+# else
 extern char **environ;
+# endif
 #endif
 
 typedef struct AuthResult_ {
@@ -315,9 +323,8 @@ typedef enum {
 } ChannelProtectionLevel;
 
 int pureftpd_start(int argc, char *argv[], const char *home_directory);
-int safe_write(const int fd, const void *buf_, size_t count);
 #ifdef WITH_TLS
-int secure_safe_write(void * const tls_fd, const void *buf_, size_t count);
+ssize_t secure_safe_write(void * const tls_fd, const void *buf_, size_t count);
 #endif
 void parser(void);
 void stripctrl(char * const buf, size_t len);
@@ -752,7 +759,11 @@ Your platform has a very large MAXPATHLEN, we should not trust it.
 #  define setegid(X) (-1)
 # endif
 #endif
-    
+
+#if defined(HAVE_DEV_ARANDOM) || defined(HAVE_DEV_URANDOM) || defined(HAVE_DEV_RANDOM)
+# define HAVE_RANDOM_DEV 1
+#endif
+
 #define CRLF "\r\n"
 
 #ifdef WITH_DMALLOC
