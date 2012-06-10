@@ -121,7 +121,7 @@ in 1.0.12 .
 the example configuration file.
 * Anthony DeRobertis - Fixed the on-demand creation of home directories.
 * Maharaja - Reported a typo in the README file.
-* Darth Vader (freddyke) - Suggested to have consistent max user lengths.
+* Tamás Reinhardt (freddyke) - Suggested to have consistent max user lengths.
 * Axel Apitz <a_apitz@pixelpark.com> - Support for Solaris shadow/NIS.
 * Yann Bizeul (projects.tynsoe.org) - Reported a Panther specific issue with
 getnameinfo(). Thanks a lot for providing a temporary account on a Panther

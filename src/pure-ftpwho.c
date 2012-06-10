@@ -896,8 +896,9 @@ int main(int argc, char *argv[])
                       dont_resolve_ip != 0 ? NI_NUMERICHOST : 0)) == 0) {
                     break;
                 }
-#ifdef EAI_NONAME
-                if (eai == EAI_NONAME && dont_resolve_ip == 0 &&
+#if defined(EAI_NONAME) && defined(EAI_SYSTEM)
+                if ((eai == EAI_NONAME || eai == EAI_SYSTEM) &&
+                    dont_resolve_ip == 0 &&
                     getnameinfo
                     ((struct sockaddr *) &scanned_entry->addr,
                      STORAGE_LEN(scanned_entry->addr),
@@ -920,8 +921,9 @@ int main(int argc, char *argv[])
                       NI_NUMERICSERV)) == 0) {
                     break;
                 }
-#ifdef EAI_NONAME                
-                if (eai == EAI_NONAME && dont_resolve_ip == 0 &&
+#if defined(EAI_NONAME) && defined(EAI_SYSTEM)
+                if ((eai == EAI_NONAME || eai == EAI_SYSTEM) &&
+                    dont_resolve_ip == 0 &&
                     getnameinfo
                     ((struct sockaddr *) &scanned_entry->local_addr,
                      STORAGE_LEN(scanned_entry->addr),
