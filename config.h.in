@@ -54,8 +54,7 @@
    this is either `int' or `gid_t'. */
 #undef GETGROUPS_T
 
-/* Define to 1 if the `getloadavg' function needs to be run setuid or setgid.
-   */
+/* Define if the `getloadavg' function needs to be run setuid or setgid. */
 #undef GETLOADAVG_PRIVILEGED
 
 /* Define to 1 if you have the `alarm' function. */
