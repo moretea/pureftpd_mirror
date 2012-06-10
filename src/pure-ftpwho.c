@@ -212,7 +212,7 @@ static char *xml_escaped(const char *const s_) {
     char *bufpnt = buf;
     size_t left = sizeof buf - (size_t) 1U;
     
-    while (left > 0 && *s != 0U) {
+    while (left > (size_t) 0U && *s != 0U) {
         if (ISCTRLCODE(*s)) {
             if (left <= (size_t) 0U) {
                 *bufpnt = 0;
@@ -661,7 +661,7 @@ int main(int argc, char *argv[])
 # endif
     
     if (getenv("GATEWAY_INTERFACE") != NULL) {
-        html_cgi = html_raw = 1;
+        html_cgi = 1;
         output_header = html_output_header;
         output_line = html_output_line;            
         output_footer = html_output_footer;        

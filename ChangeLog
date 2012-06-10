@@ -1,4 +1,19 @@
 
+* Version 1.0.16c:
+    We should disable the raw mode and send full HTML headers in CGI mode.
+Reported by Bernard Lheureux <bernard.lheureux@bbsoft4.org>
+    Spelling errors were fixed in the .no translation by Brynjar Eide
+<post@mislykket.no>
+    Always try to include sys/param.h before sys/mount.h in the autoconf
+script. Patch by Brad Smith <brad@openbsd.org>.
+    FAQ addition regarding the STOU command. Written by C. Jon Larsen
+<jlarsen@richweb.com>
+    PAM was broken in 1.0.16b due to PAM_SUCCESS not being copied to the right
+slot. It has been fixed.
+    Automake has been updated to 1.7.8.
+    configure.ac has been cleaned up a bit regarding the conditonnal inclusion
+of stdlib.h/unistd.h .
+
 * Version 1.0.16b:
     PAM fixes.
     TLS should now compile on RedHat 9 that moved Kerberos headers to

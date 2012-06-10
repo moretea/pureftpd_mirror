@@ -878,3 +878,31 @@ encrypted FTP sessions. Unfortunately, there's no simple workaround against
 this. Try to switch your client to active mode and use 1:1 NAT, but SSL/TLS,
 firewalls and FTP don't mix very well.
 
+
+
+* Files getting renamed automatically
+(submitted by C. Jon Larsen)
+
+-> Sometimes when files get uploaded they are getting renamed to something
+like "pureftpd.3f3300d2.33.0001". What is causing this ?
+
+The ftp client that is being used to upload the files is using the STOU (Store
+Unique) FTP command instead of the STOR FTP command. If you check the ftp
+logfile you should see something like this in the logs:
+
+(user@a.b.c.d) [DEBUG] Command [stou] [file_name_from_the_client.ext]
+/var/ftp/ftpcustomer/pureftpd.3f3300d2.33.0001 uploaded (218168 bytes,
+127.79KB/sec)
+
+The STOU command tells the ftp client to begin the transmission of the file to
+the remote site; the remote filename picked by the ftp server will be unique
+within in the current directory that the ftp client is using. The response
+from the server will include the filename.
+
+The ftp client has an option like "create unique files" or "upload file with a
+temporary name" enabled. You should have the ftp user uncheck this option.
+
+Trying to disable the STOU command on the server side is not a good idea or
+solution as some ftp clients will use STOU to upload a file with the
+temporary, unique name, and then rename the file once the upload is complete.
+This helps prevent failed uploads from leaving partial files around.
