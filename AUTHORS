@@ -73,10 +73,12 @@ Credits for Pure-FTPd are going to the following ones.
 
     Initial Debian packages.
     
-* Jean-Mathieux Schaffhauser <oscar@supinfo.com>
+* Jean-Mathieux Schaffhauser <jeanmatthieu@free.fr>
 
     Web page logo.
     GTK configuration interface.
+    Rendez-vous support on MacOS X.
+    Plist output in pure-ftpwho.
 
 * Emmanuel Hocdet <man@t-online.fr>
 
@@ -275,6 +277,22 @@ enabled.
 * Mehmet Cokcevik <dns@netline.com.tr>
 
     Turkish translation.
+
+* Torgny Wernersson <torgny@ewp.nu>
+
+    Maintainer of the PDF documentation - http://www.pureftpd.org/readme.pdf
+
+* Bánhalmi Csaba <banhalmi@enternet.hu>
+
+    Hungarian translation.
+
+* Oriol Magrané <omagrane@mediapro.es>
+
+    Catalan translation.
+
+* Volodin D <dv-ml-1@dv.net.ru>
+
+    URL encoding for CLF and W3C log files.
 
 * Frank DENIS aka Jedi/Sector One <j@pureftpd.org> :
 

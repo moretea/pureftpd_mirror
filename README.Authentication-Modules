@@ -131,10 +131,10 @@ if test "$AUTHD_ACCOUNT" = "john"; then
   echo 'uid:69'
   echo 'gid:42'
   echo 'dir:/tmp'
-  echo 'end'
 else
   echo 'auth_ok:0'
 fi
+echo 'end'
 
 Let's say we save this file as /usr/bin/ftp-auth-handler
 

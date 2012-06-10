@@ -27,6 +27,7 @@
 %define con_privsep 1
 %define con_tls 0
 %define con_sysquotas 1
+%define con_rendezvous 0
 
 %define prefixdef  /usr/local
 %define sysconfdef /etc
@@ -67,6 +68,7 @@
 %{?with_privsep:%define con_privsep 1}
 %{?with_tls:%define con_tls 1}
 %{?with_sysquotas:%define con_sysquotas 1}
+%{?with_rendezvous:%define con_rendezvous 1}
 
 #If you don't like the prefix '/usr/local' you can override it like this:
 #rpm -ba|--rebuild --define 'prefix /usr'
@@ -190,6 +192,9 @@ CFLAGS="$RPM_OPT_FLAGS" ./configure --prefix=%{prefix} \
 %if %{con_sysquotas}
   --with-sysquotas \
 %endif  
+%if %{con_rendezvous}
+  --with-rendezvous \
+%endif  
   --with-paranoidmsg \
   --mandir=%{_mandir} --sysconfdir=%{sysconfdir} \
   --with-certfile=%{certfile}
@@ -300,6 +305,9 @@ install -m 755 configuration-file/pure-config.pl_replaced $RPM_BUILD_ROOT%{prefi
 %endif
 
 %changelog
+* Sun Feb 29 2004 Frank DENIS <j@pureftpd.org>
+- Add a knob for rendezvous.
+
 * Wed Nov 20 2002 Frank DENIS <j@pureftpd.org>
 - Remove --with-everything and add lotsa new knobs.
 

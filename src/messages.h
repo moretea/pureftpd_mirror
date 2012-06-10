@@ -77,6 +77,14 @@
 # define MESSAGES_LOCALE "tr_TR"
 # include "messages_tr.h"
 
+#elif defined(MESSAGES_HU)
+# define MESSAGES_LOCALE "hu_HU"
+# include "messages_hu.h"
+
+#elif defined(MESSAGES_CA_ES)
+# define MESSAGES_LOCALE "ca_ES"
+# include "messages_ca_es.h"
+
 #else
 # define MESSAGES_LOCALE "en_GB"
 # include "messages_en.h"

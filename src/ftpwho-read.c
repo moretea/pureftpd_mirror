@@ -80,7 +80,7 @@ unsigned int ftpwho_read_count(const char * const user)
     closedir(dir);
 # ifdef DEBUG
     addreply(0, "The [%s] account is already logged %u time%c", user, count,
-	     count > 0 ? 's' : 0);
+         count > 0 ? 's' : 0);
 # endif
     return count;
 }

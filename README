@@ -1,7 +1,8 @@
 
                               .:. PURE-FTPD .:.
-                       Documentation for version 1.0.17
+                       Documentation for version 1.0.18
 
+         PDF version available from http://www.pureftpd.org/readme.pdf
 
 
            ------------------------ BLURB ------------------------
@@ -119,15 +120,16 @@ the compilation:
 
 
 --with-altlog: in addition to the syslog output, support logging into a
-specific file, in an alternative format. Currently, the CLF, Stats and W3C
-formats are implemented. CLF (common log format) is the basic format produced
-by Apache, WebFS, Roxen and most web servers. These log files only record
-file transfers and they can feed web statistic software (Analog, Webalizer,
-etc.) to analyze the load of your FTP server. The Stats format is a special
-output format, designed for log file analys software. The W3C format is a
-standard format parsed by most commercial log analyzers (all analyzers with
-support for IIS should deal with it) . Check the -O option later in this
-documentation for additional info.
+specific file, in an alternative format. Currently, the CLF, Stats, W3C and
+xferlog formats are implemented.
+CLF (common log format) is the basic format produced by Apache, WebFS, Roxen
+and most web servers. These log files only record file transfers and they can
+feed web statistic software (Analog, Webalizer, etc.) to analyze the load of
+your FTP server. The Stats format is a special output format, designed for log
+file analys software. The W3C format is a standard format parsed by most
+commercial log analyzers (all analyzers with support for IIS should deal with
+it) . Xferlog is the traditional format created by wu-ftpd. Check the -O
+option later in this documentation for additional info.
 
 --with-brokenrealpath: some Solaris versions have a broken realpath()
 implementation. If altlog and/or pure-uploadscript doesn't seem to work
@@ -145,7 +147,8 @@ manual) .
 
 --with-everything: build a big server with almost all features turned on:
 altlog, cookies, throttling, ratios, ftpwho, upload script, virtual users
-(puredb), quotas, virtual hosts, directory aliases and external authentication.
+(puredb), quotas, virtual hosts, directory aliases, external authentication
+and rendezvous.
 
 --with-extauth: compiles support for external authentication modules. Please
 read README.Authentication-Modules and the pure-authd(8) man page before
@@ -172,6 +175,8 @@ mode. It can be way slower in inetd mode.
 --with-language=russian
 --with-language=traditional-chinese
 --with-language=simplified-chinese
+--with-language=hungarian
+--with-language=catalan
 --with-language=czech: change the language of server messages.
 Default is english. If you want to contribute a translation, please
 translate the 'src/messages_en.h' file and send it to <j@pureftpd.org> .
@@ -196,7 +201,7 @@ implements the basics of the FTP protocol, with many extensions (SITE IDLE,
 SITE CHMOD, MLSD, ...) . Using the --with-minimal directive, these extensions
 won't be compiled in. Also, there will be no standalone server, no lookup for
 user/group names, no humor and no ASCII support. But the executable file size
-will be smaller than in a default installation. You need at least GCC 3.0 to
+will be smaller than in a default installation. You need at least GCC 3.3 to
 compile with this option. Regular expressions are compiled in. If you still
 want to reduce the size, use --without-globbing in conjunction with
 --with-minimal. If you are building an embedded system, use this. In all other
@@ -297,6 +302,8 @@ by default.
 
 --with-privsep: enable privilege separation (see notes about this later).
 
+--withrendez-vous: enable Rendezvous support on MacOS X (see the -v switch).
+
 
 /-----------------------
 "--without-" switches
@@ -337,16 +344,19 @@ especially for political servers.
 alphanumeric characters. Never enable this switch blindly, or your customers
 will complain.
 
---without-sendfile: on Linux and FreeBSD kernels, Pure-FTPd tries to reduce
-the CPU/memory usage by using a special system call (sendfile) . It works
-very well with most filesystems. However, this optimization is not
+--without-unicode: disallow non-latin characters. Recommended if you don't
+have special characters in file names.
+
+--without-sendfile: on Linux, Solaris, HPUX and FreeBSD kernels, Pure-FTPd
+tries to reduce the CPU/memory usage by using a special system call (sendfile)
+. It works very well with most filesystems. However, this optimization is not
 implemented for all filesystems in current kernels. Users reported that
-downloading files with Pure-FTPd failed with SMBFS (Samba) on FreeBSD 4.3,
-and TmpFS and NTFS on Linux (the error reported by the server is "broken
-pipe" or "Error during write to data connection") . If you are planning to
-serve files from these filesystems, you have to use the --without-sendfile
-switch to enable a workaround. It was also reported that PA-Risc Linux
-systems need this flag.
+downloading files with Pure-FTPd failed with SMBFS (Samba) on FreeBSD and
+TmpFS and NTFS on Linux (the error reported by the server is "broken pipe" or
+"Error during write to data connection") . If you are planning to serve files
+from these filesystems, you have to use the --without-sendfile switch to
+enable a workaround. It was also reported that PA-Risc Linux systems need this
+flag.
 
 --without-shadow: ignore the shadow passwords, even though they are
 auto-detected. Usually a bad idea, unless you use PAM, LDAP or SQL.
@@ -629,9 +639,9 @@ transfered. This option is incompatible with virtual quotas.
 
 - '-1': log the PID of each session in syslog output.
 
-- '-4': only listen to IPv4 connections. YOU HAVE TO ENABLE THIS ON OPENBSD,
-ISOS, EKKOBSD AND MACOS X IF YOUR NETWORK IS NOT 100% IPV6! Even if you are
-starting the server through a superserver like inetd.
+- '-4': only listen to IPv4 connections.
+
+- '-6': don't listen to IPv4, only listen to IPv6.
 
 - '-a <gid>': Authenticated users will be granted access to their home
 directory and nothing else (chroot) . This is especially useful for users
@@ -768,8 +778,8 @@ that the 'pure-uploadscript' program can run. Don't enable that option if
 you don't actually use 'pure-uploadscript'.
 
 - '-O <format>:<log file>': Record all file transfers into a specific log
-file, in an alternative format. Currently, three formats are supported: CLF
-(Apache-like), Stats and W3C.
+file, in an alternative format. Currently, four formats are supported: CLF
+(Apache-like), Stats, W3C and xferlog.
 
 If you add '-O clf:/var/log/pureftpd.log' to your starting options,
 Pure-FTPd will log transfers in /var/log/pureftpd.log in a format similar to
@@ -867,6 +877,9 @@ option, you can have routed IPs for public access and a local IP (like
 protected by firewall rules and only that IP can be used to login as a
 non-anonymous user.
 
+- '-v <name>': Set the service name for Apple's Rendezvous. Only available on
+MacOS X when Rendezvous support is compiled in.
+
 - '-w': Support the FXP protocol only for authenticated users. FXP works
 with IPv4 and IPv6 addresses.
 
@@ -951,6 +964,7 @@ aliases are available. You can get this list at any time by typing
 -0  --notruncate
 -1  --logpid                <file>
 -4  --ipv4only
+-6  --ipv6only
 -a  --trustedgid            <gid>
 -A  --chrooteveryone    
 -b  --brokenclientscompatibility    
@@ -991,6 +1005,7 @@ aliases are available. You can get this list at any time by typing
 -T  --userbandwidth         <bandwidth (KB/s)> or [<up bw>]:[<down bw>]
 -u  --minuid                <uid>
 -U  --umask                 <mask>
+-v  --rendezvous            <name>
 -V  --trustedip             <ip address>
 -w  --allowuserfxp  
 -W  --allowanonymousfxp
@@ -1036,6 +1051,7 @@ aliases are available. You can get this list at any time by typing
 -h  --help  
 
 -4  --ipv4only
+-6  --ipv6only
 
 -K  --keepallfiles
 
@@ -1061,6 +1077,8 @@ aliases are available. You can get this list at any time by typing
 -g  --pidfile               <path to pid file>
 -X  --prohibitdotfilesread  
 -x  --prohibitdotfileswrite 
+
+-v  --rendezvous            <name>
 
 -f  --syslogfacility        <facility>
 
@@ -1424,9 +1442,12 @@ can pass it to a moderation system, an anti-virus, a MD5 signature generator
 or whatever you decide can be done with a file.
 
 To support this, the server has to be configured --with-uploadscript at
-compilation time. Then, the FTP server has to be launched with the '-o'
-run-time option. Finally, you have to run another daemon called
-'pure-uploadscript' provided by this package.
+compilation time. Upload scripts won't be spawned on unreadable directories.
+So it's highly recommended to use upload scripts with the --customerproof
+run-time option and without unreadable parent directories.
+To tell the FTP server to use upload scripts, it has to be launched with the
+'-o' option. Finally, you have to run another daemon called 'pure-uploadscript'
+provided by this package.
 
 IMPORTANT:
 

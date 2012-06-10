@@ -208,7 +208,7 @@ void parser(void)
         switch (sfgets()) {
         case -1:
 #ifdef BORING_MODE
-	    die(421, LOG_INFO, MSG_TIMEOUT);
+        die(421, LOG_INFO, MSG_TIMEOUT);
 #else
             die(421, LOG_INFO, MSG_TIMEOUT_PARSER);
 #endif
@@ -374,12 +374,12 @@ void parser(void)
 #ifndef MINIMAL
             } else if (!strcmp(cmd, "eprt")) {
                 doeprt(arg);
-	    } else if (!strcmp(cmd, "esta") &&
-		       disallow_passive == 0 &&
-		       STORAGE_FAMILY(force_passive_ip) == 0) {
-		doesta();
-	    } else if (!strcmp(cmd, "estp")) {
-		doestp();
+        } else if (!strcmp(cmd, "esta") &&
+               disallow_passive == 0 &&
+               STORAGE_FAMILY(force_passive_ip) == 0) {
+        doesta();
+        } else if (!strcmp(cmd, "estp")) {
+        doestp();
 #endif
             } else if (disallow_passive == 0 && 
                        (!strcmp(cmd, "pasv") || !strcmp(cmd, "p@sw"))) {

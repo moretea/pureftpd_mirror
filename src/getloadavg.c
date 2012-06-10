@@ -1,6 +1,6 @@
 /* Get the system load averages.
    Copyright (C) 1985, 86, 87, 88, 89, 91, 92, 93, 1994, 1995, 1997
-   	Free Software Foundation, Inc.
+       Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -19,51 +19,51 @@
 
 /* Compile-time symbols that this file uses:
 
-   HAVE_PSTAT_GETDYNAMIC	Define this if your system has the
+   HAVE_PSTAT_GETDYNAMIC    Define this if your system has the
                                 pstat_getdynamic function.  I think it
-				is unique to HPUX9.  The best way to get the
-				definition is through the AC_FUNC_GETLOADAVG
-				macro that comes with autoconf 2.13 or newer.
-				If that isn't an option, then just put
-				AC_CHECK_FUNCS(pstat_getdynamic) in your
-				configure.in file.
-   FIXUP_KERNEL_SYMBOL_ADDR()	Adjust address in returned struct nlist.
-   KERNEL_FILE			Pathname of the kernel to nlist.
-   LDAV_CVT()			Scale the load average from the kernel.
-				Returns a double.
-   LDAV_SYMBOL			Name of kernel symbol giving load average.
-   LOAD_AVE_TYPE		Type of the load average array in the kernel.
-				Must be defined unless one of
-				apollo, DGUX, NeXT, or UMAX is defined;
-				otherwise, no load average is available.
-   NLIST_STRUCT			Include nlist.h, not a.out.h, and
-				the nlist n_name element is a pointer,
-				not an array.
-   NLIST_NAME_UNION		struct nlist has an n_un member, not n_name.
-   LINUX_LDAV_FILE		[__linux__]: File containing load averages.
+                is unique to HPUX9.  The best way to get the
+                definition is through the AC_FUNC_GETLOADAVG
+                macro that comes with autoconf 2.13 or newer.
+                If that isn't an option, then just put
+                AC_CHECK_FUNCS(pstat_getdynamic) in your
+                configure.in file.
+   FIXUP_KERNEL_SYMBOL_ADDR()    Adjust address in returned struct nlist.
+   KERNEL_FILE            Pathname of the kernel to nlist.
+   LDAV_CVT()            Scale the load average from the kernel.
+                Returns a double.
+   LDAV_SYMBOL            Name of kernel symbol giving load average.
+   LOAD_AVE_TYPE        Type of the load average array in the kernel.
+                Must be defined unless one of
+                apollo, DGUX, NeXT, or UMAX is defined;
+                otherwise, no load average is available.
+   NLIST_STRUCT            Include nlist.h, not a.out.h, and
+                the nlist n_name element is a pointer,
+                not an array.
+   NLIST_NAME_UNION        struct nlist has an n_un member, not n_name.
+   LINUX_LDAV_FILE        [__linux__]: File containing load averages.
 
    Specific system predefines this file uses, aside from setting
    default values if not emacs:
 
    apollo
-   BSD				Real BSD, not just BSD-like.
+   BSD                Real BSD, not just BSD-like.
    convex
    DGUX
-   eunice			UNIX emulator under VMS.
+   eunice            UNIX emulator under VMS.
    hpux
-   __MSDOS__			No-op for MSDOS.
+   __MSDOS__            No-op for MSDOS.
    NeXT
    sgi
-   sequent			Sequent Dynix 3.x.x (BSD)
-   _SEQUENT_			Sequent DYNIX/ptx 1.x.x (SYSV)
+   sequent            Sequent Dynix 3.x.x (BSD)
+   _SEQUENT_            Sequent DYNIX/ptx 1.x.x (SYSV)
    sony_news                    NEWS-OS (works at least for 4.1C)
    UMAX
    UMAX4_3
    VMS
-   WINDOWS32			No-op for Windows95/NT.
-   __linux__			Linux: assumes /proc filesystem mounted.
-   				Support from Michael K. Johnson.
-   __NetBSD__			NetBSD: assumes /kern filesystem mounted.
+   WINDOWS32            No-op for Windows95/NT.
+   __linux__            Linux: assumes /proc filesystem mounted.
+                   Support from Michael K. Johnson.
+   __NetBSD__            NetBSD: assumes /kern filesystem mounted.
 
    In addition, to avoid nesting many #ifdefs, we internally set
    LDAV_DONE to indicate that the load average has been computed.
@@ -181,7 +181,7 @@ extern int errno;
    default, but _MACH_IND_SYS_TYPES is defined in <sys/types.h>.  Combine
    that with a couple of other things and we'll have a unique match.  */
 # if !defined (tek4300) && defined (unix) && defined (m68k) && defined (mc68000) && defined (mc68020) && defined (_MACH_IND_SYS_TYPES)
-#  define tek4300			/* Define by emacs, but not by other users.  */
+#  define tek4300            /* Define by emacs, but not by other users.  */
 # endif
 
 
@@ -264,7 +264,7 @@ extern int errno;
 # endif
 
 
-# ifndef	FSCALE
+# ifndef    FSCALE
 
 /* SunOS and some others define FSCALE in sys/param.h.  */
 
@@ -295,7 +295,7 @@ extern int errno;
 #   define FSCALE 65536.0
 #  endif
 
-# endif	/* Not FSCALE.  */
+# endif    /* Not FSCALE.  */
 
 # if !defined (LDAV_CVT) && defined (FSCALE)
 #  define LDAV_CVT(n) (((double) (n)) / FSCALE)
@@ -518,7 +518,7 @@ static unsigned int samples;
 # endif /* UMAX */
 
 # ifdef DGUX
-static struct dg_sys_info_load_info load_info;	/* what-a-mouthful! */
+static struct dg_sys_info_load_info load_info;    /* what-a-mouthful! */
 # endif /* DGUX */
 
 # ifdef LOAD_AVE_TYPE
@@ -546,7 +546,7 @@ static kvm_t *kd;
 
 int getloadavg(double loadavg[], int nelem)
 {
-    int elem = 0;			/* Return value.  */
+    int elem = 0;            /* Return value.  */
 
 # ifdef NO_GET_LOAD_AVG
 #  define LDAV_DONE
@@ -590,8 +590,8 @@ int getloadavg(double loadavg[], int nelem)
                 if (kn != 0) {
                     loadavg[elem++] = (double) kn->value.ul / FSCALE;
                 }
-	    }
-	}
+        }
+    }
     }
     kstat_close(kc);
 # endif /* HAVE_LIBKSTAT */
@@ -706,7 +706,7 @@ int getloadavg(double loadavg[], int nelem)
             if (nelem > 0) {
                 loadavg[elem++] = (double) info.load_average / LOAD_SCALE;
             }
-	}
+    }
     }
     if (!getloadavg_initialized) {
         return -1;
@@ -753,7 +753,7 @@ int getloadavg(double loadavg[], int nelem)
                 return -1;
             }            
             c += stats.class_numcpus;
-	}
+    }
         cpus = c;
         samples = cpus < 2 ? 3 : (2 * cpus / 3);
     }
@@ -839,7 +839,7 @@ int getloadavg(double loadavg[], int nelem)
     loadavg[elem++] = 
         (load_ave.tl_lscale == 0 ? load_ave.tl_avenrun.d[0] :
          (load_ave.tl_avenrun.l[0] / (double) load_ave.tl_lscale));
-# endif	/* OSF_MIPS */
+# endif    /* OSF_MIPS */
 
 # if !defined (LDAV_DONE) && (defined (__MSDOS__) || defined (WINDOWS32))
 #  define LDAV_DONE
@@ -896,7 +896,7 @@ int getloadavg(double loadavg[], int nelem)
 
   /* UNIX-specific code -- read the average from /dev/kmem.  */
 
-#  define LDAV_PRIVILEGED		/* This code requires special installation.  */
+#  define LDAV_PRIVILEGED        /* This code requires special installation.  */
 
     LOAD_AVE_TYPE load_ave[3];
 
@@ -927,9 +927,9 @@ int getloadavg(double loadavg[], int nelem)
 #    endif
             >= 0) {  /* Omit "&& nl[0].n_type != 0 " -- it breaks on Sun386i.  */
 #    ifdef FIXUP_KERNEL_SYMBOL_ADDR
-	    FIXUP_KERNEL_SYMBOL_ADDR(nl);
+        FIXUP_KERNEL_SYMBOL_ADDR(nl);
 #    endif
-	    offset = nl[0].n_value;
+        offset = nl[0].n_value;
         }
 #   endif /* !SUNOS_5 */
 #  else  /* sgi */
@@ -956,7 +956,7 @@ int getloadavg(double loadavg[], int nelem)
 #   endif
 #  else /* SUNOS_5 */
         /* We pass 0 for the kernel, corefile, and swapfile names
-	 to use the currently running kernel.  */
+     to use the currently running kernel.  */
     if ((kd = kvm_open(0, 0, 0, O_RDONLY, 0)) == 0) {
         return -1;
     }
@@ -979,13 +979,13 @@ int getloadavg(double loadavg[], int nelem)
 #  ifndef SUNOS_5
         if (lseek(channel, offset, SEEK_SET) == -1L ||
             read(channel, (char *) load_ave, sizeof load_ave)
-	  != sizeof load_ave) {
+      != sizeof load_ave) {
             close(channel);
             return -1;
-	}
+    }
 #  else  /* SUNOS_5 */
       if (kvm_read(kd, offset, (char *) load_ave, sizeof load_ave)
-	  != sizeof load_ave) {
+      != sizeof load_ave) {
           kvm_close(kd);
           return -1;
       }

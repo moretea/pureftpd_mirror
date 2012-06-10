@@ -195,7 +195,7 @@ static void addfile(const char *name, const char *suffix)
 }
 
 /* listfile returns non-zero if the file is a directory */
-static int listfile(const FileInfo * const fi,  const char *name)
+static int listfile(const PureFileInfo * const fi,  const char *name)
 {
     int rval = 0;
     struct stat st;
@@ -488,20 +488,22 @@ static void outputfiles(int f)
 /* functions to to sort for qsort() */
 static int cmp(const void * const a, const void * const b)
 {    
-    return strcmp(FI_NAME((const FileInfo *) a), FI_NAME((const FileInfo *) b));
+    return strcmp(FI_NAME((const PureFileInfo *) a),
+                  FI_NAME((const PureFileInfo *) b));
 }
 
 static int cmp_r(const void * const a, const void * const b)
 {    
-    return strcmp(FI_NAME((const FileInfo *) b), FI_NAME((const FileInfo *) a));
+    return strcmp(FI_NAME((const PureFileInfo *) b),
+                  FI_NAME((const PureFileInfo *) a));
 }
 
 static int cmp_t(const void * const a, const void * const b)
 {    
-    if (((const FileInfo *) a)->mtime < ((const FileInfo *) b)->mtime) {
+    if (((const PureFileInfo *) a)->mtime < ((const PureFileInfo *) b)->mtime) {
         return 1;
     }
-    if (((const FileInfo *) a)->mtime > ((const FileInfo *) b)->mtime) {
+    if (((const PureFileInfo *) a)->mtime > ((const PureFileInfo *) b)->mtime) {
         return -1;
     }
     return 0;
@@ -514,10 +516,10 @@ static int cmp_rt(const void * const a, const void * const b)
 
 static int cmp_S(const void * const a, const void * const b)
 {    
-    if (((const FileInfo *) a)->size < ((const FileInfo *) b)->size) {
+    if (((const PureFileInfo *) a)->size < ((const PureFileInfo *) b)->size) {
         return 1;
     }
-    if (((const FileInfo *) a)->size > ((const FileInfo *) b)->size) {
+    if (((const PureFileInfo *) a)->size > ((const PureFileInfo *) b)->size) {
         return -1;
     }
     return 0;
@@ -528,13 +530,13 @@ static int cmp_rS(const void * const a, const void * const b)
     return cmp_S(b, a);
 }
 
-static FileInfo *sreaddir(char **names_pnt)
+static PureFileInfo *sreaddir(char **names_pnt)
 {
     struct stat st;
     DIR *d;
     struct dirent *de;    
-    FileInfo *files_info;
-    FileInfo *file_info;
+    PureFileInfo *files_info;
+    PureFileInfo *file_info;
     size_t files_info_size;
     size_t files_info_counter = (size_t) 0U;
     char *names;
@@ -580,7 +582,7 @@ static FileInfo *sreaddir(char **names_pnt)
             names = new_names;
         }
         while ((files_info_counter + (size_t) 1U) >= files_info_size) {
-            FileInfo *new_files_info;
+            PureFileInfo *new_files_info;
             
             files_info_size += (CHUNK_SIZE / sizeof *files_info);
             if ((new_files_info = realloc(files_info, 
@@ -632,10 +634,10 @@ static FileInfo *sreaddir(char **names_pnt)
 /* have to change to the directory first (speed hack for -R) */
 static void listdir(unsigned int depth, int f, const char *name)
 {
-    FileInfo *dir;
+    PureFileInfo *dir;
     char *names;
-    FileInfo *s;
-    FileInfo *r;
+    PureFileInfo *s;
+    PureFileInfo *r;
     int d;
     
     if (depth >= max_ls_depth || matches >= max_ls_files) {
@@ -777,7 +779,7 @@ void donlist(char *arg, const int on_ctrl_conn, const int opt_l_,
         }
     }
     if (on_ctrl_conn == 0) {
-	opendata();
+    opendata();
         if ((c = xferfd) == -1) {
             return;
         }

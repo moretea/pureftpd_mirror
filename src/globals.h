@@ -28,6 +28,7 @@ GLOBAL0(signed char passive);
 GLOBAL(int datafd, -1);                    /* data connection file descriptor */
 GLOBAL0(struct sockaddr_storage ctrlconn);    /* stdin/stdout, for using the same ip number */
 GLOBAL0(signed char v6ready);                    /* IPv6 supported or not */
+GLOBAL0(signed char no_ipv4);                    /* IPv4 disabled or not */
 GLOBAL(const size_t cmdsize, MAXPATHLEN + 16U);
 GLOBAL0(char cmd[MAXPATHLEN + 32U]);        /* command line - about 30 chars for command */
 GLOBAL0(char wd[MAXPATHLEN + 1U]);            /* current working directory */
@@ -149,6 +150,11 @@ GLOBAL(unsigned long long user_quota_files, ULONG_LONG_MAX);
 #define MONTHS_NAMES "Jan", "Feb", "Mar", "Apr", "May", "Jun", \
                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
 GLOBAL(const char *months[12], { MONTHS_NAMES });
+
+#ifdef WITH_ALTLOG
+# define WEEK_DAYS_NAMES "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
+GLOBAL(const char *week_days[7], { WEEK_DAYS_NAMES });
+#endif
 
 GLOBAL0(AuthResult authresult);
 GLOBAL0(time_t session_start_time);

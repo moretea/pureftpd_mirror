@@ -65,6 +65,7 @@ $dialog \
 'without-ascii' "Don't support 7-bits (ASCII) transfers" off \
 'without-banner' "Don't display the nice initial banner" off \
 'without-nonalnum' "Only allow minimal alpha-numeric characters" off \
+'without-unicode' "Disable utf8 non-latin characters" off \
 'without-globbing' "Don't include the globbing code" off \
 'without-sendfile' "Don't use zero-copy optimizations" off \
 'with-brokenrealpath' "If your C library has a broken realpath()" off \
@@ -92,6 +93,7 @@ $dialog \
 'with-peruserlimits' "Support per-user concurrency limits" on \
 'with-privsep' "Enable privilege separation" off \
 'with-tls' "Support SSL/TLS security layer (experimental)" off \
+'with-rendezvous' "Support Rendezvous on MacOS X" off \
 2> $tmp
 
 cfgline='';
@@ -123,6 +125,8 @@ $dialog \
 'simplified-chinese' "Contributed by Hether Fygul" off \
 'czech' "Contributed by Martin Sarfy" off \
 'turkish' "Contributed by Mehmet Cokcevik" off \
+'hungarian' "Contributed by Banhalmi Csaba" off \
+'catalan' "Contributed by Oriol Magrano" off \
 2> $tmp
 
 z=$(cat $tmp)

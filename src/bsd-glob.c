@@ -1,7 +1,7 @@
 
 /*
  * Copyright (c) 1989, 1993
- *	The Regents of the University of California.  All rights reserved.
+ *    The Regents of the University of California.  All rights reserved.
  *
  * This code is derived from software contributed to Berkeley by
  * Guido van Rossum.
@@ -156,7 +156,7 @@ static int glob_(const char *pattern,
     if (flags & GLOB_NOESCAPE) {
         while (bufnext < bufend && (c = *patnext++) != EOS) {
             *bufnext++ = (Char) c;
-	}
+    }
     } else {
         /* Protect the quoted characters. */
         while (bufnext < bufend && (c = *patnext++) != EOS) {
@@ -168,7 +168,7 @@ static int glob_(const char *pattern,
                 *bufnext++ = (Char) (c | M_PROTECT);
             } else {
                 *bufnext++ = (Char) c;
-	    }
+        }
         }
     }
     *bufnext = EOS;
@@ -780,8 +780,8 @@ static DIR *g_opendir(register Char * str)
     char buf[MAXPATHLEN + 1];
 
     if (!*str) {
-	buf[0] = '.';
-	buf[1] = 0;         /* safe : sizeof buf > 2 */
+    buf[0] = '.';
+    buf[1] = 0;         /* safe : sizeof buf > 2 */
     } else {
         if (g_Ctoc(str, buf, sizeof (buf)))
             return NULL;

@@ -417,6 +417,7 @@ void pw_mysql_check(AuthResult * const result,
             goto auth_ok;
         }
     }
+#if MYSQL_VERSION_ID < 40100
     if (crypto_mysql != 0) {
         unsigned long hash_res[2];
         char scrambled_password[MYSQL_CRYPT_LEN];
@@ -428,6 +429,7 @@ void pw_mysql_check(AuthResult * const result,
             goto auth_ok;
         }
     }
+#endif
     if (crypto_md5 != 0) {
         register const char *crypted;
 
@@ -577,7 +579,7 @@ void pw_mysql_parse(const char * const file)
 {
     if (generic_parser(file, mysql_config_keywords) != 0) {
         die(421, LOG_ERR, MSG_CONF_ERR ": " MSG_ILLEGAL_CONFIG_FILE_SQL ": %s",
-	    file);
+        file);
     }    
     if (server == NULL && socket_path == NULL) {
         die(421, LOG_ERR, MSG_SQL_MISSING_SERVER);        
@@ -587,11 +589,11 @@ void pw_mysql_parse(const char * const file)
         socket_path = NULL;
     }
     if (tildexp_s != NULL) {
-	if ((tildexp = atoi(tildexp_s)) < 0) {
-	    tildexp = 0;
-	}
-	free(tildexp_s);
-	tildexp_s = NULL;	
+    if ((tildexp = atoi(tildexp_s)) < 0) {
+        tildexp = 0;
+    }
+    free(tildexp_s);
+    tildexp_s = NULL;    
     }        
     if (port_s != NULL) {
         port = atoi(port_s);

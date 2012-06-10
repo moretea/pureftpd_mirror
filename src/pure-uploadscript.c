@@ -34,11 +34,11 @@ static int upload_pipe_ropen(void)
     again:
     if ((upload_pipe_fd =
          open(UPLOAD_PIPE_FILE, O_RDONLY | O_NOFOLLOW)) == -1) {
-	if (tries > 0) {
-	    tries--;
-	    (void) sleep(OPEN_DELAY);
-	    goto again;
-	}
+    if (tries > 0) {
+        tries--;
+        (void) sleep(OPEN_DELAY);
+        goto again;
+    }
         perror("Unable to open " UPLOAD_PIPE_FILE);
         return -1;
     }
@@ -163,8 +163,7 @@ static int closedesc_all(const int closestdin)
     (void) dup2(1, 2);
     if (fodder > 2) {
         (void) close(fodder);
-    }
-    
+    }    
     return 0;
 }
 
@@ -179,9 +178,12 @@ static void dodaemonize(void)
         } else if (child != (pid_t) 0) {
             _exit(EXIT_SUCCESS);
         } else if (setsid() == (pid_t) -1) {
-               perror("Daemonization failed : setsid");
+            perror("Daemonization failed : setsid");
         }
         (void) chdir("/");
+#ifdef HAVE_CLOSEFROM
+        (void) closefrom(3);
+#endif
         (void) closedesc_all(0);
     }
 }
@@ -489,7 +491,7 @@ int main(int argc, char *argv[])
     updatepidfile();
     if (changeuidgid() < 0) {
         perror("Identity change");
-        (void) unlink(PID_FILE);
+        (void) unlink(UPLOADSCRIPT_PID_FILE);
         return -1;
     }
 #ifdef SIGPIPE
@@ -511,7 +513,7 @@ int main(int argc, char *argv[])
     /* Unreachable */
 #if 0
     close(upload_pipe_fd);
-    (void) unlink(PID_FILE);
+    (void) unlink(UPLOADSCRIPT_PID_FILE);
 #endif
     
     return 0;
