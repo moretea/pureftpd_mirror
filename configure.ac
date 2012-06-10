@@ -1,7 +1,7 @@
 dnl AM_ACLOCAL_INCLUDE(m4)
 
 AC_PREREQ(2.50)
-AC_INIT(pure-ftpd, 1.0.13a, bugs@pureftpd.org)
+AC_INIT(pure-ftpd, 1.0.14, bugs@pureftpd.org)
 AC_CONFIG_SRCDIR(src/ftpd.c)
 AM_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE([1.6 dist-bzip2])
@@ -30,6 +30,10 @@ AC_PATH_PROG(PYTHON,python,/usr/bin/env python,$python_possible_path)
 CPPFLAGS="$CPPFLAGS -D_GNU_SOURCE=1 -I/usr/local/include"
 LDFLAGS="$LDFLAGS -L/usr/local/lib"
 
+if uname | fgrep SunOS > /dev/null 2> /dev/null ; then
+  CPPFLAGS="$CPPFLAGS -D__EXTENSIONS__=1 -D_XPG4_2=1"
+fi
+
 dnl Checks for header files
 
 AC_HEADER_STDC
@@ -42,13 +46,13 @@ AC_CHECK_HEADERS(sys/vfs.h sys/statvfs.h sys/sendfile.h sys/uio.h sys/fsuid.h)
 AC_CHECK_HEADERS(sys/time.h sys/resource.h sys/capability.h)
 AC_CHECK_HEADERS(shadow.h getopt.h stddef.h)
 AC_CHECK_HEADERS(netinet/in_systm.h netinet/in.h sys/mount.h sys/pstat.h)
-AC_CHECK_HEADERS(fcntl.h sys/fcntl.h sys/loadavg.h)
+AC_CHECK_HEADERS(fcntl.h sys/fcntl.h sys/loadavg.h sys/ptrace.h)
 AC_CHECK_HEADERS(security/pam_appl.h security/pam_misc.h security/pam_filter.h)
 AC_CHECK_HEADERS(sgtty.h termio.h)
 AC_CHECK_HEADERS(locale.h)
 AC_CHECK_HEADERS(stdarg.h varargs.h)
 AC_CHECK_HEADERS(windows.h io.h)
-AC_CHECK_HEADERS(crypt.h md5.h sha1.h)
+AC_CHECK_HEADERS(crypt.h)
 AC_CHECK_HEADERS(utime.h)
 AC_SYS_POSIX_TERMIOS
 
@@ -721,6 +725,7 @@ AC_ARG_WITH(nonroot,
 [ if test "x$withval" = "xyes" ; then
       AC_DEFINE(NON_ROOT_FTP,,[with nonroot])
       AC_DEFINE(WITH_VIRTUAL_CHROOT)
+      non_root_ftp=yes
   fi ])
 
 AC_ARG_WITH(peruserlimits,
@@ -818,14 +823,14 @@ AC_FUNC_GETGROUPS
 
 AC_CHECK_FUNCS(initgroups setrlimit waitpid setproctitle getopt_long)
 AC_CHECK_FUNCS(seteuid setreuid setresuid setegid setregid setresgid)
-AC_CHECK_FUNCS(statvfs statfs putenv getpagesize realpath pread)
+AC_CHECK_FUNCS(statvfs statfs putenv getpagesize realpath pread ptrace)
 AC_CHECK_FUNCS(strtoull strtoq)
 AC_CHECK_FUNCS(memset munmap strdup fileno mapviewoffile)
 AC_CHECK_FUNCS(getaddrinfo getnameinfo inet_ntop inet_pton)
 AC_CHECK_FUNCS(setusershell setgroups snprintf vsnprintf vfprintf gethostname)
 AC_CHECK_FUNCS(setlocale)
 AC_CHECK_FUNCS(utime utimes mknod mkfifo)
-AC_CHECK_FUNCS(random srandomdev SHA1Transform MD5Transform)
+AC_CHECK_FUNCS(random srandomdev)
 
 AC_MSG_CHECKING([whether statvfs64() is defined])
 AC_TRY_COMPILE([
@@ -914,6 +919,72 @@ AC_DEFINE(SAFE_GETGROUPS_0,,[Define is getgroups(0, NULL) works on your system])
 ],
 AC_MSG_RESULT(no)
 )
+
+AC_MSG_CHECKING(whether you already have a standard MD5 implementation)
+AC_TRY_RUN([
+#include <stdio.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/types.h>
+#include <md5.h>
+
+int main(void)
+{
+    MD5_CTX ctx;
+    char b[33];
+    
+    MD5Init(&ctx);
+    MD5Update(&ctx, (const unsigned char *) "test", 4U);
+    MD5End(&ctx, b);
+    b[32] = 0;
+
+    return strcasecmp(b, "098f6bcd4621d373cade4e832627b4f6");
+}
+],
+[
+AC_MSG_RESULT(yes)
+AC_DEFINE(USE_SYSTEM_CRYPT_MD5,,[Define if you already have standard
+MD5 functions])
+],
+AC_MSG_RESULT(no)
+)
+
+AC_MSG_CHECKING(whether you already have a standard SHA1 implementation)
+AC_TRY_RUN([
+#include <stdio.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sha1.h>
+
+int main(void)
+{
+    SHA1_CTX ctx;
+    char b[41];
+    
+    SHA1Init(&ctx);
+    SHA1Update(&ctx, (const unsigned char *) "test", 4U);
+    SHA1End(&ctx, b);
+    b[40] = 0;
+    
+    return strcasecmp(b, "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3");
+}
+],
+[
+AC_MSG_RESULT(yes)
+AC_DEFINE(USE_SYSTEM_CRYPT_SHA1,,[Define if you already have standard
+SHA1 functions])
+],
+AC_MSG_RESULT(no)
+)
+
+AC_MSG_CHECKING([whether we are inside a Virtuozzo virtual host])
+if test -d /proc/vz; then
+  AC_MSG_RESULT(yes)
+  AC_DEFINE(VIRTUOZZO,,[Define if you are inside a Virtuozzo virtual
+host])
+else
+  AC_MSG_RESULT(no)
+fi
 
 AC_MSG_CHECKING(default TCP send buffer size)
 AC_TRY_RUN([
@@ -1068,6 +1139,17 @@ AC_ARG_WITH(pgsql,
     AC_MSG_RESULT(yes)
   fi ])
 
+AC_ARG_WITH(privsep,
+[AC_HELP_STRING([--with-privsep],[Enable privilege separation (experimental)])],
+[ if test "x$withval" = "xyes" ; then
+    AC_DEFINE(WITH_PRIVSEP,,[enable privilege separation])
+    with_privsep=yes
+  fi ])
+
+if test "x$with_privsep" = "xyes" && test "x$non_root_ftp" = "xyes" ; then
+  AC_MSG_ERROR(Privilege separation is incompatible with non-root.)
+fi
+
 if test "x$sysconfdir" = 'xNONE' || test "x$sysconfdir" = 'x'; then
   CONFDIR='/etc'
 else
@@ -1094,7 +1176,6 @@ if test -r /dev/random; then
   AC_MSG_NOTICE([You have /dev/random - Great])
   AC_DEFINE(HAVE_DEV_RANDOM,,[Define if you have /dev/random])
 fi
-
 
 sysconfdir="$CONFDIR"
 AC_SUBST(sysconfdir)

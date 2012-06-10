@@ -34,7 +34,7 @@ int generic_parser(const char * const file,
         while (*linepnt != 0 && isspace((unsigned char) *linepnt)) {
             linepnt++;
         }
-        if ((unsigned char) *linepnt < 32U || *linepnt == CONFIG_COMMENT) {
+        if (ISCTRLCODE(*linepnt) || *linepnt == CONFIG_COMMENT) {
             continue;
         }
         config_keywords_pnt = config_keywords;
@@ -55,7 +55,7 @@ int generic_parser(const char * const file,
                 linepnt2 = linepnt + strlen(linepnt) - 1U;
                 while (linepnt2 != linepnt &&
                        (isspace((unsigned char) *linepnt2) || 
-                        (unsigned char) *linepnt2 < 32U)) {
+                        ISCTRLCODE(*linepnt2))) {
                     linepnt2--;
                 }
                 linepnt2[1] = 0;           /* No possible off-by-one here */

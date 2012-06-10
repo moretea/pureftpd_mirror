@@ -1,5 +1,3 @@
-/* $Id: diraliases.c,v 1.7 2002/09/21 22:20:22 chrysalis Exp $ */
-
 /*
 
 0) alias file format.

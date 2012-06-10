@@ -20,7 +20,7 @@ accross architectures.
         ------------------------ COMPILATION ------------------------
         
 
-Compiling PureDB is a simple matter of :
+Compiling PureDB is a simple matter of:
 
 ./configure
 make install
@@ -39,7 +39,7 @@ applications. However, you can safely link both libraries together.
            ------------------------ USAGE ------------------------
 
 
-To compile a program with puredb, you have to include the following headers :
+To compile a program with puredb, you have to include the following headers:
 
 #include <puredb_read.h>
 
@@ -51,8 +51,8 @@ If your application only reads PureDB databases, just include the first
 header. If it only writes databases, just include the second one. It it does
 both, include both.
 
-The same thing goes for linker options : you have to link against
-libpuredb_read and/or libpuredb_write :
+The same thing goes for linker options: you have to link against
+libpuredb_read and/or libpuredb_write:
 
 cc -o myapp1 myapp1.c -lpuredb_read
 cc -o myapp2 myapp2.c -lpuredb_write
@@ -62,7 +62,7 @@ cc -o myapp3 myapp3.c -lpuredb_read -lpuredb_write
 ------------------------ API FOR CREATING DATABASES ------------------------
 
 
-Creating a new database is usually a 4-step operation :
+Creating a new database is usually a 4-step operation:
 
 1) Create the database files and initialize the internal structures with
 puredbw_open() .
@@ -73,7 +73,7 @@ puredbw_open() .
 
 4) Free the internal structures with puredbw_free() .
 
-Here are the functions :
+Here are the functions:
 
 
 int puredbw_open(PureDBW * const dbw,
@@ -167,7 +167,7 @@ int main(void)
  ------------------------ API FOR READING DATABASES ------------------------
 
 
-Reading the content of a database is usually a 5-step operation :
+Reading the content of a database is usually a 5-step operation:
 
 1) Open the database files and initialize the internal structures with
 puredb_open() .
@@ -184,7 +184,7 @@ puredb_open() .
 
 5) Close the database and free the internal structures with puredb_close() .
 
-Here are the functions :
+Here are the functions:
 
 
 int puredb_open(PureDB * const db, const char *dbfile);
@@ -290,7 +290,7 @@ int main(void)
         goto end;
     }
     if ((data = puredb_read(&db, retpos, retlen)) != NULL) {
-        printf("The maching data is : [%s]\n", data);
+        printf("The maching data is: [%s]\n", data);
         puredb_read_free(data);
     }
     end:
@@ -305,7 +305,7 @@ int main(void)
     ------------------------ DOWNLOADING PUREDB ------------------------
 
 
-PureDB home page is : http://www.pureftpd.org/puredb/ .
+PureDB home page is: http://www.pureftpd.org/puredb/ .
 
 If you have question, suggestions or patches, feel free to get in touch with
 me. Newbies and silly ideas are welcome.

@@ -2,7 +2,7 @@
 If you never heard about MySQL before, *DON'T* enable MySQL support in
 Pure-FTPd. MySQL is useless if you don't have to manage many shared
 accounts. But well... if you want to learn about MySQL anyway, here's a good
-starting point : http://www.mysql.com/ .
+starting point: http://www.mysql.com/ .
 
 
        ------------------------ MYSQL SUPPORT ------------------------
@@ -18,14 +18,14 @@ http://www.mysql.com/ and binary packages are included in many major
 distributions. But if you choose a binary form, don't forget to also install
 the development packages if they are available separately.
 
-Then, configure Pure-FTPd with --with-mysql and your favorite extra gadgets :
+Then, configure Pure-FTPd with --with-mysql and your favorite extra gadgets:
 
 
     ./configure --with-mysql --with-cookie --with-throttling --with-ratios
 
 
 If your MySQL libraries are installed in a special path, you can specify it
-like this :
+like this:
 
 
     ./configure --with-mysql=/opt/mysql
@@ -35,7 +35,7 @@ In this example, headers (like mysql.h) will be searched in
 /opt/mysql/include and /opt/mysql/include/mysql, while related libraries
 will be searched in /opt/mysql/lib and /opt/mysql/lib/mysql .
 
-Then, install the server as usual :
+Then, install the server as usual:
 
 
                                  make install
@@ -51,7 +51,7 @@ MySQL server. And as command-line options can be discovered by local users
 (with 'ps auxwww' for instance), it's more secure to use a configuration
 file for sensitive data. Keep it readable only by root (chmod 600) .
 
-Here's a sample configuration file :
+Here's a sample configuration file:
 
 #MYSQLServer     localhost
 #MYSQLPort       3306
@@ -72,7 +72,7 @@ Save the configuration file anywhere. Let's say /etc/pureftpd-mysql.conf .
 
 Then, you have to run the pure-ftpd command with '-l mysql:' (it's an 'ell'
 not a 'one') followed by the path of that configuration file. Here's an
-example with tcpserver :
+example with tcpserver:
 
 
 tcpserver -DHRl0 0 21 /usr/local/bin/pure-ftpd -l mysql:/etc/pureftpd-mysql.conf &
@@ -87,7 +87,7 @@ database, use -l mysql:/etc/pureftpd-mysql.conf -l unix
      
      
 Pure-FTPd is very flexible and users can be stored in any way in SQL tables.
-You just have to have fields with the following info :
+You just have to have fields with the following info:
 
 - The user's login.
 
@@ -106,7 +106,7 @@ name, looked up at run-time.
 
 - The home directory.
 
-Here's a dump of a simple table to handle this :
+Here's a dump of a simple table to handle this:
 
 CREATE TABLE users (
   User varchar(16) NOT NULL default '',
@@ -123,14 +123,14 @@ of values.
 Then, in the pureftpd-mysql.conf configuration file, you have to provide SQL
 templates to fetch the needed info.
 
-Let's take the previous example :
+Let's take the previous example:
 
 MYSQLGetPW      SELECT Password FROM users WHERE User="\L"
 MYSQLGetUID     SELECT Uid FROM users WHERE User="\L"
 MYSQLGetGID     SELECT Gid FROM users WHERE User="\L"
 MYSQLGetDir     SELECT Dir FROM users WHERE User="\L"
 
-For each query :
+For each query:
 
 \L is replaced by the login of an user trying to authenticate.
 \I is replaced by the IP address the client connected to.
@@ -143,15 +143,15 @@ You can mix all of these to store info in various tables. For instance, with
 won't be the same account than joe@domain2 . And with \R, you can restrict
 one account to one specific address.
 
-Please note that a login can only contains common characters : A...Z, a...z,
+Please note that a login can only contains common characters: A...Z, a...z,
 0...9, -, ., _, space, :, @ and ' . For security purposes, other characters
 are forbidden.
 
 You can also remove uid and gid fields in your tables, and use default
 values instead (thus saving useless lookups) . Two directives are
-useful to serve that purpose : MYSQLDefaultUID and MYSQLDefaultGID.
+useful to serve that purpose: MYSQLDefaultUID and MYSQLDefaultGID.
 
-Obvious example :
+Obvious example:
 
 MYSQLDefaultUID 1000
 MYSQLDefaultGID 1000
@@ -167,24 +167,24 @@ Individual settings can be set for every user, using optional queries.
 - MySQLGetQTAFS is the maximal number of files an user can store in his home
 directory.
 
-Example :
+Example:
 MySQLGetQTAFS  SELECT QuotaFiles FROM users WHERE User="\L"
 
 - MySQLGetQTASZ is the maximal disk usage, in Megabytes.
 
-Example :
+Example:
 MySQLGetQTASZ  SELECT QuotaSize FROM users WHERE User="\L"
 
 - MySQLGetRatioUL and MySQLGetRatioDL are optional ratios.
 
-Example :
+Example:
 MySQLGetRatioUL SELECT ULRatio FROM users WHERE User="\L"
 MySQLGetRatioDL SELECT DLRatio FROM users WHERE User="\L"
 
 - MySQLGetBandwidthUL and MySQLGetBandwidthDL are optional upload and
 download bandwidth restrictions. Returned values should be in KB/s.
 
-Example :
+Example:
 MySQLGetBandwidthUL SELECT ULBandwidth FROM users WHERE User="\L"
 MySQLGetBandwidthDL SELECT DLBandwidth FROM users WHERE User="\L"
 
@@ -202,7 +202,7 @@ Pure-FTPd to take advantage of transactions. That way, you can be sure that
 all info parsed by the server is complete even if you're updating it at the
 same time.
 
-To enable transactions, add this line :
+To enable transactions, add this line:
 
 MySQLTransactions On
 

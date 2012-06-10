@@ -728,7 +728,7 @@ void donlist(char *arg, const int on_ctrl_conn, const int opt_l_,
             arg++;
         }
         while (arg && *arg == '-') {
-            while (arg++ && isalnum((unsigned char)*arg)) {
+            while (arg++ && isalnum((unsigned char) *arg)) {
                 switch (*arg) {
                 case 'a':
                     opt_a = 1;
@@ -766,7 +766,7 @@ void donlist(char *arg, const int on_ctrl_conn, const int opt_l_,
                     break;
                 }
             }
-            while (isspace((unsigned char)*arg)) {
+            while (isspace((unsigned char) *arg)) {
                 arg++;
             }
         }

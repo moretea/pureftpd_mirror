@@ -1,5 +1,5 @@
 %define name       pure-ftpd
-%define version    1.0.13a
+%define version    1.0.14
 %define release    1
 %define builddir   $RPM_BUILD_DIR/%{name}-%{version}
 %define no_install_post_compress_docs    1
@@ -25,6 +25,7 @@
 %define con_peruserlimits 1
 %define con_largefile 0
 %define con_boring 0
+%define con_privsep 0
 %define con_sysquotas 0
 #dont change these. Use --define instead. See below.
 %define prefixdef  /usr/local
@@ -54,6 +55,7 @@
 %{?with_peruserlimits:%define con_peruserlimits 1}
 %{?with_largefile:%define con_largefile 1}
 %{?with_boring:%define con_boring 1}
+%{?with_privsep:%define con_privsep 1}
 %{?with_sysquotas:%define con_sysquotas 1}
 
 #If you don't like the prefix '/usr/local' you can override it like this:
@@ -89,7 +91,7 @@ virtual domains, built-in 'ls', anti-warez system, bounded ports for passive
 downloads, FXP protocol, bandwidth throttling, ratios, LDAP / MySQL /
 PostgreSQL-based authentication, fortune files, Apache-like log files, fast
 standalone mode, text / HTML / XML real-time status report, virtual users,
-virtual quotas and more.
+virtual quotas, privilege separation and more.
 
 %prep
 %setup 	           -n %{name}-%{version} 
@@ -168,6 +170,9 @@ CFLAGS="$RPM_OPT_FLAGS" ./configure --prefix=%{prefix} \
 %endif  
 %if %{con_boring}
   --with-boring \
+%endif  
+%if %{con_privsep}
+  --with-privsep \
 %endif  
 %if %{con_sysquotas}
   --with-sysquotas \

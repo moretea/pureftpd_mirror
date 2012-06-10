@@ -92,6 +92,7 @@ $dialog \
 'with-virtualchroot' "Follow symlinks outside a chroot jail" off \
 'with-diraliases' "Support directory aliases" on \
 'with-peruserlimits' "Support per-user concurrency limits" on \
+'with-privsep' "Enable privilege separation" off \
 2> $tmp
 
 cfgline='';

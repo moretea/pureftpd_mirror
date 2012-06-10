@@ -1,15 +1,15 @@
 .\"
 .\" Troll-FTPd is Copyright 1995-2000 Trolltech AS, and Copyright 2001-2002 Arnt Gulbrandsen.
-.\" Pure-FTPd is (C)opyleft 2001-2002 by Frank DENIS <j@pureftpd.org> and the Pure-FTPd team.
+.\" Pure-FTPd is (C)opyleft 2001-2003 by Frank DENIS <j@pureftpd.org> and the Pure-FTPd team.
 .\"
 .\" Use, modification and distribution is allowed without limitation, warranty, or liability of any kind.
 .\"
-.TH "pure-ftpd" "8" "1.0.13" "Pure-FTPd Team" "Pure-FTPd"
+.TH "pure-ftpd" "8" "1.0.14" "Pure-FTPd Team" "Pure-FTPd"
 .SH "NAME"
 pure\-ftpd \- simple File Transfer Protocol server
 
 .SH "SYNOPSIS"
-.B pure\-ftpd [\-1] [\-4] [\-A] [\-a gid] [\-b] [\-B] [\-c clients] [\-C cnx/ip] [\-d [\-d]] [\-D] [\-E] [\-e] [\-F fortunes file] [\-f facility] [\-g pidfile] [\-G] [\-H] [\-i] [\-I] [\-j] [\-k percentage] [\-K] [\-L max files:max depth] [\-l authentication[:config file]] [\-M] [\-m maxload] [\-N] [\-n maxfiles:maxsize] [\-o] [\-O format:log file] [\-P ip address] [\-p first:last] [\-q upload:download ratio] [\-Q upload:download ratio] [\-r] [\-R] [\-s] [\-S [address,][port]] [\-t upload bandwidth:download bandwidth] [\-T upload bandwidth:download bandwidth] [\-u uid] [\-U umask files:umask dirs] [\-V ip address] [\-w] [\-W] [\-x] [\-X] [\-y max user sessions:max anon sessions] [\-z] [\-Z]
+.B pure\-ftpd [\-1] [\-4] [\-A] [\-a gid] [\-b] [\-B] [\-c clients] [\-C cnx/ip] [\-d [\-d]] [\-D] [\-E] [\-e] [\-F fortunes file] [\-f facility] [\-g pidfile] [\-G] [\-H] [\-i] [\-I] [\-j] [\-k percentage] [\-K] [\-L max files:max depth] [\-l authentication[:config file]] [\-M] [\-m maxload] [\-N] [\-n maxfiles:maxsize] [\-o] [\-O format:log file] [\-P ip address or host name] [\-p first:last] [\-q upload:download ratio] [\-Q upload:download ratio] [\-r] [\-R] [\-s] [\-S [address,][port]] [\-t upload bandwidth:download bandwidth] [\-T upload bandwidth:download bandwidth] [\-u uid] [\-U umask files:umask dirs] [\-V ip address] [\-w] [\-W] [\-x] [\-X] [\-y max user sessions:max anon sessions] [\-z] [\-Z]
 
 .br
 Alternative style, unless compiled with
@@ -140,7 +140,7 @@ is set.
 .TP
 .B \-4
 Listen only for IPv4 connections. MANDATORY FOR IPv4 NETWORKS ON
-OPENBSD, NETBSD AND MICROBSD.
+OPENBSD, NETBSD, MICROBSD and FREEBSD 5.
 .TP
 .B \-A
 Chroot() everyone, but root.
@@ -381,12 +381,14 @@ For security purposes, the path must be absolute
 \fB ../log/pureftpd.log\fR
 ) .
 .TP
-.B \-P ip address
+.B \-P ip address or host name
 Force the specified IP address in reply to a
 .B PASV/EPSV/SPSV
 command. If the server is behind a masquerading (NAT) box that doesn't
 properly handle stateful FTP masquerading, put the ip address of that box
-here.
+here. If you have a dynamic IP address, you can use a symbolic host name
+(probably the one of your gateway), that will be resolved every time a new
+client will connect.
 .TP
 .B \-p first:last
 Use only ports in the range
@@ -882,7 +884,7 @@ Troll\-FTPd was written by Arnt Gulbrandsen <agulbra@troll.no> and copyright 199
 Troll Tech AS, Waldemar Thranes gate 98B, N\-0175 Oslo, Norway, fax +47
 22806380.
 .PP
-Pure\-FTPd is (C)opyleft 2001\-2002 by Frank DENIS <j@pureftpd.org> and
+Pure\-FTPd is (C)opyleft 2001\-2003 by Frank DENIS <j@pureftpd.org> and
 the Pure\-FTPd team.
 .PP
 This software is covered by a dual GPL/BSD license.
@@ -953,7 +955,8 @@ Contributors:
     Johannes Erdfelt,
     Martin Sarfy,
     Clive Goodhead,
-    Aristoteles Pagaltzis.
+    Aristoteles Pagaltzis,
+    Stefan Hornburg.
 
 .SH "SEE ALSO"
 .BR "ftp(1)" ,

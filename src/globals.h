@@ -75,6 +75,7 @@ GLOBAL0(int replycode);
 GLOBAL0(signed char force_ls_a);
 GLOBAL0(struct sockaddr_storage peer);
 GLOBAL0(struct sockaddr_storage force_passive_ip);
+GLOBAL0(const char *force_passive_ip_s);
 GLOBAL0(unsigned short int peerdataport);
 GLOBAL0(double maxload);
 GLOBAL(unsigned int maxusers, DEFAULT_MAX_USERS);
@@ -115,6 +116,7 @@ GLOBAL0(signed char daemonize);
 GLOBAL0(int shm_id);
 GLOBAL0(FTPWhoEntry *shm_data);
 GLOBAL0(FTPWhoEntry *shm_data_cur);
+GLOBAL0(char *scoreboardfile);
 #endif
 
 #if defined(WITH_UPLOAD_SCRIPT)

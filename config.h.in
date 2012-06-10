@@ -182,12 +182,6 @@
 /* Define to 1 if you have the `mapviewoffile' function. */
 #undef HAVE_MAPVIEWOFFILE
 
-/* Define to 1 if you have the `MD5Transform' function. */
-#undef HAVE_MD5TRANSFORM
-
-/* Define to 1 if you have the <md5.h> header file. */
-#undef HAVE_MD5_H
-
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
 
@@ -235,6 +229,9 @@
 
 /* Define to 1 if you have the `pstat_getdynamic' function. */
 #undef HAVE_PSTAT_GETDYNAMIC
+
+/* Define to 1 if you have the `ptrace' function. */
+#undef HAVE_PTRACE
 
 /* Define to 1 if you have the `putenv' function. */
 #undef HAVE_PUTENV
@@ -292,12 +289,6 @@
 
 /* Define to 1 if you have the <sgtty.h> header file. */
 #undef HAVE_SGTTY_H
-
-/* Define to 1 if you have the `SHA1Transform' function. */
-#undef HAVE_SHA1TRANSFORM
-
-/* Define to 1 if you have the <sha1.h> header file. */
-#undef HAVE_SHA1_H
 
 /* Define to 1 if you have the <shadow.h> header file. */
 #undef HAVE_SHADOW_H
@@ -400,6 +391,9 @@
 
 /* Define to 1 if you have the <sys/pstat.h> header file. */
 #undef HAVE_SYS_PSTAT_H
+
+/* Define to 1 if you have the <sys/ptrace.h> header file. */
+#undef HAVE_SYS_PTRACE_H
 
 /* Define to 1 if you have the <sys/resource.h> header file. */
 #undef HAVE_SYS_RESOURCE_H
@@ -678,8 +672,17 @@
 /* use shadow passwords */
 #undef USE_SHADOW
 
+/* Define if you already have standard MD5 functions */
+#undef USE_SYSTEM_CRYPT_MD5
+
+/* Define if you already have standard SHA1 functions */
+#undef USE_SYSTEM_CRYPT_SHA1
+
 /* Version number of package */
 #undef VERSION
+
+/* Define if you are inside a Virtuozzo virtual host */
+#undef VIRTUOZZO
 
 /* without ascii */
 #undef WITHOUT_ASCII
@@ -707,6 +710,9 @@
 
 /* with pgsql */
 #undef WITH_PGSQL
+
+/* enable privilege separation */
+#undef WITH_PRIVSEP
 
 /* with puredb */
 #undef WITH_PUREDB

@@ -24,12 +24,12 @@ root), but it's better to have a dedicated account.
 
 Let's create an "ftpgroup" group and an "ftpuser" user.
 
-Linux/OpenBSD :
+Linux/OpenBSD:
 
 groupadd ftpgroup
 useradd -g ftpgroup -d /dev/null -s /etc ftpuser
 
-FreeBSD :
+FreeBSD:
 
 pw groupadd ftpgroup
 pw useradd ftpuser -g ftpgroup -d /dev/null -s /etc
@@ -38,7 +38,7 @@ Then, all maintenance of virtual users can be made with the "pure-pw"
 command. You can also edit the files by hand if you want.
 
 Files storing virtual users have one line per user. These lines have the
-following syntax :
+following syntax:
 
 <account>:<password>:<uid>:<gid>:<gecos>:<home directory>:<upload
 bandwidth>:<download bandwidth>:<upload ratio>:<download ratio>:<max number
@@ -57,7 +57,7 @@ and simple des, in this order, according to what your system has support fort.
     ------------------------ CREATING A NEW USER ------------------------
 
 
-To add a new user, use the following syntax :
+To add a new user, use the following syntax:
 
          pure-pw useradd <login> [-f <passwd file>] -u <uid> [-g <gid>]
                          -D/-d <home directory> [-c <gecos>]
@@ -87,7 +87,7 @@ automatically be created when users will log in for the first time.
 
 The "-z" option allow an user to connect only during a range of day time.
 For instance, with -z 0900-1800, joe will only be able to connect from 9 am
-to 18 pm. Warning : an user that connected during authorized hours can
+to 18 pm. Warning: an user that connected during authorized hours can
 finish his session after these authorized hours.
 
 -r and -R are handy to restrict where the user can connect from. They can be
@@ -104,12 +104,12 @@ Ok, "joe" has been created. By default, the list of virtual users is stored
 in the /etc/pureftpd.passwd file (you can of course change this with -f
 <file>) .
 
-Let's have a look at its content :
+Let's have a look at its content:
 
 joe:$1$LX/3.F60$bYdYwsQOYIaWq.Ko.hfI3.:500:101::/home/ftpusers/joe/./:::::::::::::
 
 Passwords are hashed with the best one-way hash function your system supports.
-Hashes are tried in this order : Blowfish, MD5, multiple DES, simple DES.
+Hashes are tried in this order: Blowfish, MD5, multiple DES, simple DES.
 
 
        ------------------------ CHANGING INFO ------------------------
@@ -127,7 +127,7 @@ files, and 10 Megabytes.
 
                       pure-pw usermod joe -n 1000 -N 10
 
-Let's have a look at /etc/pureftpd.passwd :
+Let's have a look at /etc/pureftpd.passwd:
 
 joe:$1$LX/3.F60$bYdYwsQOYIaWq.Ko.hfI3.:500:101::/home/ftpusers/joe/./::::::1000:10485760::::::
 
@@ -151,11 +151,11 @@ To disable the number of concurrent sessions, use pure-pw usermod <user> -y ''
 
 
 We won't delete Joe at this time. Joe is a fine guy :) But FYI, deleting an
-user is as simple as running "pure-pw userdel", whoose syntax is :
+user is as simple as running "pure-pw userdel", whoose syntax is:
 
          pure-pw userdel <login> [-f <passwd file>] [-m]
          
-Deleting Joe would be :
+Deleting Joe would be:
 
                              pure-pw userdel joe
                              
@@ -165,7 +165,7 @@ The content of his home directory is kept. Delete it by hand if you want.
     ------------------------ CHANGING PASSWORDS ------------------------
 
 
-To change the password of an user, use "pure-pw passwd" :
+To change the password of an user, use "pure-pw passwd":
 
          pure-pw passwd <login> [-f <passwd file>] [-m]
 
@@ -176,11 +176,11 @@ To change the password of an user, use "pure-pw passwd" :
 To review info about one user, reading the /etc/pureftpd.passwd file is ok,
 but it's not really human-friendly.
 
-It's why you can use "pure-pw show", whoose syntax is :
+It's why you can use "pure-pw show", whoose syntax is:
 
          pure-pw show    <login> [-f <passwd file>]
          
-Let's try with joe :
+Let's try with joe:
 
                               pure-pw show joe
                               
@@ -210,7 +210,7 @@ Max sim sessions   : 0 (unlimited)
      ------------------------ COMMITING CHANGES ------------------------
       
 
-IMPORTANT :
+IMPORTANT:
 
 You can add, modify and delete users with the previous commands, or by
 editing /etc/pureftpd.passwd by hand. But the FTP server won't consider the
@@ -224,19 +224,19 @@ thousands of accounts. PureDB files are binary files, don't try to view them
 or your terminal will beep like hell.
 
 Let's create a PureDB file from /etc/pureftpd.passwd. The indexed file will
-be called /etc/pureftpd.pdb (as always, choose whatever name you like) :
+be called /etc/pureftpd.pdb (as always, choose whatever name you like):
 
                                 pure-pw mkdb
                         
 this reads /etc/pureftpd.passwd and creates /etc/pureftpd.pdb by default, but
 to read another file, add the pdb file, optionnaly followed by -f <passwd file>
 
-For instance :
+For instance:
 
   pure-pw mkdb /etc/accounts/myaccounts.pdb -f /etc/accounts/myaccounts.txt
 
 All modifications you made to the virtual users database will be committed
-atomatically : all new accounts will be activated at the same time and all
+atomatically: all new accounts will be activated at the same time and all
 deleted users won't be able to log in as soon as you'll have hit the Return
 key.
 
@@ -245,7 +245,7 @@ There's no need to restart the pure-ftpd server to commit changes.
 You can also change something to the text passwords file (add users, change
 password, delete users, etc) and automatically run 
 "pure-pw mkdb /etc/pureftpd.pdb" afterwards. To do so, just use the -m
-switch :
+switch:
 
 pure-pw passwd joe -m
 
@@ -261,14 +261,14 @@ server itself. At compile-time, this is done by giving --with-puredb to
 ./configure (--with-everything also enables it, and binary packages have it
 compiled in) .
 
-Then, add this switch to your usual pure-ftpd switches :
+Then, add this switch to your usual pure-ftpd switches:
 
 -l puredb:/path/to/puredb_file
 
 If long options are enabled, you can also use --login instead of -l .
 
 Let's run the server with automatic creation of home directories, and puredb
-authentication :
+authentication:
 
 /usr/local/sbin/pure-ftpd -j -lpuredb:/etc/pureftpd.pdb &
 
@@ -281,7 +281,7 @@ Try to 'ftp localhost' and log in as joe.
 You can convert all system (/etc/passwd) accounts to virtual FTP users, with
 the "pure-pwconvert" tool.
 
-Just run it :
+Just run it:
 
                     pure-pwconvert >> /etc/pureftpd.passwd
 

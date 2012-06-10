@@ -9,12 +9,12 @@ Pure-FTPd without recompiling anything, using "authentication modules".
 To enable it, you must ./configure with --with-extauth, or
 --with-everything. Linux binary packages have it enabled by default.
 
-Here's how they are working :
+Here's how they are working:
 
 1) A client connects to the FTP server and issues a login/password pair.
 
 2) The FTP server connects to a local separate daemon, called 'pure-authd'.
-Data transmitted to that daemon is : user's login, user's password, the IP
+Data transmitted to that daemon is: user's login, user's password, the IP
 address that user connected to, the local port that user connected to, and
 the user's remote IP address.
 
@@ -37,7 +37,7 @@ socket. It's recommended to put that socket in a directory where non-trusted
 users have no write access to.
 
 Authentication programs can read the following environment variables to get
-info about the user trying to authenticate :
+info about the user trying to authenticate:
 
 AUTHD_ACCOUNT
 AUTHD_PASSWORD
@@ -48,7 +48,7 @@ AUTHD_REMOTE_IP
 They are self-explanatory. Previous global environment variables aren't
 cleared when the script is called.
 
-The program must respond on the standard output with lines like :
+The program must respond on the standard output with lines like:
 
 auth_ok:1
 uid:42
@@ -58,13 +58,13 @@ end
 
 Note the final 'end' keyword. It's mandatory.
 
-Here's the list of recognized tokens ('xxx' has of course to be filled) :
+Here's the list of recognized tokens ('xxx' has of course to be filled):
 
 * auth_ok:xxx
 
 If xxx is 0, the user was not found (the next authentication method passed
 to pure\-ftpd will be tried) . If xxx is \-1, the user was found, but there
-was a fatal authentication error : user is root, password is wrong, account
+was a fatal authentication error: user is root, password is wrong, account
 has expired, etc (next authentication methods will not be tried) . If xxx is
 1, the user was found and successfully authenticated.
  
@@ -137,7 +137,7 @@ fi
 Let's say we save this file as /usr/bin/ftp-auth-handler
 
 Now, we have to run pure-authd and pure-ftpd, to connect them through a
-local socket and to tell pure-ftpd to use our external authentication module :
+local socket and to tell pure-ftpd to use our external authentication module:
 
 pure-authd -s /var/run/ftpd.sock -r /usr/bin/ftp-auth-handler &
 pure-ftpd  -lextauth:/var/run/ftpd.sock &

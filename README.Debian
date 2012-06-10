@@ -1,12 +1,17 @@
 
-  Debian users can install and upgrade Pure-FTPd with apt-get .
-  
-  Intel precompiled binaries are available, as well as source code.
+  Thanks to Stefan Hornburg <racke@linuxia.de>, there are now official and
+maintained packages for Pure-FTPd in Debian unstable, available from your
+preferred repository.
 
-  Just edit your /etc/apt/sources.conf file and add these lines :
+  Currently available packages are :
   
-deb     ftp://ftp.pureftpd.org/pub/pure-ftpd/debian/ ./
-deb-src ftp://ftp.pureftpd.org/pub/pure-ftpd/debian/ ./
+ - pure-ftpd
+ - pure-ftpd-common
+ - pure-ftpd-ldap
+ - pure-ftpd-mysql
+ 
+  Have fun with apt-get, and please report any bug in order to improve these
+packages.
 
-  Now, you can enjoy "apt-get install pure-ftpd", "apt-get upgrade pure-ftpd",
-and "apt-get source pure-ftpd" . 
+  These packages are also available from your favorite Pure-FTPd
+mirror in the "debian" directory.

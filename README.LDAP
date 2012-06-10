@@ -2,7 +2,7 @@
 If you never heard about LDAP before, *DON'T* enable LDAP support in
 Pure-FTPd. LDAP is useless if you don't have to manage many shared accounts.
 But well... if you want to learn about LDAP anyway, here's a good starting
-point : http://www.openldap.org/
+point: http://www.openldap.org/
 
 
        ------------------------ LDAP SUPPORT ------------------------
@@ -18,14 +18,14 @@ binary packages are included in many major distributions. But if you choose
 a binary form, don't forget to also install the development packages if they
 are available separately.
 
-Then, configure Pure-FTPd with --with-ldap and your favorite extra gadgets :
+Then, configure Pure-FTPd with --with-ldap and your favorite extra gadgets:
 
 
     ./configure --with-ldap --with-cookie --with-throttling --with-ratios
 
 
 If your LDAP libraries are installed in a special path, you can specify it
-like this :
+like this:
 
 
     ./configure --with-ldap=/usr/local/openldap
@@ -35,7 +35,7 @@ In this example, headers (ldap.h and lber.h files) will be searched in
 /usr/local/openldap/include, while related libraries will be searched in
 /usr/local/openldap/lib .
 
-Then, install the server as usual :
+Then, install the server as usual:
 
 
                                  make install
@@ -51,7 +51,7 @@ LDAP server. And as command-line options can be discovered by local users
 (with 'ps auxwww' for instance), it's more secure to use a configuration
 file for sensitive data. Keep the file only readable by root (chmod 600) .
 
-Here's a sample configuration file :
+Here's a sample configuration file:
 
 
 LDAPServer ldap.c9x.org
@@ -64,7 +64,7 @@ LDAPDefaultGID 100
 
 
 Well... the keywords should be self-explanatory, but here we go for some
-details anyway :
+details anyway:
 
 - LDAPServer is the LDAP server name (hey!) . It defaults to 'localhost'.
 
@@ -101,7 +101,7 @@ Save the configuration file anywhere. Let's say /etc/pureftpd-ldap.conf .
 
 Then, you have to run the pure-ftpd command with '-l ldap:' (it's an 'ell'
 not a 'one') followed by the path of that configuration file. Here's an
-example with tcpserver :
+example with tcpserver:
 
 
 tcpserver -DHRl0 0 21 /usr/local/bin/pure-ftpd -l ldap:/etc/pureftpd-ldap.conf &
@@ -119,13 +119,13 @@ OpenLDAP, that class is defined in the 'nis' schema.
 
 FTP login names should match 'uid' attributes of 'posixAccount' instances.
 When an user logs in as 'joe', the following filter is used to locate Joe's
-account :
+account:
 
 
                    (&(objectClass=posixAccount)(uid=joe))
 
 
-Here's a sample entry in LDIF format :
+Here's a sample entry in LDIF format:
 
 
 dn: cn=Joe,dc=rtchat,dc=com
@@ -146,7 +146,7 @@ SSHA is believed to be the most secure one-way hashing method, but it's also
 the slowest, and it can be time-consuming if you're accepting a lot of
 users.
 
-Please note that a login ('uid' field) can only contains common characters :
+Please note that a login ('uid' field) can only contains common characters:
 A...Z, a...z, 0...9, -, ., _, space and ' . For security purposes, other
 characters are forbidden.
 

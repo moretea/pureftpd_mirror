@@ -14,7 +14,7 @@
 
 #include <config.h>
 
-#if (defined(WITH_LDAP) || defined(WITH_MYSQL) || defined(WITH_PGSQL)) && !(defined(HAVE_SHA1_H) && defined(HAVE_SHA1TRANSFORM))
+#if (defined(WITH_LDAP) || defined(WITH_MYSQL) || defined(WITH_PGSQL)) && !defined(USE_SYSTEM_CRYPT_SHA1)
 
 #include "ftpd.h"
 #include "crypto.h"

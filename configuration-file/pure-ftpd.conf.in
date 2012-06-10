@@ -185,6 +185,8 @@ MaxLoad                     4
 
 
 # Force an IP address in PASV/EPSV/SPSV replies. - for NAT.
+# Symbolic host names are also accepted for gateways with dynamic IP
+# addresses.
 
 # ForcePassiveIP                192.168.0.1
 

@@ -91,7 +91,7 @@ static int readpipe(const int upload_file_fd,
     } while (c != 2);
     while (whopnt != whoend) {
         c = readchar(upload_file_fd);
-        if (c == EOF || (c < 32 && c != 1)) {
+        if (c == EOF || (c != 1 && ISCTRLCODE(c))) {
             return -1;
         }
         if (c == 1) {
@@ -103,7 +103,7 @@ static int readpipe(const int upload_file_fd,
     }    
     while (filepnt != fileend) {
         c = readchar(upload_file_fd);
-        if (c == EOF || (c < 32 && c != 0)) {
+        if (c == EOF || (c != 0 && ISCTRLCODE(c))) {
             return -1;
         }
         *filepnt = (char) c;

@@ -1,5 +1,5 @@
 
-/* (C)opyleft 2001-2002 Frank DENIS <j@pureftpd.org> */
+/* (C)opyleft 2001-2003 Frank DENIS <j@pureftpd.org> */
 
 #ifndef __PUREDB_P_H__
 #define __PUREDB_P_H__ 1

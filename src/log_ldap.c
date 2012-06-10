@@ -179,7 +179,7 @@ static LDAPMessage *pw_ldap_uid_search(LDAP * const ld,
     }
     rc = ldap_search_s(ld, base, LDAP_SCOPE_SUBTREE, 
                        alloca_filter, attrs, 0, &res);
-    ALLOCA_FREE(filter_size);
+    ALLOCA_FREE(alloca_filter);
     if (rc != LDAP_SUCCESS) {
         return NULL;
     }
