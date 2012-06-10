@@ -20,7 +20,7 @@ int main(void)
 # include <dmalloc.h>
 #endif
 
-static inline void setcloexec(const int fd)
+static void setcloexec(const int fd)
 {
     fcntl(fd, F_SETFD, FD_CLOEXEC);
 }
@@ -231,15 +231,13 @@ static ssize_t safe_read(const int fd, void * const buf_, size_t maxlen)
 
 int safe_write(const int fd, const void *buf_, size_t count)
 {
-    register const char *buf = (const char *) buf_;
+    const char *buf = (const char *) buf_;
     ssize_t written;
         
     while (count > (size_t) 0) {
         for (;;) {
             if ((written = write(fd, buf, count)) <= (ssize_t) 0) {
-                if (errno == EAGAIN) {
-                    sleep(1);
-                } else if (errno != EINTR) {
+                if (errno != EINTR) {
                     return -1;
                 }
                 continue;
@@ -355,7 +353,7 @@ static void process(const int clientfd)
     closedesc_all(1);
     linepnt = line;
     while ((crpoint = strchr(linepnt, '\n')) != NULL) {
-        register const ExtauthdCallBack *scanned;
+        const ExtauthdCallBack *scanned;
         size_t keyword_len;
         
         *crpoint = 0;

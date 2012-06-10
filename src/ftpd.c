@@ -23,7 +23,7 @@
 #include "ftpd.h"
 #include "bsd-glob.h"
 #include "getloadavg.h"
-#ifdef WITH_PRIVSEP
+#ifndef WITHOUT_PRIVSEP
 # include "privsep.h"
 #endif
 #ifdef WITH_TLS
@@ -37,7 +37,6 @@
 # include <dmalloc.h>
 #endif
 
-#ifndef HAVE_SYS_FSUID_H
 void disablesignals(void)
 {
     sigset_t sigs;
@@ -61,19 +60,16 @@ void usleep2(const unsigned long microsec)
     usleep(microsec);
     enablesignals();
 }
-#endif
 
 int safe_write(const int fd, const void *buf_, size_t count)
 {
     ssize_t written;    
-    register const char *buf = (const char *) buf_;
+    const char *buf = (const char *) buf_;
     
     while (count > (size_t) 0U) {
         for (;;) {
             if ((written = write(fd, buf, count)) <= (ssize_t) 0) {
-                if (errno == EAGAIN) {
-                    sleep(1);
-                } else if (errno != EINTR) {
+                if (errno != EINTR) {
                     return -1;
                 }
                 continue;
@@ -87,18 +83,16 @@ int safe_write(const int fd, const void *buf_, size_t count)
 }
 
 #ifdef WITH_TLS
-int secure_safe_write(const void *buf_, size_t count)
+int secure_safe_write(void * const tls_fd, const void *buf_, size_t count)
 {
     ssize_t written;
-    register const char *buf = (const char *) buf_;
+    const char *buf = (const char *) buf_;
     size_t ssw_status = count;
     
     while (count > (size_t) 0U) {
         for (;;) {
-            if ((written = SSL_write(tls_data_cnx, buf, count)) <= (ssize_t) 0) {
-                if (errno == EAGAIN) {
-                    sleep(1);
-                } else if (errno != EINTR) {
+            if ((written = SSL_write(tls_fd, buf, count)) <= (ssize_t) 0) {
+                if (SSL_get_error(tls_fd, written) != SSL_ERROR_NONE) {
                     return -1;
                 }
                 continue;
@@ -112,7 +106,51 @@ int secure_safe_write(const void *buf_, size_t count)
 }
 #endif
 
-static void overlapcpy(register char *d, register const char *s)
+ssize_t safe_nonblock_write(const int fd, void * const tls_fd,
+                            const void *buf_, size_t count)
+{
+    ssize_t written;
+    const char *buf = (const char *) buf_;
+    struct pollfd pfd;
+    
+    while (count > (size_t) 0U) {
+        for (;;) {
+            if (tls_fd == NULL) {
+                written = write(fd, buf, count);
+            } else {
+#ifdef WITH_TLS
+                written = SSL_write(tls_fd, buf, count);
+                if (SSL_get_error(tls_fd, written) == SSL_ERROR_WANT_WRITE) {
+                    errno = EAGAIN;
+                }
+#else
+                abort();
+#endif
+            }
+            if (written > (ssize_t) 0) {
+                break;
+            }
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                pfd.fd = fd;
+                pfd.events = POLLOUT | POLLERR | POLLHUP;
+                pfd.revents = 0;
+                if (poll(&pfd, 1U, idletime * 1000UL) <= 0 ||
+                    (pfd.revents & (POLLERR | POLLHUP)) != 0 ||
+                    (pfd.revents & POLLOUT) == 0) {
+                    errno = EPIPE;
+                    return -1;
+                }                    
+            } else if (errno != EINTR) {
+                return -1;
+            }
+        }
+        buf += written;
+        count -= written;
+    }
+    return 0;
+}
+
+static void overlapcpy(char *d, const char *s)
 {
     while (*s != 0) {
         *d++ = *s++;
@@ -138,9 +176,9 @@ static int safe_fd_isset(const int fd, const fd_set * const fds)
 
 static int init_tz(void)
 {
-    char stbuf[10];                                                             
-    struct tm *tm;                                                              
-    time_t now;                                                                 
+    char stbuf[10];
+    struct tm *tm;
+    time_t now;
     
 #ifdef HAVE_TZSET
     tzset();
@@ -239,10 +277,10 @@ void simplify(char *subdir)
     a[1] = 0;    
 }
 
-int checkprintable(register const char *s)
+int checkprintable(const char *s)
 {
-    register int ret = 0;    
-    register unsigned char c;
+    int ret = 0;
+    unsigned char c;
     
     while ((c = (unsigned char) *s) != 0U) {
         if (ISCTRLCODE(c)) {
@@ -255,14 +293,32 @@ int checkprintable(register const char *s)
     return ret;    
 }
 
+char *skip_telnet_controls(const char *str)
+{
+    if (str == NULL) {
+        return NULL;
+    }
+    while (*str != 0 && (unsigned char) *str >= 240U) {
+        str++;
+    }
+    return (char *) str;
+}
+
+void _EXIT(const int status)
+{
+    delete_atomic_file();
+#ifdef FTPWHO
+    ftpwho_exit();
+#endif
+    _exit(status);
+}
+
 void die(const int err, const int priority, const char * const format, ...)
 {
     va_list va;
     char line[MAX_SYSLOG_LINE];
     
-#ifndef HAVE_SYS_FSUID_H
     disablesignals();
-#endif
     va_start(va, format);
     vsnprintf(line, sizeof line, format, va);
     va_end(va);    
@@ -286,43 +342,10 @@ void die_mem(void)
     die(421, LOG_ERR, MSG_OUT_OF_MEMORY);
 }
 
-static RETSIGTYPE sigurg(int sig)
-{
-    int olderrno;
-    int readen;
-    unsigned char fodder;
-
-    (void) sig;
-    if (xferfd == -1) {
-        return;
-    }
-    olderrno = errno;
-    closedata();
-#ifndef HAVE_SYS_FSUID_H
-    disablesignals();
-#endif
-    addreply_noformat(426, MSG_ABORTED);
-    doreply();
-    do {
-        if ((readen = read(0, &fodder, (size_t) 1U)) < (ssize_t) 0 && 
-            errno == EINTR) {
-            continue;
-        }
-    } while (readen > (ssize_t) 0 && fodder != '\n');
-    addreply_noformat(226, MSG_ABORTED);
-    doreply();
-#ifndef HAVE_SYS_FSUID_H
-    enablesignals();
-#endif
-    errno = olderrno;
-}
-
 static RETSIGTYPE sigalarm(int sig)
 {
     (void) sig;
-#ifndef HAVE_SYS_FSUID_H
     disablesignals();
-#endif    
     die(421, LOG_INFO, MSG_TIMEOUT);
 }
 
@@ -362,9 +385,7 @@ static RETSIGTYPE sigterm_client(int sig)
 {
     (void) sig;
     
-#ifndef HAVE_SYS_FSUID_H
     disablesignals();
-#endif
     _EXIT(EXIT_SUCCESS);
 }
 
@@ -688,8 +709,8 @@ void addreply_noformat(const int code, const char * const line)
 
 void addreply(const int code, const char * const line, ...)
 {
-    register char *a;
-    register char *b;
+    char *a;
+    char *b;
     va_list ap;
     int last;
     char buf[MAX_SERVER_REPLY_LEN];
@@ -723,13 +744,12 @@ void addreply(const int code, const char * const line, ...)
 
 void doreply(void)
 {
-    register struct reply *scannedentry;
-    register struct reply *nextentry;
+    struct reply *scannedentry;
+    struct reply *nextentry;
     
     if ((scannedentry = firstreply) == NULL) {
         return;
     }
-    CORK_ON(1);
     do {
         nextentry = scannedentry->next;
 #ifdef WITH_TLS
@@ -751,7 +771,6 @@ void doreply(void)
         }       
     } while ((scannedentry = nextentry) != NULL);
     fflush(stdout);    
-    CORK_OFF(1);
     /* We don't free() after printf() because of Solaris stream bugs,
      * Thanks to Kenneth Stailey */
     scannedentry = firstreply;
@@ -768,7 +787,7 @@ void doreply(void)
 
 static int checknamesanity(const char *name, int dot_ok)
 {
-    register const char *namepnt;
+    const char *namepnt;
     
 #ifdef PARANOID_FILE_NAMES
     const char *validchars =
@@ -1150,6 +1169,37 @@ void donoop(void)
 #endif
 }
 
+void doallo(const off_t size)
+{
+    int ret = -1;
+    
+    if (size <= 0) {
+        ret = 0;
+    } else if (ul_check_free_space(wd) == 1) {
+        ret = 0;
+    }
+#ifdef QUOTAS
+    Quota quota;
+    
+    if (quota_update(&quota, 0LL, 0LL, NULL) == 0) {
+        if (quota.files >= user_quota_files ||
+            quota.size >= user_quota_size ||
+            (unsigned long long) size > user_quota_size - quota.size) {
+            ret = -1;
+        }
+    }
+#endif
+    if (ret == 0) {
+#ifdef DISABLE_HUMOR
+        addreply_noformat(200, "OK");
+#else
+        addreply_noformat(200, "A L'HUILE");
+#endif
+    } else {
+        addreply_noformat(552, MSG_NO_DISK_SPACE);
+    }
+}
+
 #endif
 
 void dositetime(void)
@@ -1159,7 +1209,7 @@ void dositetime(void)
     time_t now;
     
     if ((now = time(NULL)) == (time_t) -1 || (tm = localtime(&now)) == NULL) {
-        addreply_noformat(550, "time()");
+        addreply_noformat(451, "time()");
         return;
     }
     strftime(tmp, sizeof tmp, "%Y-%m-%d %H:%M:%S", tm);
@@ -1201,8 +1251,8 @@ static int doinitsupgroups(const char *user, const uid_t uid, const gid_t gid)
 
 void douser(const char *username)
 {
-    struct passwd *pw;
-    
+    struct passwd *pw = NULL;
+
     if (loggedin) {
         if (username) {
             if (!guest) {
@@ -1328,6 +1378,9 @@ void douser(const char *username)
             logfile(LOG_INFO, MSG_ANONYMOUS_LOGGED_VIRTUAL ": %s", hbuf);
         }
 #endif
+        if (pw == NULL) {
+            goto cantsec;
+        }
         chrooted = 1;
         authresult.uid = pw->pw_uid;
         authresult.gid = pw->pw_gid;
@@ -1347,19 +1400,14 @@ void douser(const char *username)
 
 #ifndef NON_ROOT_FTP
         if (authresult.uid > (uid_t) 0) {
-# ifdef WITH_PRIVSEP
+# ifndef WITHOUT_PRIVSEP
             if (setuid(authresult.uid) != 0 || seteuid(authresult.uid) != 0) {
                 goto cantsec;
             }
 # else
-#  ifdef HAVE_SYS_FSUID_H
-            setfsgid(authresult.gid);
-            setfsuid(authresult.uid);
-#  else
             if (seteuid(authresult.uid) != 0) {
                 goto cantsec;
             }
-#  endif
 # endif
         }
 #endif
@@ -1431,7 +1479,8 @@ static AuthResult pw_check(const char *account, const char *password,
 #endif
 #ifdef PER_USER_LIMITS
         result.per_user_max = per_user_max;
-#endif  
+#endif
+        result.backend_data = NULL;
         auth_scan->auth->check(&result, account, password, sa, peer);
         if (result.auth_ok < 0) {
             break;
@@ -1442,18 +1491,10 @@ static AuthResult pw_check(const char *account, const char *password,
                 if (result.throttling_ul_changed != 0 &&
                     result.throttling_bandwidth_ul > 0UL) {
                     throttling_bandwidth_ul = result.throttling_bandwidth_ul;
-                    ul_chunk_size = throttling_bandwidth_ul;
-                    if (ul_chunk_size > MAX_UL_CHUNK_SIZE) {
-                        ul_chunk_size = MAX_UL_CHUNK_SIZE;
-                    }
                 }
                 if (result.throttling_dl_changed != 0 &&
                     result.throttling_bandwidth_dl > 0UL) {
                     throttling_bandwidth_dl = result.throttling_bandwidth_dl;
-                    dl_chunk_size = throttling_bandwidth_dl & ~(page_size - 1);
-                    if (dl_chunk_size < page_size) {
-                        dl_chunk_size = page_size;
-                    }
                 }
                 throttling_delay = 1000000 /
                     (throttling_bandwidth_dl | throttling_bandwidth_ul);
@@ -1636,7 +1677,7 @@ void dopass(char *password)
     authresult = pw_check(account, password, &ctrlconn, &peer);
     {
         /* Clear password from memory, paranoia */        
-        register volatile char *password_ = (volatile char *) password;
+        volatile char *password_ = (volatile char *) password;
         
         while (*password_ != 0) {
             *password_++ = 0;
@@ -1731,19 +1772,14 @@ void dopass(char *password)
         wd[0] = '/';
         wd[1] = 0;
     }
-#ifdef HAVE_SYS_FSUID_H
-    setfsuid(authresult.uid);
-#endif
 #ifndef NON_ROOT_FTP
     if (setgid(authresult.gid) ||
         setegid(authresult.gid)) {
         _EXIT(EXIT_FAILURE);
     }
-# ifndef HAVE_SYS_FSUID_H
     if (seteuid(authresult.uid) != 0) {
         _EXIT(EXIT_FAILURE);
     }
-# endif
 #endif
     if (check_trustedgroup(authresult.uid, authresult.gid) != 0) {
         userchroot = 0;
@@ -1833,37 +1869,33 @@ void dopass(char *password)
 #endif
     if (userchroot != 0 && chrooted == 0) {
 #ifndef NON_ROOT_FTP
-# ifndef HAVE_SYS_FSUID_H
         disablesignals();
-        seteuid((uid_t) 0);
-# endif
+        if (seteuid((uid_t) 0) != 0) {
+            _EXIT(EXIT_FAILURE);
+        }
 #endif
         if (chdir(wd) || chroot(wd)) {    /* should never fail */
-#ifdef WITH_PRIVSEP
+#ifndef WITHOUT_PRIVSEP
             (void) setuid(authresult.uid);
             (void) seteuid(authresult.uid);
 #else
-# ifndef HAVE_SYS_FSUID_H
-#  ifndef NON_ROOT_FTP
+# ifndef NON_ROOT_FTP
             (void) seteuid(authresult.uid);
-#  endif
 # endif
 #endif
             die(421, LOG_ERR, MSG_CHROOT_FAILED);
         }
-#ifdef WITH_PRIVSEP
+#ifndef WITHOUT_PRIVSEP
         if (setuid(authresult.uid) != 0 || seteuid(authresult.uid) != 0) {
             _EXIT(EXIT_FAILURE);
         }
         enablesignals();        
 #else
 # ifndef NON_ROOT_FTP
-#  ifndef HAVE_SYS_FSUID_H
         if (seteuid(authresult.uid) != 0) {
             _EXIT(EXIT_FAILURE);
         }
         enablesignals();
-#  endif
 # endif
 #endif
 #ifdef USE_CAPABILITIES
@@ -1952,13 +1984,12 @@ void docwd(const char *dir)
      */
     where = dir;
     if (dir == NULL || *dir == 0) {
-        goto gohome;
+        dir = "~";
     }
     if (*dir == '~') {
         const struct passwd *pw;
         
         if (dir[1] == 0) {         /* cd ~ */
-            gohome:
             strncpy(buffer, chrooted != 0 ? "/" : authresult.dir,
                     sizeof buffer);
             buffer[sizeof buffer - (size_t) 1U] = 0;
@@ -1991,7 +2022,7 @@ void docwd(const char *dir)
         }
     }
     if (checknamesanity(where, dot_read_ok) != 0) {
-        addreply(550, MSG_SANITY_FILE_FAILURE, where);
+        addreply(553, MSG_SANITY_FILE_FAILURE, where);
         return;
     }
     if (chdir(where) != 0) {
@@ -2062,7 +2093,7 @@ void docwd(const char *dir)
 static void iptropize(const struct sockaddr_storage *ss)
 {
     size_t t = sizeof *ss;
-    register const unsigned char *s = (const unsigned char *) ss;
+    const unsigned char *s = (const unsigned char *) ss;
     
     iptropy = getpid();
     do {
@@ -2077,7 +2108,7 @@ static void pw_zrand_probe(void)
     static const char * const devices[] = {
         "/dev/arandom", "/dev/urandom", "/dev/random", NULL
     };
-    register const char * const *device = devices;
+    const char * const *device = devices;
     
     do {
         if (access(*device, F_OK | R_OK) == 0) {
@@ -2106,8 +2137,10 @@ unsigned int zrand(void)
 #endif
         ) {
         nax:
-#ifdef HAVE_RANDOM
-        return (unsigned int) (random() ^ iptropy);        
+#ifdef HAVE_ARC4RANDOM
+        return (unsigned int) (arc4random() ^ iptropy);
+#elif defined HAVE_RANDOM
+        return (unsigned int) (random() ^ iptropy);
 #else
         return (unsigned int) (rand() ^ iptropy);
 #endif
@@ -2252,7 +2285,7 @@ void doport(const char *arg)
     doport2(a, (p1 << 8) | p2);
 }
 
-#ifndef WITH_PRIVSEP
+#ifdef WITHOUT_PRIVSEP
 
 static int doport3(const int protocol)
 {
@@ -2268,20 +2301,16 @@ static int doport3(const int protocol)
     int on;
     
 # ifndef NON_ROOT_FTP
-#  ifndef HAVE_SYS_FSUID_H
     disablesignals();
     seteuid((uid_t) 0);
-#  endif
 # endif    
     if ((datafd = socket(protocol, SOCK_STREAM, IPPROTO_TCP)) == -1) {
         data_socket_error:
 # ifndef NON_ROOT_FTP
-#  ifndef HAVE_SYS_FSUID_H
         if (seteuid(authresult.uid) != 0) {
             _EXIT(EXIT_FAILURE);
         }
         enablesignals();
-#  endif
 # endif
         (void) close(datafd);
         datafd = -1;
@@ -2318,12 +2347,10 @@ static int doport3(const int protocol)
 # endif
     }
 # ifndef NON_ROOT_FTP
-#  ifndef HAVE_SYS_FSUID_H
     if (seteuid(authresult.uid) != 0) {
         _EXIT(EXIT_FAILURE);
     }
     enablesignals();
-#  endif
 # endif
     
     return 0;
@@ -2420,24 +2447,34 @@ void opendata(void)
     if (datafd == -1) {
         addreply_noformat(425, MSG_NO_DATA_CONN);        
         return;
-    }
-    
+    }    
     if (passive != 0) {
-        fd_set rs;
-        struct timeval tv;
+        struct pollfd pfds[2];
+        struct pollfd *pfd;
+        int pollret;
         
-        alarm(idletime);
+        pfd = &pfds[0];
+        pfd->fd = 0;
+        pfd->events = POLLERR | POLLHUP;
+        pfd->revents = 0;
+        
+        pfd = &pfds[1];
+        pfd->fd = datafd;
+        pfd->events = POLLIN | POLLERR | POLLHUP;
+        pfd->revents = 0;
 
+        alarm(idletime);
         for (;;) {
-            FD_ZERO(&rs);
-            FD_SET(datafd, &rs);
-            tv.tv_sec = idletime;
-            tv.tv_usec = 0;
-            /* I suppose it would be better to listen for ABRT too... */
-            
-            if (select(datafd + 1, &rs, NULL, NULL, &tv) <= 0) {
-                die(421, LOG_INFO, MSG_TIMEOUT_DATA , 
-                    (unsigned long) idletime);
+            pollret = poll(pfds, sizeof pfds / sizeof pfds[0], idletime * 1000UL);
+            if (pollret <= 0) {
+                die(421, LOG_INFO, MSG_TIMEOUT_DATA, (unsigned long) idletime);
+            }
+            if ((pfds[0].revents & (POLLERR | POLLHUP | POLLNVAL)) != 0 ||
+                (pfds[1].revents & (POLLERR | POLLHUP | POLLNVAL)) != 0) {
+                die(221, LOG_INFO, MSG_LOGOUT);
+            }
+            if ((pfds[1].revents & POLLIN) == 0) {
+                continue;
             }
             socksize = (socklen_t) sizeof(dataconn);
             memset(&dataconn, 0, sizeof dataconn);
@@ -2505,23 +2542,6 @@ void opendata(void)
         fodder = IPTOS_THROUGHPUT;
         setsockopt(fd, SOL_IP, IP_TOS, (char *) &fodder, sizeof fodder);
 #endif
-#ifndef NO_TCP_NOPUSH
-# ifdef TCP_NOPUSH
-        fodder = 1;
-        setsockopt(fd, SOL_TCP, TCP_NOPUSH, (char *) &fodder, sizeof fodder);
-# endif
-#endif
-#ifndef NO_TCP_LARGE_WINDOW
-# if defined(SO_SNDBUF) || defined(SO_RCVBUF)
-        fodder = 65536;
-# endif
-# ifdef SO_SNDBUF
-        setsockopt(fd, SOL_SOCKET, SO_SNDBUF, (char *) &fodder, sizeof fodder);
-# endif        
-# ifdef SO_RCVBUF
-        setsockopt(fd, SOL_SOCKET, SO_RCVBUF, (char *) &fodder, sizeof fodder);
-# endif        
-#endif
 #ifndef NO_KEEPALIVE
         keepalive(fd, 1);
 #endif
@@ -2529,9 +2549,10 @@ void opendata(void)
     xferfd = fd;
 #ifdef WITH_TLS
     if (data_protection_level == CPL_PRIVATE) {
-        tls_init_data_session(xferfd);
+        tls_init_data_session(fd, passive);
     }
 #endif
+    alarm(MAX_SESSION_XFER_IDLE);
 }
 
 #ifndef MINIMAL
@@ -2557,7 +2578,7 @@ void dochmod(char *name, mode_t mode)
         return;
     }
     if (checknamesanity(name, dot_write_ok) != 0) {
-        addreply(550, MSG_SANITY_FILE_FAILURE, name);
+        addreply(553, MSG_SANITY_FILE_FAILURE, name);
         return;
     }
     fd = open(name, O_RDONLY);
@@ -2615,7 +2636,7 @@ void doutime(char *name, const char * const wanted_time)
         return;
     }
     if (checknamesanity(name, dot_write_ok) != 0) {
-        addreply(550, MSG_SANITY_FILE_FAILURE, name);
+        addreply(553, MSG_SANITY_FILE_FAILURE, name);
         return;
     }
     memset(&tm, 0, sizeof tm);
@@ -2668,7 +2689,7 @@ void dodele(char *name)
         return;
     }
     if (checknamesanity(name, dot_write_ok) != 0) {
-        addreply(550, MSG_SANITY_FILE_FAILURE, name);
+        addreply(553, MSG_SANITY_FILE_FAILURE, name);
         return;
     }
     if (keepallfiles != 0) {
@@ -2750,11 +2771,11 @@ void dodele(char *name)
         }
         {
             Quota quota;
-            int overflow;
             
-            (void) quota_update(&quota, -1LL,
-                                -((long long) st.st_size), &overflow);
-            displayquota(&quota);
+            if (quota_update(&quota, -1LL,
+                             -((long long) st.st_size), NULL) == 0) {
+                displayquota(&quota);
+            }
         }
     }
 #else
@@ -2769,47 +2790,6 @@ void dodele(char *name)
     denied:
     addreply(550, MSG_DELE_FAILED ": %s", name, strerror(errno));
 }
-
-#ifndef WITHOUT_ASCII
-static ssize_t doasciiwrite(int fd, const char * const buf, size_t size)
-{
-    char *asciibuf;
-    register char *asciibufpnt;
-    size_t z = (size_t) 0U;
-    int writeret;
-    
-    if (size <= (size_t) 0U) {         /* stupid paranoia #1 */
-        return (ssize_t) 0;
-    }
-    if (size > ASCII_CHUNKSIZE ||      /* stupid paranoia #2 */
-        (asciibuf = ALLOCA((size_t) (ASCII_CHUNKSIZE * 2U))) == NULL) {
-        return (ssize_t) -1;
-    }
-    asciibufpnt = asciibuf;
-    do {
-        if (buf[z] == '\n') {
-            *asciibufpnt++ = '\r';
-        }
-        *asciibufpnt++ = buf[z];
-        z++;
-    } while (z < size);
-
-#ifdef WITH_TLS
-    if (enforce_tls_auth && data_protection_level == CPL_PRIVATE) {
-        writeret = secure_safe_write(asciibuf,
-                                     (size_t) (asciibufpnt - asciibuf));
-    } else
-#endif
-    {
-        writeret = safe_write(fd, asciibuf, (size_t) (asciibufpnt - asciibuf));
-    }
-    ALLOCA_FREE(asciibuf);
-    if (writeret < 0) {
-        return (ssize_t) -1;
-    }
-    return size;
-}
-#endif
 
 static double get_usec_time(void)
 {
@@ -2834,7 +2814,6 @@ static void displayrate(const char *word, off_t size,
     ended = get_usec_time();
     
     t = ended - started;
-    addreply_noformat(226, MSG_TRANSFER_SUCCESSFUL);
     if (t > 0.0 && size > (off_t) 0) {
         speed = size / t;
     } else {
@@ -2939,289 +2918,378 @@ static void displayopenfailure(const char * const name)
     error(550, buffer);
 }
 
-#ifndef SENDFILE_NONE
-int sendfile_send(int f, struct stat st, double *started)
+int dlhandler_throttle(DLHandler * const dlhandler, const off_t downloaded,
+                       const double ts_start, double *required_sleep)
 {
-    off_t left;
-    off_t o;
-# ifdef THROTTLING
-    double ended;
-    off_t transmitted = 0;
-# endif
-
-    o = restartat;
-    while (o < st.st_size) {
-# ifdef FTPWHO
-    /* There is no locking here, and it is intentional */
-        if (shm_data_cur != NULL) {
-            shm_data_cur->download_current_size = o;
-        }
-# endif
-        left = st.st_size - o;
-# ifdef FTPWHO
-        if (left > (off_t) dl_chunk_size) {
-            left = (off_t) dl_chunk_size;
-        }
-# elif defined(THROTTLING)
-        if (throttling_bandwidth_dl > 0UL &&
-            left > (off_t) dl_chunk_size) {
-            left = (off_t) dl_chunk_size;
-        }
-# endif
-        while (left > (off_t) 0) {
-# ifdef SENDFILE_LINUX
-            ssize_t w;
-
-            do {
-                w = sendfile(xferfd, f, &o, (size_t) left);
-            } while (w < 0 && errno == EINTR);
-            if (w == 0) {
-                w--;
-            }
-# elif defined(SENDFILE_FREEBSD)
-            off_t w;
-
-            if (sendfile(f, xferfd, o, (size_t) left, NULL, &w, 0) < 0) {
-                if ((errno != EAGAIN && errno != EINTR) || w < (off_t) 0) {
-                    w = (off_t) -1;
-                } else {
-                    o += w;
-                }
-            } else {
-                o += w;
-            }
-# elif defined(SENDFILE_HPUX)
-            sbsize_t w;
-
-            if ((w = sendfile(xferfd, f, o, (bsize_t) left,NULL, 0)) < 0) {
-                if ((errno != EAGAIN && errno != EINTR) || w < (off_t) 0) {
-                    w = (off_t) -1;
-                } else {
-                    o += w;
-                }
-            } else {
-                o += w;
-            }
-# elif defined(SENDFILEV_SOLARIS)
-            ssize_t w;
-            struct sendfilevec vec[1];
-
-            vec[0].sfv_fd   = f;
-            vec[0].sfv_flag = 0;
-            vec[0].sfv_off  = o;
-            vec[0].sfv_len  = (size_t) left;
-            if (sendfilev(xferfd, vec, 1, &w) < 0) {
-                if ((errno != EAGAIN && errno != EINTR) || w < (off_t) 0) {
-                    w = (off_t) -1;
-                } else {
-                    o += w;
-                }
-            } else {
-                o += w;
-            }
-# endif
-            if (w < 0) {
-                if (errno == EAGAIN || errno == EINTR) {
-                    /* wait idletime seconds for progsress */
-                    fd_set rs;
-                    fd_set ws;
-                    struct timeval tv;
-
-                    FD_ZERO(&rs);
-                    FD_ZERO(&ws);
-                    FD_SET(0, &rs);
-                    safe_fd_set(xferfd, &ws);
-                    tv.tv_sec = idletime;
-                    tv.tv_usec = 0;
-                    if (xferfd == -1 ||
-                        select(xferfd + 1, &rs, &ws, NULL, &tv) <= 0 ||
-                        FD_ISSET(0, &rs)) {
-                        /* we assume it is ABRT since nothing else is legal */
-                        (void) close(f);
-                        closedata();
-                        addreply_noformat(426, MSG_ABORTED);
-                        return -1;
-                    } else if (!(safe_fd_isset(xferfd, &ws))) {
-                    /* client presumably gone away */
-                        closedata();
-                        die(421, LOG_INFO, MSG_TIMEOUT_DATA,
-                            (unsigned long) idletime);
-                    }
-                w = 0;
-                } else {
-                    (void) close(f);
-                    if (xferfd != -1) {
-                        closedata();
-                        addreply_noformat(450, MSG_DATA_WRITE_FAILED);
-                        logfile(LOG_INFO, MSG_ABORTED);
-                    }
-                    return -1;
-                }
-            }
-
-            if (w < 0) {        /* Maybe the file has shrunk? */
-                if (fstat(f, &st) < 0) {
-                    o = st.st_size;
-                }
-                left = (off_t) 0;
-            } else if (w != 0) {
-                downloaded += (unsigned long long) w;
-                left -= w;
-# ifdef THROTTLING
-                if (o < st.st_size && throttling_bandwidth_dl > 0UL) {
-                    long double delay;
-                    ended = get_usec_time();
-                    transmitted += w;
-                    delay = (transmitted /
-                            (long double) throttling_bandwidth_dl) -
-                            (long double) (ended - *started);
-                    if (delay > (long double) MAX_THROTTLING_DELAY) {
-                        *started = ended;
-                        transmitted = (off_t) 0;
-                        delay = (long double) MAX_THROTTLING_DELAY;
-                    }
-                    if (delay > 0.0L) {
-                        usleep2((unsigned long) (delay * 1000000.0L));
-                    }
-                }
-# endif
-            }
-        }
+    double ts_now;
+    double elapsed;
+    off_t would_be_downloaded;
+    double wanted_ts;
+    off_t previous_chunk_size;
+    
+    if (dlhandler->bandwidth <= 0UL || downloaded <= 0) {
+        *required_sleep = 0.0;
+        return 0;
     }
-
+    if ((ts_now = get_usec_time()) <= 0.0) {
+        ts_now = ts_start;
+    }
+    if (ts_start > ts_now) {
+        ts_now = ts_start;
+    }            
+    elapsed = ts_now - ts_start;
+    would_be_downloaded = dlhandler->total_downloaded + dlhandler->chunk_size;
+    if (dlhandler->bandwidth > 0.0) {
+        wanted_ts = would_be_downloaded / dlhandler->bandwidth;
+    } else {
+        wanted_ts = elapsed;
+    }
+    *required_sleep = wanted_ts - elapsed;
+    previous_chunk_size = dlhandler->chunk_size;
+    if (dlhandler->total_downloaded > dlhandler->chunk_size) {
+        if (*required_sleep < dlhandler->min_sleep) {
+            dlhandler->chunk_size =
+                (dlhandler->max_chunk_size + dlhandler->chunk_size) / 2;
+        } else if (*required_sleep > dlhandler->max_sleep) {
+            dlhandler->chunk_size =
+                (dlhandler->min_chunk_size + dlhandler->chunk_size) / 2;
+        } else {
+            dlhandler->chunk_size = dlhandler->default_chunk_size;
+        }
+        if (dlhandler->chunk_size <= 0 || dlhandler->chunk_size > INT_MAX) {
+            dlhandler->chunk_size = dlhandler->default_chunk_size;
+        }
+        if (previous_chunk_size != dlhandler->default_chunk_size) {
+            would_be_downloaded =
+                dlhandler->total_downloaded + dlhandler->chunk_size;
+            if (dlhandler->bandwidth > 0.0) {
+                wanted_ts = would_be_downloaded / dlhandler->bandwidth;
+            } else {
+                wanted_ts = elapsed;
+            }
+            *required_sleep = wanted_ts - elapsed;
+        }        
+    }
     return 0;
 }
-#endif  /*  End !defined(SENDFILE_NONE) */
 
-
-int mmap_send(int f, struct stat st, double *started)
+int dlhandler_init(DLHandler * const dlhandler, 
+                   const int clientfd, void * const tls_clientfd,
+                   const int xferfd,
+                   const char * const name,
+                   const int f, void * const tls_fd,
+                   const off_t restartat,
+                   const int ascii_mode,
+                   const unsigned long bandwidth)
 {
-    off_t s;
-    off_t skip;
-    off_t o;
-    char *p, *buf;
-    off_t left;
-# ifdef THROTTLING
-    double ended;
-    off_t transmitted = 0;
-# endif
+    struct stat st;
+    struct pollfd *pfd;
 
-    o = restartat & ~(map_size - 1);
-    skip = restartat - o;
-    while (o < st.st_size) {
-# ifdef FTPWHO
-        if (shm_data_cur != NULL) {
-            shm_data_cur->download_current_size = o;
+    if (fstat(f, &st) < 0 || (S_ISLNK(st.st_mode) && stat(name, &st) < 0)) {
+        error(451, MSG_STAT_FAILURE);
+        return -1;
+    }
+    if (!S_ISREG(st.st_mode)) {
+        addreply_noformat(550, MSG_NOT_REGULAR_FILE);
+        return -1;
+    }
+    if (restartat > (off_t) 0 && restartat >= st.st_size) {
+        addreply(501, MSG_REST_TOO_LARGE_FOR_FILE "\n" MSG_REST_RESET,
+                 (long long) restartat, (long long) st.st_size);
+        return -1;
+    }
+    if (fcntl(xferfd, F_SETFL, fcntl(xferfd, F_GETFL) | O_NONBLOCK) == -1) {
+        error(451, "fcntl(F_SETFL, O_NONBLOCK)");
+        return -1;
+    }
+    dlhandler->clientfd = clientfd;
+    dlhandler->tls_clientfd = tls_clientfd;
+    dlhandler->xferfd = xferfd;
+    dlhandler->f = f;
+    dlhandler->tls_fd = tls_fd;
+    dlhandler->file_size = st.st_size;
+    dlhandler->ascii_mode = ascii_mode;
+    dlhandler->cur_pos = restartat;
+    dlhandler->total_downloaded = (off_t) 0;
+    dlhandler->min_sleep = 0.1;
+    dlhandler->max_sleep = 5.0;
+    dlhandler->bandwidth = bandwidth;
+    pfd = &dlhandler->pfds_f_in;
+    pfd->fd = clientfd;
+    pfd->events = POLLIN | POLLPRI | POLLERR | POLLHUP;
+    pfd->revents = 0;
+    
+    return 0;
+}
+
+int mmap_init(DLHandler * const dlhandler, 
+              const int clientfd, void * const tls_clientfd,
+              const int xferfd,
+              const char * const name,
+              const int f,
+              void * const tls_fd,
+              const off_t restartat,
+              const int ascii_mode,
+              const unsigned long bandwidth)
+{
+    if (dlhandler_init(dlhandler, clientfd, tls_clientfd, xferfd, name, f,
+                       tls_fd, restartat, ascii_mode, bandwidth) != 0) {
+        return -1;
+    }
+    dlhandler->min_chunk_size = DL_MIN_CHUNK_SIZE;
+    if (ascii_mode > 0) {
+        dlhandler->default_chunk_size = dlhandler->max_chunk_size =
+            DL_DEFAULT_CHUNK_SIZE_ASCII;
+    } else {
+        dlhandler->max_chunk_size = DL_MAX_CHUNK_SIZE;
+        if (bandwidth <= 0UL) {
+            dlhandler->default_chunk_size = dlhandler->max_chunk_size;
+        } else {
+            dlhandler->default_chunk_size = DL_DEFAULT_CHUNK_SIZE;
         }
-# endif
-        left = st.st_size - o;
-        if (left > (off_t) dl_chunk_size) {
-            left = (off_t) dl_chunk_size;
+    }
+    dlhandler->chunk_size = dlhandler->default_chunk_size;
+    dlhandler->mmap_size = DL_MMAP_SIZE & ~(page_size - 1U);
+    dlhandler->mmap_gap = 0;
+    dlhandler->cur_pos = restartat;
+    dlhandler->mmap_pos = (off_t) 0;
+    dlhandler->map = (void *) MAP_FAILED;
+    dlhandler->map_data = (void *) MAP_FAILED;
+    
+    return 0;
+}
+
+int _mmap_remap(DLHandler * const dlhandler)
+{
+    size_t min_mmap_size;
+    size_t max_mmap_size;
+    
+    if (dlhandler->map != MAP_FAILED) {
+        if (dlhandler->cur_pos >= dlhandler->mmap_pos &&
+            dlhandler->cur_pos + dlhandler->chunk_size <=
+            dlhandler->mmap_pos + (off_t) dlhandler->mmap_size) {
+            if (dlhandler->cur_pos < dlhandler->mmap_pos ||
+                dlhandler->cur_pos - dlhandler->mmap_pos +
+                dlhandler->mmap_gap > (off_t) dlhandler->mmap_size) {
+                return -1;
+            }
+            dlhandler->map_data =
+                dlhandler->map + dlhandler->cur_pos - dlhandler->mmap_pos +
+                dlhandler->mmap_gap;
+            return 0;
         }
-        buf = mmap(0, left, PROT_READ, MAP_FILE | MAP_SHARED, f, o);
-        if (buf == (char *) MAP_FAILED) {
-            closedata();
-            (void) close(f);
+        if (munmap(dlhandler->map, dlhandler->mmap_size) != 0) {
             error(451, MSG_MMAP_FAILED);
             return -1;
         }
-        p = buf;
-        o += left;
-        s = left;
-        while (left > skip) {
-            ssize_t w;
-
-# ifdef WITH_TLS
-            if (enforce_tls_auth && data_protection_level == CPL_PRIVATE) {
-                w = secure_safe_write (p + skip, (size_t) (left - skip));
-            } else
-# endif
-            {
-                while ((w = write(xferfd, p + skip, (size_t) (left - skip))) <
-                       (ssize_t) 0 && errno == EINTR);
-            }
-            if (w < (ssize_t) 0) {
-                if (errno == EAGAIN && xferfd != -1) {
-                /* wait idletime seconds for progress */
-                    fd_set rs;
-                    fd_set ws;
-                    struct timeval tv;
-
-                    FD_ZERO(&rs);
-                    FD_ZERO(&ws);
-                    FD_SET(0, &rs);
-                    safe_fd_set(xferfd, &ws);
-                    tv.tv_sec = idletime;
-                    tv.tv_usec = 0;
-                    if (xferfd == -1 ||
-                        select(xferfd + 1, &rs, &ws, NULL, &tv) <= 0 ||
-                        FD_ISSET(0, &rs)) {
-                        /* we assume it is ABRT since nothing else is legal */
-                        (void) munmap(buf, s);
-                        (void) close(f);
-                        closedata();
-                        addreply_noformat(426, MSG_ABORTED);
-                        return -1;
-                    } else if (!(safe_fd_isset(xferfd, &ws))) {
-                        /* client presumably gone away */
-                        die(421, LOG_INFO, MSG_TIMEOUT_DATA ,
-                            (unsigned long) idletime);
-                    }
-                    w = (ssize_t) 0;
-                } else {
-                        (void) close(f);
-                        if (xferfd != -1) {
-                            closedata();
-                            addreply_noformat(450, MSG_DATA_WRITE_FAILED);
-                            logfile(LOG_INFO, MSG_ABORTED);
-                        }
-                        return -1;
-                }
-            }
-            downloaded += (unsigned long long) w;
-            left -= w;
-            p += w;
-# ifdef THROTTLING
-            if (throttling_bandwidth_dl > 0UL) {
-                long double delay;
-
-                ended = get_usec_time();
-                transmitted += w;
-                delay = (transmitted /
-                         (long double) throttling_bandwidth_dl) -
-                         (long double) (ended - *started);
-                if (delay > (long double) MAX_THROTTLING_DELAY) {
-                    *started = ended;
-                    transmitted = (off_t) 0;
-                    delay = (long double) MAX_THROTTLING_DELAY;
-                }
-                if (delay > 0.0L) {
-                    usleep2((unsigned long) (delay * 1000000.0L));
-                }
-            }
-# endif
-        }
-        skip = (off_t) 0;
-        (void) munmap(buf, s);
     }
+    if (dlhandler->file_size - dlhandler->cur_pos < dlhandler->chunk_size) {
+        dlhandler->chunk_size = dlhandler->file_size - dlhandler->cur_pos;
+    }
+    if (dlhandler->chunk_size <= 0) {
+        return 1;
+    }
+    dlhandler->mmap_gap = dlhandler->cur_pos -
+        (dlhandler->cur_pos & ~((off_t) page_size - 1U));
+    dlhandler->mmap_pos = dlhandler->cur_pos - dlhandler->mmap_gap;    
+    min_mmap_size = dlhandler->chunk_size + (size_t) dlhandler->mmap_gap;
+    if (dlhandler->mmap_size < min_mmap_size) {
+        dlhandler->mmap_size = min_mmap_size;
+    }
+    dlhandler->mmap_size = (dlhandler->mmap_size + page_size - 1U) &
+        ~(page_size - 1U);
+    if (dlhandler->mmap_size < page_size) {
+        dlhandler->mmap_size = page_size;
+    }
+    max_mmap_size = dlhandler->file_size - dlhandler->mmap_pos;
+    if (dlhandler->mmap_size > max_mmap_size) {
+        dlhandler->mmap_size = max_mmap_size;
+    }    
+    dlhandler->map = mmap(NULL, dlhandler->mmap_size,
+                          PROT_READ, MAP_FILE | MAP_SHARED,
+                          dlhandler->f, dlhandler->mmap_pos);
+    if (dlhandler->map == (void *) MAP_FAILED) {
+        error(451, MSG_MMAP_FAILED);
+        return -1;
+    }
+#ifdef MADV_SEQUENTIAL
+# ifdef MADV_WILLNEED
+    madvise(dlhandler->map, dlhandler->mmap_size, MADV_WILLNEED | MADV_SEQUENTIAL);
+# else
+    madvise(dlhandler->map, dlhandler->mmap_size, MADV_SEQUENTIAL);
+# endif
+#elif defined(MADV_WILLNEED)
+    madvise(dlhandler->map, dlhandler->mmap_size, MADV_WILLNEED);
+#endif
+    dlhandler->map_data = dlhandler->map + dlhandler->mmap_gap;
+    
+    return 0;
+}
 
+int dl_dowrite(DLHandler * const dlhandler, const unsigned char *buf_,
+               const size_t size_, off_t * const downloaded)
+{
+    size_t size = size_;
+    const unsigned char *buf = buf_;
+    unsigned char *asciibuf = NULL;
+    int ret = 0;
+    
+    if (size_ <= (size_t) 0U) {
+        *downloaded = 0;
+        return -1;
+    }
+#ifndef WITHOUT_ASCII
+    if (dlhandler->ascii_mode > 0) {
+        unsigned char *asciibufpnt;
+        size_t z = (size_t) 0U;
+        
+        if (size > (size_t) dlhandler->chunk_size ||
+            (asciibuf = ALLOCA((size_t) dlhandler->chunk_size * 2U)) == NULL) {
+            return -1;
+        }
+        asciibufpnt = asciibuf;
+        do {
+            if (buf_[z] == (unsigned char) '\n') {
+                *asciibufpnt++ = (unsigned char) '\r';
+            }
+            *asciibufpnt++ = buf_[z];
+            z++;
+        } while (z < size);
+        buf = asciibuf;
+        size = (size_t) (asciibufpnt - asciibuf);
+    }
+#endif
+    ret = safe_nonblock_write(dlhandler->xferfd, dlhandler->tls_fd, buf, size);
+    if (asciibuf != NULL) {
+        ALLOCA_FREE(asciibuf);
+    }
+    if (ret < 0) {
+        *downloaded = 0;
+    } else {
+        *downloaded = size;
+    }
+    return ret;
+}
+
+int dlhandler_handle_commands(DLHandler * const dlhandler,
+                              const double required_sleep)
+{
+    int pollret;
+    char buf[100];
+    char *bufpnt;
+    ssize_t readen;
+
+    repoll:
+    pollret = poll(&dlhandler->pfds_f_in, 1U,
+                   required_sleep <= 0.0 ?
+                   0 : (int) (required_sleep * 1000.0));
+    if (pollret <= 0) {
+        return pollret;
+    }
+    if ((dlhandler->pfds_f_in.revents & (POLLIN | POLLPRI)) != 0) {
+        if (dlhandler->tls_clientfd != NULL) {
+#ifdef WITH_TLS            
+            readen = SSL_read(dlhandler->tls_clientfd, buf,
+                              sizeof buf - (size_t) 1U);
+#else
+            abort();
+#endif
+        } else {
+            readen = read(dlhandler->clientfd, buf, sizeof buf - (size_t) 1U);
+        }
+        if (readen < (ssize_t) 0) {
+            if (errno == EAGAIN || errno == EINTR) {
+                return 0;
+            }
+            return -1;
+        }
+        buf[readen] = 0;
+        bufpnt = skip_telnet_controls(buf);
+        if (strchr(bufpnt, '\n') != NULL) {
+            if (strncasecmp(bufpnt, "ABOR", sizeof "ABOR" - 1U) != 0 &&
+                strncasecmp(bufpnt, "QUIT", sizeof "QUIT" - 1U) != 0) {
+                addreply_noformat(500, MSG_UNKNOWN_COMMAND);
+                doreply();
+            } else {
+                addreply_noformat(426, "ABORT");
+                doreply();
+                addreply_noformat(226, MSG_ABORTED);
+                return 1;
+            }
+        }
+        if (required_sleep > 0.0) {
+            goto repoll;
+        }
+    } else if ((dlhandler->pfds_f_in.revents &
+                (POLLERR | POLLHUP | POLLNVAL)) != 0) {
+        addreply_noformat(451, MSG_DATA_READ_FAILED);
+        return 1;
+    }
+    return 0;
+}
+
+int mmap_send(DLHandler * const dlhandler)
+{
+    int ret;
+    double ts_start = 0.0;
+    double required_sleep;
+    off_t downloaded;
+
+    if (dlhandler->bandwidth > 0UL && (ts_start = get_usec_time()) <= 0.0) {
+        error(451, "gettimeofday()");
+        return -1;
+    }
+    required_sleep = 0.0;
+    for (;;) {
+        ret = _mmap_remap(dlhandler);
+        if (ret < 0) {
+            error(425, "mmap()");            
+            return -1;
+        }
+        if (ret == 1) {
+            break;
+        }
+        if (dl_dowrite(dlhandler, dlhandler->map_data, dlhandler->chunk_size,
+                       &downloaded) != 0) {
+            return -1;
+        }
+        dlhandler->cur_pos += dlhandler->chunk_size;
+#ifdef FTPWHO
+        if (shm_data_cur != NULL) {
+            shm_data_cur->download_current_size = dlhandler->cur_pos;
+        }
+#endif
+        dlhandler->total_downloaded += downloaded;
+        required_sleep = 0.0;
+        if (dlhandler->bandwidth > 0UL) {
+            dlhandler_throttle(dlhandler, downloaded, ts_start,
+                               &required_sleep);
+        }
+        ret = dlhandler_handle_commands(dlhandler, required_sleep);
+        if (ret != 0) {
+            return ret;
+        }
+    }    
+    return 0;
+}
+
+int mmap_exit(DLHandler * const dlhandler)
+{
+    if (dlhandler->map != (void *) MAP_FAILED) {
+        munmap(dlhandler->map, dlhandler->mmap_size);        
+        dlhandler->map = (void *) MAP_FAILED;
+        dlhandler->mmap_size = (size_t) 0U;
+    }
     return 0;
 }
 
 void doretr(char *name)
 {
+    DLHandler dlhandler;
     int f;
-    off_t s;
-    off_t skip;
-    off_t o;
     struct stat st;
-    char *p, *buf;
-    off_t left;
-    double started;
-#ifdef THROTTLING
-    double ended;
-    off_t transmitted = 0;
-#endif
+    double started = 0.0;
+    int ret;
 
     if (!candownload) {
         addreply(550, MSG_LOAD_TOO_HIGH, load);
@@ -3234,7 +3302,7 @@ void doretr(char *name)
     }
 # endif
     if (checknamesanity(name, dot_read_ok) != 0) {
-        addreply(550, MSG_SANITY_FILE_FAILURE, name);
+        addreply(553, MSG_SANITY_FILE_FAILURE, name);
         goto end;
     }
     if ((f = open(name, O_RDONLY)) == -1) {
@@ -3252,9 +3320,9 @@ void doretr(char *name)
             goto stat_failure;
         }
     }
-    if (restartat && (restartat > st.st_size)) {
+    if (restartat > st.st_size) {
         (void) close(f);
-        addreply(451, MSG_REST_TOO_LARGE_FOR_FILE "\n" MSG_REST_RESET,
+        addreply(501, MSG_REST_TOO_LARGE_FOR_FILE "\n" MSG_REST_RESET,
                  (long long) restartat, (long long) st.st_size);
         goto end;
     }
@@ -3284,29 +3352,7 @@ void doretr(char *name)
     if (xferfd == -1) {
         (void) close(f);
         goto end;
-    }
-    if (restartat > st.st_size) {
-        /* some clients insist on doing this.  I can't imagine why. */
-        addreply_noformat(226, MSG_NO_MORE_TO_DOWNLOAD);
-        (void) close(f);
-        closedata();
-        goto end;
-    }
-#ifdef NON_BLOCKING_DATA_SOCKET
-    {
-        int flags;
-
-        if ((flags = fcntl(xferfd, F_GETFL, 0)) < 0) {
-        (void) close(f);
-    closedata();
-        error(451, "fcntl");
-        goto end;
-    }
-        flags |= FNDELAY;
-        fcntl(xferfd, F_SETFL, flags);
-    }
-#endif
-
+    }    
 #ifndef DISABLE_HUMOR
     if ((time(NULL) % 100) == 0) {
         addreply_noformat(0, MSG_WINNER);
@@ -3340,140 +3386,28 @@ void doretr(char *name)
         ftpwho_unlock();
     }
 #endif
-    alarm(MAX_SESSION_XFER_IDLE);
+    
     started = get_usec_time();
 
-#ifndef WITHOUT_ASCII
-    if (type == 2)
-#endif
-    {            /* Binary */
-        CORK_ON(xferfd);
-#ifndef SENDFILE_NONE
-# if defined(WITH_TLS)
-        if (data_protection_level == CPL_NONE ||
-            data_protection_level == CPL_CLEAR)
-# endif /* End WITH_TLS */
-        {
-            if (sendfile_send(f, st, &started) < 0) {
-                goto end;
-            }
-        }
-# if defined(WITH_TLS)
-        else
-# endif /* End WITH_TLS */
-        
-#endif  /*      End !defined(SENDFILE_NONE)     */
-
-#if defined(SENDFILE_NONE) || defined(WITH_TLS)
-        {
-            if (mmap_send(f, st, &started) < 0) {
-                goto end;
-            }
-        }
-#endif  /*      SENDFILE_NONE || WITH_TLS       */
+    if (mmap_init(&dlhandler, 0, tls_cnx, xferfd, name, f, tls_data_cnx,
+                  restartat, type == 1, throttling_bandwidth_dl) == 0) {
+        ret = mmap_send(&dlhandler);
+        mmap_exit(&dlhandler);        
+    } else {
+        error(426, "mmap_init()");
+        ret = -1;
     }
-#ifndef WITHOUT_ASCII
-    else {                    /* ASCII */
-        o = restartat & ~(map_size - 1);
-        skip = restartat - o;
-        CORK_ON(xferfd);
-        while (o < st.st_size) {
-# ifdef FTPWHO
-            if (shm_data_cur != NULL) {
-                shm_data_cur->download_current_size = o;
-            }
-# endif
-            left = st.st_size - o;
-            if (left > (off_t) dl_chunk_size) {
-                left = (off_t) dl_chunk_size;
-            }
-            if (left > (off_t) ASCII_CHUNKSIZE) {
-                left = ASCII_CHUNKSIZE;
-            }
-            buf = mmap(0, left, PROT_READ, MAP_FILE | MAP_SHARED, f, o);
-            if (buf == (char *) MAP_FAILED) {
-                closedata();
-                (void) close(f);
-                error(451, MSG_MMAP_FAILED);
-                goto end;
-            }
-            p = buf;
-            o += left;
-            s = left;
-            while ((off_t) left > skip) {
-                ssize_t w;
-                w = doasciiwrite(xferfd, (const char *) p + skip,
-                                 (size_t) (left - skip));
-                if (w < (ssize_t) 0) {
-                    if (xferfd != -1 && (errno == EAGAIN || errno == EINTR)) {
-                        /* wait idletime seconds for progress */
-                        fd_set rs;
-                        fd_set ws;
-                        struct timeval tv;
-
-                        FD_ZERO(&rs);
-                        FD_ZERO(&ws);
-                        FD_SET(0, &rs);
-                        safe_fd_set(xferfd, &ws);
-                        tv.tv_sec = idletime;
-                        tv.tv_usec = 0;
-                        if (xferfd == -1 ||
-                            select(xferfd + 1, &rs, &ws, NULL, &tv) <= 0 ||
-                            FD_ISSET(0, &rs)) {
-                            /* we assume it is ABRT since nothing else is legal */
-                            (void) munmap(buf, s);
-                            closedata();
-                            (void) close(f);
-                            addreply_noformat(426, MSG_ABORTED);
-                            goto end;
-                        } else if (!(safe_fd_isset(xferfd, &ws))) {
-                            /* client presumably gone away */
-                            die(421, LOG_INFO, MSG_TIMEOUT_DATA ,
-                                   (unsigned long) idletime);
-                        }
-                        w = (ssize_t) 0;
-                    } else {
-                        (void) close(f);
-                        if (xferfd != -1) {
-                            closedata();
-                            addreply_noformat(450, MSG_DATA_WRITE_FAILED);
-                            logfile(LOG_INFO, MSG_ABORTED);
-                        }
-                        goto end;
-                    }
-                }
-                downloaded += (unsigned long long) w;
-                left -= w;
-                p += w;
-# ifdef THROTTLING
-                if (o < st.st_size && throttling_bandwidth_dl > 0UL) {
-                    long double delay;
-
-                    ended = get_usec_time();
-                    transmitted += w;
-                    delay = (transmitted / (long double) throttling_bandwidth_dl)
-                        - (long double) (ended - started);
-                    if (delay > (long double) MAX_THROTTLING_DELAY) {
-                        started = ended;
-                        transmitted = (off_t) 0;
-                        delay = (long double) MAX_THROTTLING_DELAY;
-                    }
-                    if (delay > 0.0L) {
-                        usleep2((unsigned long) (delay * 1000000.0L));
-                    }
-                }
-# endif
-            }
-            skip = (off_t) 0;
-            (void) munmap(buf, s);
-        }
-    }
-#endif
+    
     (void) close(f);
     closedata();
-    displayrate(MSG_DOWNLOADED, st.st_size - restartat, started, name, 0);
+    if (ret == 0) {        
+        addreply_noformat(226, MSG_TRANSFER_SUCCESSFUL);
+    }
+    downloaded += dlhandler.total_downloaded;
+    displayrate(MSG_DOWNLOADED, dlhandler.total_downloaded, started, name, 0);
+    
     end:
-        restartat = (off_t) 0;
+    restartat = (off_t) 0;
 }
 
 void dorest(const char *name)
@@ -3513,19 +3447,19 @@ void domkd(char *name)
         return;
     }
     if (checknamesanity(name, dot_write_ok) != 0) {
-        addreply_noformat(550, MSG_SANITY_DIRECTORY_FAILURE);
+        addreply_noformat(553, MSG_SANITY_DIRECTORY_FAILURE);
         return;
     }
 #ifdef QUOTAS
-    (void) quota_update(&quota, 1LL, 0LL, &overflow);
-    if (overflow != 0) {
-        addreply(550, MSG_QUOTA_EXCEEDED, name);
+    if (quota_update(&quota, 1LL, 0LL, &overflow) == 0 && overflow != 0) {
+        (void) quota_update(&quota, -1LL, 0LL, NULL);
+        addreply(552, MSG_QUOTA_EXCEEDED, name);
         goto end;
     }
 #endif
     if ((mkdir(name, (mode_t) (0777 & ~u_mask_d))) < 0) {
 #ifdef QUOTAS
-        (void) quota_update(&quota, -1LL, 0LL, &overflow);
+        (void) quota_update(&quota, -1LL, 0LL, NULL);
 #endif
         error(550, MSG_MKD_FAILURE);
     } else {
@@ -3541,7 +3475,6 @@ void dormd(char *name)
 {
 #ifdef QUOTAS
     Quota quota;
-    int overflow;
 #endif
     
 #ifndef ANON_CAN_DELETE    
@@ -3551,15 +3484,16 @@ void dormd(char *name)
     }
 #endif
     if (checknamesanity(name, dot_write_ok) != 0) {
-        addreply_noformat(550, MSG_SANITY_DIRECTORY_FAILURE);
+        addreply_noformat(553, MSG_SANITY_DIRECTORY_FAILURE);
         return;
     }
     if ((rmdir(name)) < 0) {
         error(550, MSG_RMD_FAILURE);
     } else {
 #ifdef QUOTAS
-        (void) quota_update(&quota, -1LL, 0LL, &overflow);
-        displayquota(&quota);
+        if (quota_update(&quota, -1LL, 0LL, NULL) == 0) {
+            displayquota(&quota);
+        }
 #endif
         addreply_noformat(250, MSG_RMD_SUCCESS);
     }
@@ -3732,35 +3666,45 @@ void delete_atomic_file(void)
 {
     const char *atomic_file;
 
-    if ((atomic_file = get_atomic_file(NULL)) == NULL ||
-        *atomic_file == 0) {
+    if ((atomic_file = get_atomic_file(NULL)) == NULL || *atomic_file == 0) {
         return;
     }
     (void) unlink(atomic_file);
 }
 
+static off_t get_file_size(const char * const file)
+{
+    struct stat st;
+    
+    if (stat(file, &st) != 0) {
+        return (off_t) -1;
+    }
+    return st.st_size;
+}
+
 #ifdef QUOTAS
-static int dostor_quota_update_close_f(const int overwrite,
-                                       const off_t filesize,
-                                       const off_t restartat,
-                                       const char * const atomic_file,
-                                       const char * const name, const int f)
+static int ul_quota_update(const char * const file_name,
+                           const int files_count, const off_t bytes)
 {
     Quota quota;
+    off_t file_size = (off_t) -1;
     int overflow;
     int ret = 0;
     
-    (void) quota_update(&quota, overwrite != 0 ? 0LL : 1LL,
-                        (long long) (filesize - restartat), &overflow);
+    if (files_count == 0 && bytes == (off_t) 0) {
+        return 0;
+    }
+    if (quota_update(&quota, files_count, (long long) bytes, &overflow) != 0) {
+        return 0;
+    }
     if (overflow != 0) {
-        addreply(550, MSG_QUOTA_EXCEEDED, name);
-        /* ftruncate+unlink is overkill, but it reduces possible races */
-        (void) ftruncate(f, (off_t) 0);
-        (void) close(f);
-        unlink(atomic_file);
-        ret = -1;
-    } else {
-        (void) close(f);
+        ret = 1;
+        if (file_name != NULL) {
+            file_size = get_file_size(file_name);
+        }
+        if (file_size >= (off_t) 0 && unlink(file_name) == 0) {
+            (void) quota_update(&quota, -1, (long long) -file_size, NULL);
+        }
     }
     displayquota(&quota);
     
@@ -3768,105 +3712,475 @@ static int dostor_quota_update_close_f(const int overwrite,
 }
 #endif
 
+int ulhandler_throttle(ULHandler * const ulhandler, const off_t uploaded,
+                       const double ts_start, double *required_sleep)
+{
+    double ts_now;
+    double elapsed;
+    off_t would_be_uploaded;
+    double wanted_ts;
+    off_t previous_chunk_size;
+
+    (void) uploaded;
+    if (ulhandler->bandwidth <= 0UL) {
+        *required_sleep = 0.0;
+        return 0;
+    }
+    if ((ts_now = get_usec_time()) <= 0.0) {
+        ts_now = ts_start;
+    }
+    if (ts_start > ts_now) {
+        ts_now = ts_start;
+    }            
+    elapsed = ts_now - ts_start;
+    would_be_uploaded = ulhandler->total_uploaded + ulhandler->chunk_size;
+    if (ulhandler->bandwidth > 0.0) {
+        wanted_ts = would_be_uploaded / ulhandler->bandwidth;
+    } else {
+        wanted_ts = elapsed;
+    }
+    *required_sleep = wanted_ts - elapsed;
+    previous_chunk_size = ulhandler->chunk_size;
+    if (ulhandler->total_uploaded > ulhandler->chunk_size) {
+        if (*required_sleep < ulhandler->min_sleep) {
+            ulhandler->chunk_size =
+                (ulhandler->max_chunk_size + ulhandler->chunk_size) / 2;
+        } else if (*required_sleep > ulhandler->max_sleep) {
+            ulhandler->chunk_size =
+                (ulhandler->min_chunk_size + ulhandler->chunk_size) / 2;
+        } else {
+            ulhandler->chunk_size = ulhandler->default_chunk_size;
+        }
+        if (ulhandler->chunk_size <= 0 ||
+            ulhandler->chunk_size > (off_t) ulhandler->sizeof_buf) {
+            ulhandler->chunk_size = ulhandler->default_chunk_size;
+        }        
+        if (previous_chunk_size != ulhandler->default_chunk_size) {
+            would_be_uploaded =
+                ulhandler->total_uploaded + ulhandler->chunk_size;
+            if (ulhandler->bandwidth > 0.0) {
+                wanted_ts = would_be_uploaded / ulhandler->bandwidth;
+            } else {
+                wanted_ts = elapsed;
+            }
+            *required_sleep = wanted_ts - elapsed;
+        }
+    }    
+    return 0;
+}
+
+int ul_init(ULHandler * const ulhandler, 
+            const int clientfd, void * const tls_clientfd,
+            const int xferfd,
+            const char * const name,
+            const int f, void * const tls_fd,
+            const off_t restartat,
+            const int ascii_mode,
+            const unsigned long bandwidth,
+            const off_t max_filesize)
+{
+    struct pollfd *pfd;
+
+    (void) name;
+    if (fcntl(xferfd, F_SETFL, fcntl(xferfd, F_GETFL) | O_NONBLOCK) == -1) {
+        error(451, "fcntl(F_SETFL, O_NONBLOCK)");
+        return -1;
+    }
+    ulhandler->buf = NULL;
+    ulhandler->sizeof_buf = (size_t) 0UL;
+    ulhandler->clientfd = clientfd;
+    ulhandler->tls_clientfd = tls_clientfd;    
+    ulhandler->xferfd = xferfd;
+    ulhandler->f = f;
+    ulhandler->tls_fd = tls_fd;
+    ulhandler->ascii_mode = ascii_mode;
+    ulhandler->cur_pos = restartat;
+    ulhandler->total_uploaded = (off_t) 0;
+    ulhandler->min_sleep = 0.1;
+    ulhandler->max_sleep = 5.0;
+    ulhandler->bandwidth = bandwidth;
+    ulhandler->max_filesize = max_filesize;
+    ulhandler->idletime = idletime;
+    pfd = &ulhandler->pfds[PFD_DATA];    
+    pfd->fd = xferfd;
+    pfd->events = POLLIN | POLLPRI | POLLERR | POLLHUP;
+    pfd->revents = 0;    
+    pfd = &ulhandler->pfds[PFD_COMMANDS];
+    pfd->fd = clientfd;
+    pfd->events = POLLIN | POLLPRI | POLLERR | POLLHUP;
+    pfd->revents = 0;
+    pfd = &ulhandler->pfds_command;
+    pfd->fd = clientfd;
+    pfd->events = POLLIN | POLLPRI | POLLERR | POLLHUP;
+    pfd->revents = 0;
+    ulhandler->min_chunk_size = UL_MIN_CHUNK_SIZE;
+    if (ascii_mode > 0) {
+        ulhandler->default_chunk_size = ulhandler->max_chunk_size =
+            UL_DEFAULT_CHUNK_SIZE_ASCII;
+    } else {
+        ulhandler->max_chunk_size = UL_MAX_CHUNK_SIZE;
+        if (bandwidth <= 0UL) {
+            ulhandler->default_chunk_size = ulhandler->max_chunk_size;
+        } else {
+            ulhandler->default_chunk_size = UL_DEFAULT_CHUNK_SIZE;
+        }
+    }
+    ulhandler->chunk_size = ulhandler->default_chunk_size;
+    ulhandler->cur_pos = restartat;
+    ulhandler->sizeof_buf = ulhandler->max_chunk_size;
+    if ((ulhandler->buf = malloc(ulhandler->sizeof_buf)) == NULL) {
+        ulhandler->buf = NULL;
+        ulhandler->sizeof_buf = (size_t) 0U;
+        return -1;
+    }    
+    return 0;
+}
+
+int ul_dowrite(ULHandler * const ulhandler, const unsigned char *buf_,
+               const size_t size_, off_t * const uploaded)
+{
+    size_t size = size_;
+    const unsigned char *buf = buf_;
+    unsigned char *unasciibuf = NULL;
+    int ret = 0;
+    
+    if (size_ <= (size_t) 0U) {
+        *uploaded = 0;
+        return -1;
+    }
+#ifndef WITHOUT_ASCII
+    if (ulhandler->ascii_mode > 0) {
+        unsigned char *unasciibufpnt;
+        size_t z = (size_t) 0U;
+        
+        if (size > (size_t) ulhandler->chunk_size ||
+            (unasciibuf = ALLOCA((size_t) ulhandler->chunk_size)) == NULL) {
+            return -1;
+        }
+        unasciibufpnt = unasciibuf;
+        do {
+            if (buf_[z] != (unsigned char) '\r') {
+                *unasciibufpnt++ = buf_[z];
+            }
+            z++;
+        } while (z < size);
+        buf = unasciibuf;
+        size = (size_t) (unasciibufpnt - unasciibuf);
+    }
+#endif
+    ret = safe_write(ulhandler->f, buf, size);
+    if (unasciibuf != NULL) {
+        ALLOCA_FREE(unasciibuf);
+    }
+    if (ret < 0) {
+        *uploaded = 0;
+    } else {
+        *uploaded = size;
+    }
+    return ret;
+}
+
+int ulhandler_handle_commands(ULHandler * const ulhandler)
+{
+    char buf[100];
+    char *bufpnt;    
+    ssize_t readen;
+    
+    if (ulhandler->tls_clientfd != NULL) {
+#ifdef WITH_TLS            
+        readen = SSL_read(ulhandler->tls_clientfd, buf,
+                          sizeof buf - (size_t) 1U);
+#else
+        abort();
+#endif
+    } else {
+        readen = read(ulhandler->clientfd, buf, sizeof buf - (size_t) 1U);
+    }
+    if (readen < (ssize_t) 0) {
+        if (errno == EAGAIN || errno == EINTR) {
+            return 0;
+        }
+        return -1;
+    }
+    buf[readen] = 0;
+    bufpnt = skip_telnet_controls(buf);    
+    if (strchr(buf, '\n') != NULL) {
+        if (strncasecmp(bufpnt, "ABOR", sizeof "ABOR" - 1U) != 0 &&
+            strncasecmp(bufpnt, "QUIT", sizeof "QUIT" - 1U) != 0) {
+            addreply_noformat(500, MSG_UNKNOWN_COMMAND);
+            doreply();
+        } else {
+            addreply_noformat(426, MSG_ABORTED);
+            doreply();
+            return 1;
+        }        
+    }
+    return 0;
+}
+
+int ul_handle_data(ULHandler * const ulhandler, off_t * const uploaded,
+                   const double ts_start)
+{
+    ssize_t readen;
+    double required_sleep = 0.0;
+    int pollret;
+    int ret;
+
+    if (ulhandler->max_filesize >= (off_t) 0 &&
+        ulhandler->total_uploaded > ulhandler->max_filesize) {
+        addreply(552, MSG_ABORTED " (quota)");
+        return -2;
+    }
+    if (ulhandler->chunk_size > (off_t) ulhandler->sizeof_buf) {
+        ulhandler->chunk_size = ulhandler->max_chunk_size =
+            ulhandler->sizeof_buf;
+    }
+    if (ulhandler->tls_fd != NULL) {
+#ifdef WITH_TLS            
+        readen = SSL_read(ulhandler->tls_fd, ulhandler->buf,
+                          ulhandler->chunk_size);
+#else
+        abort();
+#endif
+    } else {
+        readen = read(ulhandler->xferfd, ulhandler->buf,
+                      ulhandler->chunk_size);
+    }
+    if (readen == (ssize_t) 0) {
+        return 2;
+    }
+    if (readen < (ssize_t) 0) {
+        if (errno == EAGAIN || errno == EINTR) {
+            return 0;
+        }
+        addreply_noformat(451, MSG_DATA_READ_FAILED);
+        return -1;
+    }    
+    if (ul_dowrite(ulhandler, ulhandler->buf, readen, uploaded) != 0) {
+        addreply_noformat(452, MSG_WRITE_FAILED);
+        return -1;
+    }
+    ulhandler->cur_pos += *uploaded;
+#ifdef FTPWHO
+        if (shm_data_cur != NULL) {
+            shm_data_cur->download_current_size =
+                shm_data_cur->download_total_size = ulhandler->cur_pos;
+        }
+#endif
+    ulhandler->total_uploaded += *uploaded;
+    if (ulhandler->bandwidth > 0UL) {
+        ulhandler_throttle(ulhandler, *uploaded, ts_start, &required_sleep);
+        if (required_sleep > 0.0) {
+            repoll:
+            pollret = poll(&ulhandler->pfds_command, 1, required_sleep * 1000.0);
+            if (pollret == 0) {
+                return 0;
+            }
+            if (pollret < 0) {
+                if (errno == EINTR) {
+                    goto repoll;
+                }
+                return -1;
+            }
+            if ((ulhandler->pfds_command.revents &
+                 (POLLERR | POLLHUP | POLLNVAL)) != 0) {
+                return -1;
+            }
+            if ((ulhandler->pfds_command.revents & (POLLIN | POLLPRI)) != 0) {
+                ret = ulhandler_handle_commands(ulhandler);
+                if (ret != 0) {
+                    return ret;
+                }
+                goto repoll;
+            }
+        }
+    }
+    return 0;
+}
+
+int ul_send(ULHandler * const ulhandler)
+{
+    double ts_start = 0.0;
+    off_t uploaded = (off_t) 0;
+    int pollret;
+    int timeout;
+    int ret;
+    
+    if (ulhandler->bandwidth > 0UL && (ts_start = get_usec_time()) <= 0.0) {
+        error(451, "gettimeofday()");
+        return -1;
+    }
+    for (;;) {
+        if (ulhandler->idletime >= INT_MAX / 1000) {
+            timeout = INT_MAX;
+        } else {
+            timeout = (int) ulhandler->idletime * 1000;
+        }
+        pollret = poll(ulhandler->pfds,
+                       sizeof ulhandler->pfds / sizeof ulhandler->pfds[0],
+                       timeout);
+        if (pollret < 0) {
+            addreply_noformat(451, MSG_DATA_READ_FAILED);
+            return -1;            
+        }
+        if (pollret == 0) {
+            addreply_noformat(421, MSG_TIMEOUT);
+            return -1;
+        }
+        if ((ulhandler->pfds[PFD_DATA].revents & (POLLIN | POLLPRI)) != 0) {
+            ret = ul_handle_data(ulhandler, &uploaded, ts_start);
+            switch (ret) {
+            case 1:
+                return 1;
+            case 2:
+                return 0;
+            case 0:
+                break;
+            default:
+                if (ret > 2) {
+                    abort();
+                }
+                return ret;
+            }
+        }
+        if ((ulhandler->pfds[PFD_COMMANDS].revents & (POLLIN | POLLPRI)) != 0) {
+            ret = ulhandler_handle_commands(ulhandler);
+            if (ret != 0) {
+                return ret;
+            }
+        }
+        if ((ulhandler->pfds[PFD_DATA].revents & (POLLERR | POLLNVAL)) != 0 ||
+            ((ulhandler->pfds[PFD_DATA].revents & POLLHUP) != 0 &&
+             (ulhandler->pfds[PFD_DATA].revents & POLLIN) == 0)) {
+            return -1;
+        }
+        if ((ulhandler->pfds[PFD_COMMANDS].revents &
+             (POLLERR | POLLHUP | POLLNVAL)) != 0) {
+            addreply_noformat(221, MSG_LOGOUT);
+            return -1;
+        }
+    }    
+    return 0;
+}
+
+int ul_exit(ULHandler * const ulhandler)
+{
+    free(ulhandler->buf);
+    ulhandler->buf = NULL;
+    
+    return 0;
+}
+
+int ul_check_free_space(const char *name)
+{
+    STATFS_STRUCT statfsbuf;
+    char *z;
+    char *alloca_namedir;
+    size_t name_len;
+    
+    if (maxdiskusagepct <= 0.0) {
+        return 1;
+    }    
+#ifdef CHECK_SYMLINKS_DISK_SPACE
+    if (STATFS(name, &statfsbuf) == 0) {
+        goto okcheckspace;
+    }
+#endif
+    name_len = strlen(name) + (size_t) 1U;
+    if (name_len < (size_t) 2U || 
+        (alloca_namedir = ALLOCA(name_len)) == NULL) {
+        return -1;
+    }
+    memcpy(alloca_namedir, name, name_len);
+    if ((z = strrchr(alloca_namedir, '/')) != NULL) {
+        if (z == alloca_namedir) {
+            *z++ = '.';
+        }
+        *z = 0;
+    } else {
+        alloca_namedir[0] = '.';
+        alloca_namedir[1] = 0;
+    }
+    if (STATFS(alloca_namedir, &statfsbuf) != 0) {
+        ALLOCA_FREE(alloca_namedir);
+        return -1;
+    }
+    ALLOCA_FREE(alloca_namedir);
+    
+#ifdef CHECK_SYMLINKS_DISK_SPACE        
+    okcheckspace:
+#endif
+    if ((double) STATFS_BLOCKS(statfsbuf) > 0.0) {
+        const double jam = (double) STATFS_BAVAIL(statfsbuf) /
+            (double) STATFS_BLOCKS(statfsbuf);
+        
+        if (jam < maxdiskusagepct) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 void dostor(char *name, const int append, const int autorename)
 {
+    ULHandler ulhandler;
     int f;
-    char *p;
+    const char *ul_name = NULL;
     const char *atomic_file = NULL;
-    char *buf;    
-    const size_t sizeof_buf = ul_chunk_size;
-    ssize_t r;
     off_t filesize = (off_t) 0U;
-    STATFS_STRUCT statfsbuf;
     struct stat st;
-    double started;
-#ifdef THROTTLING
-    double ended;
-    off_t transmitted = 0;
-#endif
-    int unlinkret = -1;
-#ifdef QUOTAS
+    double started = 0.0;
     signed char overwrite = 0;
-    int quota_exceeded;
-#endif
-#ifndef WITHOUT_ASCII
-    char *cpy = NULL;
+    int overflow = 0;
+    int ret = -1;
+    off_t max_filesize = (off_t) -1;
+#ifdef QUOTAS
+    Quota quota;
 #endif
     
-    if ((buf = ALLOCA(sizeof_buf)) == NULL) {
-        die_mem();
-    }
     if (type < 1 || (type == 1 && restartat > (off_t) 1)) {
         addreply_noformat(503, MSG_NO_ASCII_RESUME);
         goto end;
     }
 #ifndef ANON_CAN_RESUME
     if (guest != 0 && anon_noupload != 0) {
-        addreply_noformat(553, MSG_ANON_CANT_OVERWRITE);
+        addreply_noformat(550, MSG_ANON_CANT_OVERWRITE);
         goto end;
     }
 #endif
-    if (maxdiskusagepct > 0.0) {
-        char *alloca_namedir;
-        size_t name_len;
-        register char *z;
-        
-#ifdef CHECK_SYMLINKS_DISK_SPACE
-        if (STATFS(name, &statfsbuf) == 0) {
-            goto okcheckspace;
-        }
-#endif
-        name_len = strlen(name) + (size_t) 1U;
-        if (name_len < (size_t) 2U || 
-            (alloca_namedir = ALLOCA(name_len)) == NULL) {
-            goto cantcheckspace;
-        }
-        memcpy(alloca_namedir, name, name_len);
-        if ((z = strrchr(alloca_namedir, '/')) != NULL) {
-            if (z == alloca_namedir) {
-                *z++ = '.';
-            }
-            *z = 0;
-        } else {
-            alloca_namedir[0] = '.';
-            alloca_namedir[1] = 0;
-        }
-        if (STATFS(alloca_namedir, &statfsbuf) != 0) {
-            ALLOCA_FREE(alloca_namedir);
-            goto cantcheckspace;
-        }
-        ALLOCA_FREE(alloca_namedir);
-        
-#ifdef CHECK_SYMLINKS_DISK_SPACE        
-        okcheckspace:
-#endif
-        if ((double) STATFS_BLOCKS(statfsbuf) > 0.0) {
-            double jam;
-            
-            jam = (double) STATFS_BAVAIL(statfsbuf) /
-                (double) STATFS_BLOCKS(statfsbuf);
-            if (jam < maxdiskusagepct) {
-                addreply_noformat(553, MSG_NO_DISK_SPACE);
-                goto end;
-            }
-        }
+    if (ul_check_free_space(name) == 0) {
+        addreply_noformat(552, MSG_NO_DISK_SPACE);
+        goto end;
     }
-    cantcheckspace:
-    if (checknamesanity(name, dot_write_ok) != 0 ||
-        (atomic_file = get_atomic_file(name)) == NULL) {
+    if (checknamesanity(name, dot_write_ok) != 0) {
         addreply(553, MSG_SANITY_FILE_FAILURE, name);
-        /* implicit : atomic_file = NULL */
         goto end;
     }
-    if (restartat > (off_t) 0 || (autorename == 0 && no_truncate == 0)) {
-        if (rename(name, atomic_file) != 0 && errno != ENOENT) {
+    if (autorename != 0) {
+        no_truncate = 1;
+    }
+    if (restartat > (off_t) 0 || no_truncate != 0) {
+        if ((atomic_file = get_atomic_file(name)) == NULL) {
+            addreply(553, MSG_SANITY_FILE_FAILURE, name);
+            goto end;
+        }
+        if (restartat > (off_t) 0 &&
+            rename(name, atomic_file) != 0 && errno != ENOENT) {
             error(553, MSG_RENAME_FAILURE);
             atomic_file = NULL;
             goto end;
         }
     }
-    if ((f = open(atomic_file, O_CREAT | O_WRONLY,
-                  (mode_t) 0777 & ~u_mask)) == -1) {
+    if (atomic_file != NULL) {
+        ul_name = atomic_file;
+    } else {
+        ul_name = name;
+    }
+    if (atomic_file == NULL &&
+        (f = open(ul_name, O_WRONLY | O_NOFOLLOW)) != -1) {
+        overwrite++;
+    } else if ((f = open(ul_name, O_CREAT | O_WRONLY | O_NOFOLLOW,
+                         (mode_t) 0777 & ~u_mask)) == -1) {
         error(553, MSG_OPEN_FAILURE2);
         goto end;
     }
@@ -3877,14 +4191,16 @@ void dostor(char *name, const int append, const int autorename)
     }
     if (!S_ISREG(st.st_mode)) {
         (void) close(f);
-        addreply_noformat(553, MSG_NOT_REGULAR_FILE);
+        addreply_noformat(550, MSG_NOT_REGULAR_FILE);
         goto end;
     }
+    alarm(MAX_SESSION_XFER_IDLE);
+    
     /* Anonymous users *CAN* overwrite 0-bytes files - This is the right behavior */
     if (st.st_size > (off_t) 0) {
 #ifndef ANON_CAN_RESUME
         if (guest != 0) {
-            addreply_noformat(553, MSG_ANON_CANT_OVERWRITE);
+            addreply_noformat(550, MSG_ANON_CANT_OVERWRITE);
             (void) close(f);
             goto end;
         }
@@ -3910,17 +4226,24 @@ void dostor(char *name, const int append, const int autorename)
             goto end;
         }
 #ifdef QUOTAS
-        {
-            int overflow;
-            Quota quota;
-            
-            (void) quota_update(&quota, 0LL, 
-                                (long long) (restartat - st.st_size), 
+        if (restartat != st.st_size) {
+            (void) quota_update(NULL, 0LL,
+                                (long long) (restartat - st.st_size),
                                 &overflow);
         }
-        overwrite++;
 #endif
+    } 
+#ifdef QUOTAS
+    if (quota_update(&quota, 0LL, 0LL, &overflow) == 0 &&
+        (overflow > 0 || quota.files >= user_quota_files ||
+         quota.size > user_quota_size ||                           
+         (max_filesize >= (off_t) 0 &&
+          (max_filesize = user_quota_size - quota.size) < (off_t) 0))) {
+        overflow = 1;
+        (void) close(f);
+        goto afterquota;
     }
+#endif
     opendata();
     if (xferfd == -1) {
         (void) close(f);
@@ -3952,153 +4275,26 @@ void dostor(char *name, const int append, const int autorename)
         ftpwho_unlock();
     }
 #endif
-#ifndef WITHOUT_ASCII
-    if (type == 1) {
-        if ((cpy = malloc(sizeof_buf)) == NULL) {
-            goto errasc;
-        }
-    }
-#endif
-    alarm(MAX_SESSION_XFER_IDLE);    
+    
+    /* Here starts the real upload code */
+
     started = get_usec_time();    
-    do {
-        /* wait idletime seconds for data to be available */
-        fd_set rs;
-        struct timeval tv;
-        
-        FD_ZERO(&rs);
-        FD_SET(0, &rs);
-        safe_fd_set(xferfd, &rs);
-        tv.tv_sec = idletime;
-        tv.tv_usec = 0;        
-        if (xferfd == -1 ||
-            select(xferfd + 1, &rs, NULL, NULL, &tv) <= 0) {
-            databroken:
-            (void) close(f);
-            closedata();
-            if (atomic_file != NULL) {
-                unlinkret = unlink(atomic_file);
-                atomic_file = NULL;                
-            }
-            addreply_noformat(0, MSG_ABRT_ONLY);
-            addreply_noformat(426, MSG_ABORTED);
-            addreply(0, "%s %s", name,
-                     unlinkret ? MSG_UPLOAD_PARTIAL : MSG_REMOVED);
-            goto end;
-        }
-        if (FD_ISSET(0, &rs)) {
-            char mwbuf[LINE_MAX];
-            ssize_t readen;
-            
-            do {
-                readen = read(0, mwbuf, sizeof mwbuf - (size_t) 1U);
-            } while (readen == -1 && errno == EINTR);
-            if (readen == -1) {
-                goto databroken;
-            }
-            mwbuf[readen] = 0;
-            if (strncasecmp(mwbuf, "ABORT",
-                            sizeof "ABORT" - (size_t) 1U) == 0 ||
-                strncasecmp(mwbuf, "QUIT",
-                            sizeof "QUIT" - (size_t) 1U) == 0) {
-                goto databroken;
-            }
-            if (readen > (ssize_t) 0 && mwbuf[readen - 1] == '\n') {
-                addreply_noformat(202, ".");
-                doreply();
-            }
-        }
-#ifdef QUOTAS
-        if ((unsigned long long) filesize > user_quota_size) {
-            goto quota_exceeded;
-        }
-#endif
-#ifdef WITH_TLS
-        if (enforce_tls_auth && data_protection_level == CPL_PRIVATE) {
-            r = SSL_read(tls_data_cnx, buf, sizeof_buf);
-        } else
-#endif
-        {
-            r = read(xferfd, buf, sizeof_buf);
-        }
-        if (r > (ssize_t) 0) {
-            p = buf;
-            
-#ifdef THROTTLING
-            if (throttling_bandwidth_ul > 0UL) {
-                long double delay;
-                
-                ended = get_usec_time();
-                transmitted += (off_t) r;
-                delay = (transmitted / (long double) throttling_bandwidth_ul)
-                    - (long double) (ended - started);
-                if (delay > (long double) MAX_THROTTLING_DELAY) {
-                    started = ended;
-                    transmitted = (off_t) 0;
-                    delay = (long double) MAX_THROTTLING_DELAY;
-                }
-                if (delay > 0.0L) {
-                    usleep2((unsigned long) (delay * 1000000.0L));
-                }
-            }
-#endif
-            {
-                int w;
-                
-#ifndef WITHOUT_ASCII
-                if (type == 1) {       /* Fuckin ASCII conversion */
-                    size_t asciibytes = (size_t)  0U;
-                    size_t i = (size_t) 0U;
-                    char *cpypnt = cpy;
-                    
-                    while ((ssize_t) i < r) {
-                        if (p[i] != '\r') {
-                            *cpypnt++ = p[i];
-                            asciibytes++;
-                        }
-                        i++;
-                    }
-                    if ((w = safe_write(f, cpy, asciibytes)) == 0) {
-                        filesize += (off_t) asciibytes;                 
-                    }
-                } else
-#endif
-                {
-                    if ((w = safe_write(f, p, (size_t) r)) == 0) {
-                        filesize += (off_t) r;
-                    }
-                }
-                if (w < 0) {
-                    errasc:
-#ifdef QUOTAS
-                    dostor_quota_update_close_f(overwrite, filesize,
-                                                restartat, atomic_file, 
-                                                name, f);
-#else                        
-                    (void) close(f);
-#endif
-                    closedata();
-                    error(450, MSG_WRITE_FAILED);
-                    if (guest != 0) {
-                        unlinkret = unlink(atomic_file);
-                        atomic_file = NULL;
-                    }
-                    addreply(0, "%s %s", name,
-                             unlinkret ? MSG_UPLOAD_PARTIAL : MSG_REMOVED);
-                    goto end;
-                } 
-#ifdef FTPWHO
-                /* Don't update download_total_size, it'd be useless */
-                if (shm_data_cur != NULL) {
-                    shm_data_cur->download_current_size = filesize;
-                }
-#endif                    
-            }
-        } else if (r < 0) {
-            error(451, MSG_DATA_READ_FAILED);
-            goto databroken;
-        }
-    } while (r > (ssize_t) 0);
+    
+    if (ul_init(&ulhandler, 0, tls_cnx, xferfd, name, f, tls_data_cnx,
+                restartat, type == 1, throttling_bandwidth_ul,
+                max_filesize) == 0) {
+        ret = ul_send(&ulhandler);
+        ul_exit(&ulhandler);
+    } else {
+        error(426, "ul_init()");
+        ret = -1;
+    }
+    (void) close(f);
+    closedata();
+    restartat = (off_t) 0U;    
+    
+    /* Here ends the real upload code */
+
 #ifdef SHOW_REAL_DISK_SPACE
     if (FSTATFS(f, &statfsbuf) == 0) {
         double space;
@@ -4112,49 +4308,71 @@ void dostor(char *name, const int append, const int autorename)
         }    
     }
 #endif
-#ifdef QUOTAS    
-    quota_exceeded:
-#endif
-    closedata();
-#ifdef QUOTAS
-    quota_exceeded = 
-        dostor_quota_update_close_f(overwrite, filesize, restartat,
-                                    atomic_file, name, f);
-#else
-    (void) close(f);
-#endif
-    uploaded += (unsigned long long) (filesize - restartat);
-#ifdef QUOTAS
-    if (quota_exceeded == 0)
-#endif
+
+    uploaded += (unsigned long long) ulhandler.total_uploaded;
     {
+        off_t atomic_file_size;
+        off_t original_file_size;
+        int files_count;
+        
+        if (overwrite == 0) {
+            files_count = 1;
+        } else {
+            files_count = 0;
+        }
         if (autorename != 0 && restartat == (off_t) 0) {
+            if ((atomic_file_size = get_file_size(atomic_file)) < (off_t) 0) {
+                goto afterquota;
+            }
             if (tryautorename(atomic_file, name) != 0) {
                 error(553, MSG_RENAME_FAILURE);
+                goto afterquota;
             } else {
+#ifdef QUOTAS
+                ul_quota_update(name, 1, atomic_file_size);
+#endif
+                atomic_file = NULL;
+            }
+        } else if (atomic_file != NULL) {
+            if ((atomic_file_size = get_file_size(atomic_file)) < (off_t) 0) {
+                goto afterquota;
+            }
+            if ((original_file_size = get_file_size(name)) < (off_t) 0) {
+                original_file_size = (off_t) 0;
+            }
+            if (rename(atomic_file, name) != 0) {
+                error(553, MSG_RENAME_FAILURE);
+                goto afterquota;
+            } else {
+#ifdef QUOTAS
+                overflow = ul_quota_update
+                    (name, files_count, atomic_file_size - original_file_size);
+#endif                
                 atomic_file = NULL;
             }
         } else {
-            if (rename(atomic_file, name) != 0) {
-                error(553, MSG_RENAME_FAILURE);
-            } else {
-                atomic_file = NULL;
-            }
-        }
-        displayrate(MSG_UPLOADED, filesize - restartat, started, name, 1);
-    }
-    
-    end:
-#ifndef WITHOUT_ASCII
-    free(cpy);
+#ifdef QUOTAS
+            overflow = ul_quota_update
+                (name, files_count, ulhandler.total_uploaded);
 #endif
-    ALLOCA_FREE(buf);
+        }
+    }
+    afterquota:
+    if (overflow > 0) {
+        addreply(552, MSG_QUOTA_EXCEEDED, name);
+    } else {
+        if (ret == 0) {
+            addreply_noformat(226, MSG_TRANSFER_SUCCESSFUL);
+        } else {
+            addreply_noformat(226, MSG_ABORTED);            
+        }
+        displayrate(MSG_UPLOADED, ulhandler.total_uploaded, started, name, 1);
+    }    
+    end:
     restartat = (off_t) 0;
     if (atomic_file != NULL) {
-        if (rename(atomic_file, name) != 0) {
-            error(553, MSG_RENAME_FAILURE);
-            unlink(atomic_file);            
-        }
+        unlink(atomic_file);
+        atomic_file = NULL;
     }
 }
 
@@ -4164,7 +4382,7 @@ void domdtm(const char *name)
     struct tm *t;
 
     if (!name || !*name) {
-        addreply_noformat(500, MSG_MISSING_ARG);
+        addreply_noformat(501, MSG_MISSING_ARG);
     } else if (stat(name, &st)) {
 #ifdef DEBUG
         if (debug != 0) {
@@ -4177,7 +4395,7 @@ void domdtm(const char *name)
     } else {
         t = gmtime((time_t *) &(st.st_mtime));
         if (!t) {
-            addreply_noformat(550, MSG_GMTIME_FAILURE);
+            addreply_noformat(451, MSG_GMTIME_FAILURE);
         } else {
             addreply(213, "%04d%02d%02d%02d%02d%02d",
                      t->tm_year + 1900, t->tm_mon + 1, t->tm_mday,
@@ -4191,7 +4409,7 @@ void dosize(const char *name)
     struct stat st;
 
     if (!name || !*name) {
-        addreply_noformat(500, MSG_MISSING_ARG);
+        addreply_noformat(501, MSG_MISSING_ARG);
     } else if (stat(name, &st)) {
 #ifdef DEBUG
         if (debug != 0) {
@@ -4235,7 +4453,7 @@ void dotype(const char *arg)
 void dostru(const char *arg)
 {
     if (arg == NULL || !*arg) {
-        addreply_noformat(500, MSG_MISSING_ARG);
+        addreply_noformat(501, MSG_MISSING_ARG);
     } else if (strcasecmp(arg, "F")) {
         addreply_noformat(504, MSG_STRU_FAILURE);
     } else {
@@ -4246,7 +4464,7 @@ void dostru(const char *arg)
 void domode(const char *arg)
 {
     if (arg == NULL || !*arg) {
-        addreply_noformat(500, MSG_MISSING_ARG);
+        addreply_noformat(501, MSG_MISSING_ARG);
     } else if (strcasecmp(arg, "S")) {
         addreply_noformat(504, MSG_MODE_FAILURE);
     } else {
@@ -4269,7 +4487,7 @@ void dornfr(char *name)
         return;
     }
     if (checknamesanity(name, dot_write_ok) != 0) {
-        addreply(550, MSG_SANITY_FILE_FAILURE, name);
+        addreply(553, MSG_SANITY_FILE_FAILURE, name);
         return;
     }
     if ((lstat(name, &st)) == 0) {
@@ -4288,6 +4506,13 @@ void dornfr(char *name)
 
 void dornto(char *name)
 {
+#ifdef QUOTAS    
+    off_t source_file_size = (off_t) -1;
+    off_t target_file_size = (off_t) -1;
+    int files_count = 0;
+    long long bytes = 0LL;
+#endif
+
 #ifndef ANON_CAN_RENAME
     if (guest != 0) {
         addreply_noformat(550, MSG_ANON_CANT_RENAME);
@@ -4299,30 +4524,34 @@ void dornto(char *name)
         goto bye;
     }    
     if (checknamesanity(name, dot_write_ok) != 0) {
-        addreply(550, MSG_SANITY_FILE_FAILURE, name);
+        addreply(553, MSG_SANITY_FILE_FAILURE, name);
         return;                        /* don't clear rnfrom buffer */
     }
-    /*
-     * Refuse atomic replacement of the same file for users with quotas,
-     * or with keepallfiles.
-     */
 #ifdef QUOTAS
-    if (hasquota() == 0) {
-        struct stat st;
-
-        if (lstat(name, &st) == 0) {
-            addreply_noformat(550, MSG_RENAME_ALREADY_THERE);
-            goto bye;            
+    if (hasquota() == 0) {        
+        source_file_size = get_file_size(renamefrom);
+        if (source_file_size < (off_t) 0) {
+            addreply_noformat(550, MSG_RENAME_FAILURE);
+            goto bye;
+        }
+        bytes = (long long) source_file_size;
+        target_file_size = get_file_size(name);        
+        if (target_file_size > (off_t) 0) {            
+            bytes -= (long long) target_file_size;
+        }
+        if (target_file_size >= (off_t) 0) {
+            files_count = -1;
+            (void) quota_update(NULL, files_count, bytes, NULL);            
+        } else {
+            bytes = (off_t) 0;
         }
     }
 #endif
-    /*
-     * There's a race between lstat() and rename(). But exploiting it is:
-     * 1) very hard
-     * 2) a script kiddy can only *lose* space.
-     */
     if ((rename(renamefrom, name)) < 0) {
-        addreply(550, MSG_RENAME_FAILURE ": %s", strerror(errno));
+        error(451, MSG_RENAME_FAILURE);        
+#ifdef QUOTAS
+        (void) quota_update(NULL, -files_count, -bytes, NULL);
+#endif
     } else {
         addreply_noformat(250, MSG_RENAME_SUCCESS);
         logfile(LOG_NOTICE, MSG_RENAME_SUCCESS ": [%s]->[%s]", 
@@ -4348,7 +4577,7 @@ void doopts(char *args)
             addreply_noformat(501, "OPTS UTF8: " MSG_MISSING_ARG);          
         } else if ((iconv_fd_fs2utf8 == NULL || iconv_fd_utf82fs == NULL)
                    && strcasecmp(charset_fs, "utf-8") != 0) {
-            addreply_noformat(500, "Disabled");
+            addreply_noformat(504, "Disabled");
         } else if (strncasecmp(cmdopts, "on", sizeof "on" - 1U) == 0) {
             utf8 = 1;       
             addreply_noformat(200, "OK, UTF-8 enabled");
@@ -4356,7 +4585,7 @@ void doopts(char *args)
             utf8 = 0;
             addreply_noformat(200, "OK, UTF-8 disabled");
         } else {
-            addreply_noformat(500, MSG_UNKNOWN_COMMAND);
+            addreply_noformat(504, MSG_UNKNOWN_COMMAND);
         }
         return; 
     }
@@ -4367,7 +4596,7 @@ void doopts(char *args)
                           "UNIX.gid;unique;");
         return;
     }   
-    addreply_noformat(500, MSG_UNKNOWN_COMMAND);
+    addreply_noformat(504, MSG_UNKNOWN_COMMAND);
 }
 #endif
 
@@ -4377,7 +4606,6 @@ void error(int n, const char *msg)
 
     logfile(LOG_ERR, "%s: %s", msg, e);
     addreply(n, "%s: %s", msg, e);
-    CORK_OFF(1);
 }
 
 static void fixlimits(void)
@@ -4397,7 +4625,7 @@ static void fixlimits(void)
 }
 
 #ifdef COOKIE
-static void fortune(void)
+static int fortune(void)
 {
     int fd;
     char *buf;
@@ -4409,11 +4637,11 @@ static void fortune(void)
     char fortune[2048];
 
     if (fortunes_file == NULL || *fortunes_file == 0) {
-        return;
+        return 0;
     }
     if ((fd = open(fortunes_file, O_RDONLY)) == -1) {
         logfile(LOG_ERR, MSG_OPEN_FAILURE, fortunes_file);
-        return;
+        return -1;
     }
     if (fstat(fd, &st) < 0 ||
         (((S_IRUSR | S_IRGRP | S_IROTH) & st.st_mode) !=
@@ -4421,10 +4649,10 @@ static void fortune(void)
         !(S_ISREG(st.st_mode) || S_ISLNK(st.st_mode)) || st.st_size < 2 ||
         (buf = mmap(NULL, (size_t) st.st_size,
                 PROT_READ, MAP_FILE | MAP_SHARED, fd,
-                (off_t) 0)) == (char *) MAP_FAILED) {
+                (off_t) 0)) == (void *) MAP_FAILED) {
         (void) close(fd);
         logfile(LOG_ERR, MSG_OPEN_FAILURE, fortunes_file);
-        return;
+        return -1;
     }
 # ifdef HAVE_RANDOM
     gl = (off_t) (random() % (st.st_size - 1U));
@@ -4473,14 +4701,14 @@ static void fortune(void)
         fortunepnt++;
     }
     if (*fortunepnt == 0) {
-    goto bye;
+        goto bye;
     }
-    addreply_noformat(220, "<<");
     addreply(220, "%s", fortunepnt);
-    addreply_noformat(220, ">>");
     bye:
     (void) munmap(buf, st.st_size);
     (void) close(fd);
+    
+    return 1;
 }
 #endif
 
@@ -4498,66 +4726,87 @@ static int check_standalone(void)
 
 static void set_signals_client(void)
 {
+    sigset_t sigs;
     struct sigaction sa;
 
+    sigfillset(&sigs);
     sigemptyset(&sa.sa_mask);
-
+    
     sa.sa_flags = SA_RESTART;
-#ifdef SIGURG
-    sa.sa_handler = sigurg;
-    (void) sigaction(SIGURG, &sa, NULL);
-#endif
-#if defined(WITH_TLS) && defined(SIGIO)
-# ifndef SIGURG
-    sa.sa_handler = sigurg;
-# endif
-    (void) sigaction(SIGIO, &sa, NULL);
-#endif
+    
     sa.sa_handler = SIG_IGN;
     (void) sigaction(SIGPIPE, &sa, NULL);
+    (void) sigaction(SIGURG, &sa, NULL);
+#ifdef SIGIO
+    (void) sigaction(SIGIO, &sa, NULL);
+#endif
+    
     sa.sa_handler = SIG_DFL;
+    sigdelset(&sigs, SIGCHLD);
     (void) sigaction(SIGCHLD, &sa, NULL);    
 #ifdef SIGFPE
     (void) sigaction(SIGFPE, &sa, NULL);
+    sigdelset(&sigs, SIGFPE);
 #endif
     sa.sa_flags = 0;
+    
     sa.sa_handler = sigalarm;
+    sigdelset(&sigs, SIGALRM);
     (void) sigaction(SIGALRM, &sa, NULL);
+    
     sa.sa_handler = sigterm_client;
+    sigdelset(&sigs, SIGTERM);
     (void) sigaction(SIGTERM, &sa, NULL);
+    sigdelset(&sigs, SIGHUP);
     (void) sigaction(SIGHUP, &sa, NULL);
+    sigdelset(&sigs, SIGQUIT);
     (void) sigaction(SIGQUIT, &sa, NULL);
+    sigdelset(&sigs, SIGINT);
     (void) sigaction(SIGINT, &sa, NULL);
 #ifdef SIGXCPU
+    sigdelset(&sigs, SIGXCPU);
     (void) sigaction(SIGXCPU, &sa, NULL);
 #endif
+    (void) sigprocmask(SIG_SETMASK, &sigs, NULL);
 }
 
 static void set_signals(void)
 {
 #ifndef NO_STANDALONE
+    sigset_t sigs;    
     struct sigaction sa;
 
+    sigfillset(&sigs);
     sigemptyset(&sa.sa_mask);
 
     sa.sa_flags = SA_RESTART;
     sa.sa_handler = sigchild;
+    sigdelset(&sigs, SIGCHLD);
     (void) sigaction(SIGCHLD, &sa, NULL);
 
     sa.sa_handler = SIG_IGN;
     (void) sigaction(SIGPIPE, &sa, NULL);
     (void) sigaction(SIGALRM, &sa, NULL);
     (void) sigaction(SIGURG, &sa, NULL);
+#ifdef SIGIO
+    (void) sigaction(SIGIO, &sa, NULL);
+#endif    
     
     sa.sa_flags = 0;
     sa.sa_handler = sigterm;
+    sigdelset(&sigs, SIGTERM);
     (void) sigaction(SIGTERM, &sa, NULL);
+    sigdelset(&sigs, SIGHUP);
     (void) sigaction(SIGHUP, &sa, NULL);
+    sigdelset(&sigs, SIGQUIT);
     (void) sigaction(SIGQUIT, &sa, NULL);
+    sigdelset(&sigs, SIGINT);
     (void) sigaction(SIGINT, &sa, NULL);
 # ifdef SIGXCPU
+    sigdelset(&sigs, SIGXCPU);
     (void) sigaction(SIGXCPU, &sa, NULL);
 # endif
+    (void) sigprocmask(SIG_SETMASK, &sigs, NULL);
 #endif
 }
 
@@ -4566,7 +4815,7 @@ static void dns_sanitize(char *z)
     while (*z != 0) {
         if ((*z >= 'a' && *z <= 'z') ||
             (*z >= '0' && *z <= '9') ||
-            *z == '.' || *z == '-' ||
+            *z == '.' || *z == '-' || *z == ':' ||
             (*z >= 'A' && *z <= 'Z')) {
             /* unless */
         } else {
@@ -4595,6 +4844,8 @@ static void fill_atomic_prefix(void)
 static void doit(void)
 {
     socklen_t socksize;
+    unsigned int users = 0U;
+    int display_banner = 1;
 
     session_start_time = time(NULL);
     fixlimits();
@@ -4663,27 +4914,11 @@ static void doit(void)
     iptropize(&peer);
     logfile(LOG_INFO, MSG_NEW_CONNECTION, host);
 
-#ifndef NO_BANNER
-# ifdef BORING_MODE
-    addreply_noformat(0, MSG_WELCOME_TO " Pure-FTPd.");
-# else
-#  ifdef DEBUG
-    addreply_noformat(0, "--------- " MSG_WELCOME_TO 
-                      " Pure-FTPd " PACKAGE_VERSION VERSION_PRIVSEP VERSION_TLS " ----------");
-#  else
-    addreply_noformat(0, "--------- " MSG_WELCOME_TO 
-                      " Pure-FTPd" VERSION_PRIVSEP VERSION_TLS " ----------");
-#  endif    
-# endif
-#else
-    addreply_noformat(220, "FTP server ready.");
-#endif
+    replycode = 220;
     
     fill_atomic_prefix();
     
     if (maxusers > 0U) {
-        unsigned int users;
-
 #ifdef NO_STANDALONE
         users = daemons(serverport);
 #else
@@ -4702,13 +4937,7 @@ static void doit(void)
             doreply();
             _EXIT(1);
         }
-#ifndef NO_BANNER
-        if (users > 0) {
-            addreply(0, MSG_NB_USERS, users, maxusers);
-        }
-#endif
     }
-
     /* It's time to add a new entry to the ftpwho list */
 #ifdef FTPWHO
     {
@@ -4794,28 +5023,42 @@ static void doit(void)
     srand((unsigned int) session_start_time ^ (unsigned int) zrand());
 #endif
 #ifdef COOKIE
-    fortune();
-#endif
-#if !defined(NO_BANNER) && !defined(BORING_MODE)
-    {
-        struct tm *t;
-        
-        if ((t = localtime(&session_start_time)) != NULL) {
-            addreply(220, MSG_WELCOME_TIME,
-                     t->tm_hour, t->tm_min, (unsigned int) serverport);
-        }
+    if (fortune() > 0) {
+        display_banner = 0;
     }
 #endif
+    if (display_banner) {
+#ifdef BORING_MODE
+        addreply_noformat(0, MSG_WELCOME_TO " Pure-FTPd.");
+#else
+# ifdef DEBUG
+        addreply_noformat(0, "--------- " MSG_WELCOME_TO 
+                          " Pure-FTPd " PACKAGE_VERSION VERSION_PRIVSEP VERSION_TLS " ----------");
+# else
+        addreply_noformat(0, "--------- " MSG_WELCOME_TO 
+                          " Pure-FTPd" VERSION_PRIVSEP VERSION_TLS " ----------");
+# endif
+#endif
+        if (users > 0U) {
+            addreply(0, MSG_NB_USERS, users, maxusers);
+        }
+        {
+            struct tm *t;
+            
+            if ((t = localtime(&session_start_time)) != NULL) {
+                addreply(220, MSG_WELCOME_TIME,
+                         t->tm_hour, t->tm_min, (unsigned int) serverport);
+            }
+        }
+    }
     if (anon_only > 0) {
         addreply_noformat(220, MSG_ANONYMOUS_FTP_ONLY);
     } else if (anon_only < 0) {
         addreply_noformat(220, MSG_NO_ANONYMOUS_LOGIN);
     }
-#ifndef NO_BANNER
     if (allowfxp == 2) {
         addreply_noformat(220, MSG_FXP_SUPPORT);
     }
-#endif
 #ifdef RATIOS
     if (ratio_upload > 0) {
         if (ratio_for_non_anon != 0) {
@@ -4826,17 +5069,16 @@ static void doit(void)
         addreply(0, MSG_RATIOS_RULE, ratio_download, ratio_upload);
     }
 #endif
-#ifndef NO_BANNER
-    if (v6ready != 0 && STORAGE_FAMILY(peer) != AF_INET6) {
-        addreply(0, MSG_IPV6_OK);
-    }    
-    if (idletime >= 120UL) {
-        addreply(220, MSG_INFO_IDLE_M, idletime / 60UL);
-    } else {
-        addreply(220, MSG_INFO_IDLE_S, (unsigned long) idletime);
+    if (display_banner) {
+        if (v6ready != 0 && STORAGE_FAMILY(peer) != AF_INET6) {
+            addreply(0, MSG_IPV6_OK);
+        }    
+        if (idletime >= 120UL) {
+            addreply(220, MSG_INFO_IDLE_M, idletime / 60UL);
+        } else {
+            addreply(220, MSG_INFO_IDLE_S, (unsigned long) idletime);
+        }
     }
-#endif
-
     candownload = (signed char) ((maxload <= 0.0) || (load < maxload));
 
     if (force_passive_ip_s != NULL) {
@@ -4854,7 +5096,7 @@ static void doit(void)
         freeaddrinfo(res);
     }
     
-#ifdef WITH_PRIVSEP
+#ifndef WITHOUT_PRIVSEP
     if (privsep_init() != 0) {
         die(421, LOG_ERR, "privsep_init");
     }
@@ -4863,7 +5105,7 @@ static void doit(void)
     parser();
     
     addreply(0, MSG_LOGOUT);
-    logfile(LOG_INFO, MSG_LOGOUT);    
+    logfile(LOG_INFO, MSG_LOGOUT);
     doreply();
 #ifdef WITH_BONJOUR
     refreshManager();
@@ -5199,9 +5441,6 @@ int main(int argc, char *argv[])
 #else
     page_size = (size_t) 4096U;
 #endif
-    map_size = (size_t) DEFAULT_DL_CHUNK_SIZE & ~(page_size - 1);
-    dl_chunk_size = map_size;
-    ul_chunk_size = DEFAULT_UL_CHUNK_SIZE;
 
 #ifdef HAVE_SETLOCALE
 # ifdef LC_MESSAGES
@@ -5342,19 +5581,11 @@ int main(int argc, char *argv[])
                      strtoul(tr_bw_dl, NULL, 0) * 1024UL) == 0UL) {
                     goto bad_bw;
                 }
-                dl_chunk_size = throttling_bandwidth_dl & ~(page_size - 1);
-                if (dl_chunk_size < page_size) {
-                    dl_chunk_size = page_size;
-                }
             }
             if (tr_bw_ul != NULL) {
                 if ((throttling_bandwidth_ul =
                      strtoul(tr_bw_ul, NULL, 0) * 1024UL) == 0UL) {
                     goto bad_bw;
-                }
-                ul_chunk_size = throttling_bandwidth_ul;
-                if (ul_chunk_size > MAX_UL_CHUNK_SIZE) {
-                    ul_chunk_size = MAX_UL_CHUNK_SIZE;
                 }
             }
             throttling_delay = 1000000 /

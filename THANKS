@@ -139,6 +139,7 @@ for it, Daniel by pointing out that users could use the races to upload past
 their virtual quota when uploads and deletes are mixed.
 * Peter Ahlert <petera@gmx.net> - Reported a missing line in the
 README.Authentication-Modules sample.
+* Michele Pes - Reporting that --with-tls was documented in the README file.
 
 
 
@@ -255,3 +256,7 @@ documentation error in pgsql.
 * Koczka Ferenc - suggested AUTHD_ENCRYPTED.
 * Frederico Gendorf - reported that on-demand directory creation didn't work
 with paths containing a /./ mark.
+* Ned Holdbrook - reported that MLSD should display dot files.
+* Xianghu Zhao - spotted the fact that charset conversion was needed on
+directory names in traditional listings.
+* Todd Rinaldo - sent a compatibility fix for GCC 2.95

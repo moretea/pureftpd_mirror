@@ -17,10 +17,10 @@ GLOBAL0(struct sockaddr_storage *trustedip);  /* IP address accepting non-anonym
 GLOBAL0(volatile signed char logging);
 #ifdef THROTTLING
 GLOBAL0(unsigned long throttling_delay);
-GLOBAL0(unsigned long throttling_bandwidth_ul);
-GLOBAL0(unsigned long throttling_bandwidth_dl);
 GLOBAL0(signed char throttling);                /* 0=don't throttle 1=throttle anon 2=all */
 #endif
+GLOBAL0(unsigned long throttling_bandwidth_dl);
+GLOBAL0(unsigned long throttling_bandwidth_ul);
 GLOBAL0(signed char allowfxp);                    /* 0=no fxp 1=authenticated 2=everybody */
 GLOBAL0(signed char passive);
 GLOBAL(int datafd, -1);                    /* data connection file descriptor */
@@ -129,9 +129,6 @@ GLOBAL0(signed char disallow_rename);
 GLOBAL0(signed char no_truncate);
 
 GLOBAL0(size_t page_size);
-GLOBAL0(size_t map_size);
-GLOBAL0(size_t dl_chunk_size);
-GLOBAL0(size_t ul_chunk_size);
 GLOBAL0(int log_pid); /* 0 or LOG_PID if PID is to be logged */
 
 #ifdef WITH_ALTLOG
@@ -180,4 +177,9 @@ GLOBAL(iconv_t iconv_fd_fs2client, NULL);
 GLOBAL(iconv_t iconv_fd_fs2utf8, NULL);
 GLOBAL(iconv_t iconv_fd_client2fs, NULL);
 GLOBAL(iconv_t iconv_fd_utf82fs, NULL);
+#endif
+
+#ifndef WITH_TLS
+GLOBAL0(void * tls_cnx);
+GLOBAL0(void * tls_data_cnx);
 #endif

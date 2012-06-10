@@ -158,7 +158,7 @@ MaxIdleTime                 15
 # 'ls' recursion limits. The first argument is the maximum number of
 # files to be displayed. The second one is the max subdirectories depth
 
-LimitRecursion              2000 8
+LimitRecursion              10000 8
 
 
 
@@ -177,7 +177,7 @@ MaxLoad                     4
 
 # Port range for passive connections replies. - for firewalling.
 
-# PassivePortRange          30000 50000
+# PassivePortRange          30000:50000
 
 
 

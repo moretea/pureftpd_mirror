@@ -1,7 +1,7 @@
 dnl AM_ACLOCAL_INCLUDE(m4)
 
 AC_PREREQ(2.61)
-AC_INIT([pure-ftpd],[1.0.22],[bugs at pureftpd dot org])
+AC_INIT([pure-ftpd],[1.0.24],[bugs at pureftpd dot org])
 AC_CONFIG_SRCDIR(src/ftpd.c)
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([1.9 dist-bzip2])
@@ -41,6 +41,10 @@ if test -d /usr/local/lib; then
   LDFLAGS="$LDFLAGS -L/usr/local/lib"
 fi
 
+if uname | fgrep SunOS > /dev/null 2> /dev/null ; then
+  CPPFLAGS="$CPPFLAGS -D_XPG4_2=1"
+fi
+
 dnl Checks for header files
 
 AC_SYS_LARGEFILE
@@ -50,10 +54,10 @@ AC_HEADER_TIME
 AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS(unistd.h string.h strings.h sys/param.h ioctl.h sys/ioctl.h)
-AC_CHECK_HEADERS(sys/vfs.h sys/statvfs.h sys/sendfile.h sys/uio.h sys/fsuid.h)
+AC_CHECK_HEADERS(sys/vfs.h sys/statvfs.h sys/sendfile.h sys/uio.h)
 AC_CHECK_HEADERS(sys/time.h sys/resource.h sys/capability.h)
 AC_CHECK_HEADERS(shadow.h getopt.h stddef.h)
-AC_CHECK_HEADERS(netinet/in_systm.h netinet/in.h sys/pstat.h)
+AC_CHECK_HEADERS(netinet/in_systm.h netinet/in.h sys/pstat.h sys/file.h)
 AC_CHECK_HEADERS(sys/mount.h, [], [],
 [#ifdef HAVE_SYS_PARAM_H
 # include <sys/param.h>
@@ -292,12 +296,6 @@ AC_ARG_WITH(ascii,
     AC_DEFINE(WITHOUT_ASCII,,[without ascii])
   fi ])
 
-AC_ARG_WITH(banner,
-[AS_HELP_STRING(--without-banner,Don't display any initial banner)],
-[ if test "x$withval" = "xno" ; then
-    AC_DEFINE(NO_BANNER,,[without banner])
-  fi ])
-
 AC_ARG_WITH(globbing,
 [AS_HELP_STRING(--without-globbing,Don't include globbing code)],
 [ if test "x$withval" = "xno" ; then
@@ -322,10 +320,10 @@ AC_ARG_WITH(sendfile,
     AC_DEFINE(DISABLE_SENDFILE,,[without sendfile])
   fi ])
 
-AC_ARG_WITH(cork,
-[AS_HELP_STRING(--without-cork,Don't use TCP_CORK optimization)],
+AC_ARG_WITH(privsep,
+[AS_HELP_STRING(--without-privsep,Disable privilege separation)],
 [ if test "x$withval" = "xno" ; then
-    AC_DEFINE(DISABLE_CORK,,[without cork])
+    without_privsep=yes
   fi ])
 
 AC_ARG_WITH(boring,
@@ -355,7 +353,6 @@ AC_ARG_WITH(minimal,
     AC_DEFINE(DISABLE_HUMOR)
     AC_DEFINE(NO_FTP_USERS)
     AC_DEFINE(WITHOUT_ASCII)    
-    AC_DEFINE(NO_BANNER)
     AC_DEFINE(BORING_MODE)
     CFLAGS="$CFLAGS -Os -fomit-frame-pointer -fgcse -falign-functions=2 -falign-jumps=2 -fno-unroll-loops "
     LDFLAGS="$LDFLAGS -s "
@@ -396,6 +393,10 @@ AC_ARG_WITH(pam,
 [ if test "x$withval" = "xyes" ; then
     with_pam="yes"
   fi ])
+
+if test "x`uname`" = "xDarwin"; then
+  with_pam="yes"
+fi
 
 if test "x$with_pam" = "xyes" ; then
   if test "x$ac_cv_header_security_pam_appl_h" != "xyes" &&
@@ -745,19 +746,30 @@ AC_ARG_WITH(diraliases,
   fi ])
 
 AC_ARG_WITH(nonroot,
-[AS_HELP_STRING(--with-nonroot,[Unprivileged, limited mode. Only enable this
-option if you really don't have root privileges on the server host.])],
+[AS_HELP_STRING(--with-nonroot,[Compile a limited server designed to be started as a regular user. Only enable this option as a last resort if you really don't have root privileges on the server host.])],
 [ if test "x$withval" = "xyes" ; then
       AC_DEFINE(NON_ROOT_FTP,,[with nonroot])
-      AC_DEFINE(WITH_VIRTUAL_CHROOT)
+      AC_DEFINE(WITH_VIRTUAL_CHROOT)      
       non_root_ftp=yes
+      without_privsep=yes
   fi ])
+
+if test "x$without_privsep" = "xyes" ; then
+  AC_DEFINE(WITHOUT_PRIVSEP,,[disable privilege separation])
+fi
 
 AC_ARG_WITH(peruserlimits,
 [AS_HELP_STRING(--with-peruserlimits,Support per-user concurrency limits)],
 [ if test "x$withval" = "xyes" ; then
       AC_DEFINE(PER_USER_LIMITS,,[with per-user limits])
       AC_DEFINE(FTPWHO)
+  fi ])
+
+AC_ARG_WITH(implicittls,
+[AS_HELP_STRING(--with-implicittls,Implicit TLS (port 990) - DO NOT USE unless you know what you are doing)],
+[ if test "x$withval" = "xyes" ; then
+      AC_DEFINE(IMPLICIT_TLS,,[with implicit TLS])
+      with_tls="yes"
   fi ])
 
 AC_ARG_WITH(debug,
@@ -781,9 +793,6 @@ AC_ARG_WITH(everything,
     AC_DEFINE(FTPWHO)
     AC_DEFINE(WITH_DIRALIASES)
     AC_DEFINE(PER_USER_LIMITS)
-if test "x$non_root_ftp" != "xyes" ; then
-    AC_DEFINE(WITH_PRIVSEP)
-fi
     with_bonjour='yes'
   fi ])
 
@@ -881,7 +890,7 @@ AC_CHECK_FUNCS(getaddrinfo getnameinfo inet_ntop inet_pton)
 AC_CHECK_FUNCS(setusershell setgroups snprintf vsnprintf vfprintf gethostname)
 AC_CHECK_FUNCS(setlocale timegm)
 AC_CHECK_FUNCS(tzset utime utimes mknod mkfifo)
-AC_CHECK_FUNCS(random srandomdev)
+AC_CHECK_FUNCS(random srandomdev arc4random)
 AC_CHECK_FUNCS(closefrom)
 
 AC_MSG_CHECKING([whether statvfs64() is defined])
@@ -1248,17 +1257,6 @@ AC_ARG_WITH(pgsql,
     AC_MSG_RESULT(yes)
   fi ])
 
-AC_ARG_WITH(privsep,
-[AS_HELP_STRING(--with-privsep,Enable privilege separation)],
-[ if test "x$withval" = "xyes" ; then
-    AC_DEFINE(WITH_PRIVSEP,,[enable privilege separation])
-    with_privsep=yes
-  fi ])
-
-if test "x$with_privsep" = "xyes" && test "x$non_root_ftp" = "xyes" ; then
-  AC_MSG_ERROR(Privilege separation is incompatible with non-root.)
-fi
-
 AC_ARG_WITH(tls,
 [AS_HELP_STRING(--with-tls,Enable SSL/TLS support (experimental, needs OpenSSL))],
 [ if test "x$withval" = "xyes" ; then
@@ -1286,7 +1284,7 @@ AC_ARG_WITH(certfile,
   fi ])
 
 AC_ARG_WITH(rfc2640,
-[AS_HELP_STRING(--with-rfc2640,Enable RFC 2640 (UTF-8 encoding for file names) support (experimental, needs iconv))],
+[AS_HELP_STRING(--with-rfc2640,Enable RFC 2640 (UTF-8 encoding for file names) support (needs iconv))],
 [ if test "x$withval" = "xyes" ; then
     with_rfc2640="yes"
   fi ])
@@ -1295,7 +1293,8 @@ if test "x$with_rfc2640" = "xyes" ; then
   if test "x$ac_cv_header_iconv_h" != "xyes" ; then
     AC_MSG_ERROR(iconv headers not found.)  
   fi
-  AC_CHECK_LIB(iconv, libiconv)
+  AC_CHECK_LIB(iconv, iconv_open)
+  AC_CHECK_LIB(iconv, libiconv_open)
   AC_DEFINE(WITH_RFC2640,,[Enable RFC2640 (UTF-8) support])
 fi
 
@@ -1328,6 +1327,20 @@ else
   fi
 fi  
 
+if test "x$localstatedir" = 'xNONE' || test "x$localstatedir" = 'x'; then
+  LOCALSTATEDIR='/var'
+else
+  if test "x$localstatedir" = 'x${prefix}/var'; then
+    if test "x$prefix" = 'xNONE' || test "x$prefix" = 'x/usr'; then
+      LOCALSTATEDIR='/var'
+    else
+      LOCALSTATEDIR="$localstatedir"
+    fi
+  else
+    LOCALSTATEDIR="$localstatedir"
+  fi
+fi  
+
 if test -r /dev/arandom; then
   AC_MSG_NOTICE([You have /dev/arandom - Great])
   AC_DEFINE(HAVE_DEV_ARANDOM,,[Define if you have /dev/arandom])
@@ -1343,14 +1356,23 @@ fi
 
 sysconfdir="$CONFDIR"
 AC_SUBST(sysconfdir)
+localstatedir="$LOCALSTATEDIR"
+AC_SUBST(localstatedir)
 
 CPPFLAGS="$CPPFLAGS -DCONFDIR=\\\"$sysconfdir\\\""
+CPPFLAGS="$CPPFLAGS -DSTATEDIR=\\\"$localstatedir\\\""
+
+AC_SUBST(CONFDIR)
+AC_SUBST(LOCALSTATEDIR)
 
 AC_CONFIG_FILES(Makefile src/Makefile pam/Makefile man/Makefile
 gui/Makefile configuration-file/Makefile contrib/Makefile m4/Makefile
 configuration-file/pure-ftpd.conf configuration-file/pure-config.pl
 configuration-file/pure-config.py puredb/Makefile puredb/src/Makefile
-pure-ftpd.spec)
+pure-ftpd.spec
+man/pure-ftpd.8 man/pure-ftpwho.8 man/pure-mrtginfo.8 man/pure-uploadscript.8
+man/pure-statsdecode.8 man/pure-quotacheck.8 man/pure-pw.8 man/pure-pwconvert.8
+man/pure-authd.8)
 
 AC_OUTPUT
 

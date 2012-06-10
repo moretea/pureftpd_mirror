@@ -5,7 +5,7 @@
 # include "ftpwho-update_p.h"
 # include "ftpwho-update.h"
 # include "globals.h"
-# ifdef WITH_PRIVSEP
+# ifndef WITHOUT_PRIVSEP
 #  include "privsep.h"
 # endif
 
@@ -13,11 +13,9 @@
 #  include <dmalloc.h>
 # endif
 
-void ftpwho_exit(const int ret)
+void ftpwho_exit(void)
 {
-# ifndef HAVE_SYS_FSUID_H
     disablesignals();
-# endif
     if (shm_data_cur != NULL) {
         shm_data_cur->state = FTPWHO_STATE_FREE;
         if (
@@ -32,7 +30,7 @@ void ftpwho_exit(const int ret)
     if (mmap_fd != -1) {    
         (void) close(mmap_fd);
     }
-# ifdef WITH_PRIVSEP
+# ifndef WITHOUT_PRIVSEP
     if (
 # ifndef NO_INETD        
         standalone == 0 &&
@@ -47,21 +45,16 @@ void ftpwho_exit(const int ret)
 #  endif
         chrooted == 0 && scoreboardfile != NULL) {
 #  ifndef NON_ROOT_FTP
-#   ifndef HAVE_SYS_FSUID_H        
         (void) seteuid((uid_t) 0);
-#   else
-        (void) setfsuid((uid_t) 0);
-#   endif
 #  endif
         (void) unlink(scoreboardfile);
     }
 #endif
-    _exit(ret);
 }
 
 void ftpwho_unlock(void) 
 {
-#if defined(__OpenBSD__) || defined(__ekkoBSD__)
+#if defined(__OpenBSD__)
     (void) msync(shm_data_cur, NULL, MS_ASYNC);
 #endif
     lock.l_type = F_UNLCK;
@@ -179,10 +172,11 @@ int ftpwho_initwho(void)
     lock.l_start = (off_t) 0;
     lock.l_len = (off_t) 0;
     lock.l_pid = getpid();
-    if ((shm_data_cur = (FTPWhoEntry *) mmap(NULL, sizeof (FTPWhoEntry),
-                                             PROT_WRITE | PROT_READ,
-                                             MAP_SHARED | MAP_FILE, 
-                                             mmap_fd, (off_t) 0)) == NULL) {
+    if ((shm_data_cur =
+         (FTPWhoEntry *) mmap(NULL, sizeof (FTPWhoEntry),
+                              PROT_WRITE | PROT_READ,
+                              MAP_SHARED | MAP_FILE, 
+                              mmap_fd, (off_t) 0)) == (void *) MAP_FAILED) {
         goto err2;
     }
     return 0;

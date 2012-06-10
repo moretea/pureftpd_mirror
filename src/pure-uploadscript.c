@@ -20,7 +20,7 @@ int main(void)
 # include <dmalloc.h>
 #endif
 
-static inline void setcloexec(const int fd)
+static void setcloexec(const int fd)
 {
     fcntl(fd, F_SETFD, FD_CLOEXEC);
 }
@@ -417,15 +417,13 @@ static int run(const char * const who, const char * const file,
 
 int safe_write(const int fd, const void *buf_, size_t count)
 {
-    register const char *buf = (const char *) buf_;
+    const char *buf = (const char *) buf_;
     ssize_t written;
         
     while (count > (size_t) 0) {
         for (;;) {
             if ((written = write(fd, buf, count)) <= (ssize_t) 0) {
-                if (errno == EAGAIN) {
-                    sleep(1);
-                } else if (errno != EINTR) {
+                if (errno != EINTR) {
                     return -1;
                 }
                 continue;

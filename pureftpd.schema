@@ -58,6 +58,7 @@ attributetype ( 1.3.6.1.4.1.6981.11.3.9 NAME 'FTPgid'
 
 objectclass ( 1.3.6.1.4.1.6981.11.2.3 NAME 'PureFTPdUser'
         DESC 'PureFTPd user with optional quota, throttling and ratio'
+        SUP top AUXILIARY
         MAY ( FTPStatus $ FTPQuotaFiles $ FTPQuotaMBytes $ FTPUploadRatio $ 
               FTPDownloadRatio $ FTPUploadBandwidth $ FTPDownloadBandwidth $
               FTPuid $ FTPgid ) )

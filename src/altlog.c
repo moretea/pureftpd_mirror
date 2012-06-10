@@ -33,7 +33,7 @@ static int altlog_write(const char *str)
     while (fcntl(altlog_fd, F_SETLKW, &lock) < 0 && errno == EINTR);
     if (lseek(altlog_fd, (off_t) 0, SEEK_END) < (off_t) 0
 # ifdef ESPIPE
-	&& errno != ESPIPE
+        && errno != ESPIPE
 # endif
 	) {
         return -1;
@@ -63,7 +63,7 @@ static int altlog_writexfer_stats(const int upload,
     
     line_size = 16U /* now */ + 1U + 16U /* start */ + 1U /* . */ +
         16U /* pid */ + 1U + strlen(account_) + 1U + strlen(host_) + 1U +
-        1U /* U/D */ + 1U + 16U /* size */ + 16U /* duration */ +
+        1U /* U/D */ + 1U + 20U /* size */ + 1U + 16U /* duration */ +
         strlen(filename) + 1U /* \n */ + 1U;
     if ((alloca_line = ALLOCA(line_size)) == NULL) {
         return -1;
@@ -206,7 +206,7 @@ static int altlog_writexfer_clf(const int upload,
     line_size = strlen(host_) + (sizeof " - " - 1U) + strlen(account_) +
         (sizeof " [" - 1U) + (sizeof date - 1U) + (sizeof "] \"" - 1U) +
         3U /* GET / PUT */ + (sizeof " " - 1U) + strlen(quoted_filename) +
-        (sizeof "\" 200 1234567890\n" - 1U) + 1U;
+        (sizeof "\" 200 18446744073709551616\n" - 1U) + 1U;
     if ((alloca_line = ALLOCA(line_size)) == NULL) {
         return -1;
     }
@@ -276,9 +276,9 @@ static int altlog_writexfer_xferlog(const int upload,
     } while (filename_idx > (size_t) 0U);
     
     line_size = (sizeof date - 1U) + (sizeof " " - 1U) +
-        (size_t) 8U /* duration */ + (sizeof " " - 1U) +
-        strlen(host_) + (sizeof " " - 1U) +
-        (size_t) 16U /* size */ +
+        (size_t) 16U /* duration */ + (sizeof " " - 1U) +
+        strlen(host_) + (sizeof " " - 1U) + 
+        (size_t) 20U /* size */ + (sizeof " " - 1U) +
         (filename_size - 1U) + (sizeof " " - 1U) +
         (size_t) 1U /* type */ + (sizeof " _ " - 1U) +
         (size_t) 1U /* direction */ + (sizeof " " - 1U) +
@@ -287,7 +287,7 @@ static int altlog_writexfer_xferlog(const int upload,
     if ((alloca_line = ALLOCA(line_size)) == NULL) {
         ALLOCA_FREE(quoted_filename);
         return -1;
-    }    
+    }
     if (!SNCHECK(snprintf(alloca_line, line_size, 
                           "%s %lu %s %llu %s %c _ %c %c %s ftp 1 * c\n",
                           date, (unsigned long) (duration + 0.5),

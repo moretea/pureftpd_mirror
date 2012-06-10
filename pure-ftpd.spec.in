@@ -24,11 +24,11 @@
 %define con_peruserlimits 1
 %define con_largefile 1
 %define con_boring 0
-%define con_privsep 1
 %define con_tls 0
 %define con_sysquotas 1
 %define con_bonjour 0
 %define con_rfc2640 0
+%define con_implicittls 0
 
 %define prefixdef  /usr/local
 %define sysconfdef /etc
@@ -66,11 +66,11 @@
 %{?with_peruserlimits:%define con_peruserlimits 1}
 %{?with_largefile:%define con_largefile 1}
 %{?with_boring:%define con_boring 1}
-%{?with_privsep:%define con_privsep 1}
 %{?with_tls:%define con_tls 1}
 %{?with_rfc2640:%define con_rfc2640 1}
 %{?with_sysquotas:%define con_sysquotas 1}
 %{?with_bonjour:%define con_bonjour 1}
+%{?with_implicittls:%define con_implicittls 1}
 
 #If you don't like the prefix '/usr/local' you can override it like this:
 #rpm -ba|--rebuild --define 'prefix /usr'
@@ -97,9 +97,7 @@ Conflicts:         wu-ftpd proftpd ftpd in.ftpd anonftp publicfile wuftpd ftpd-B
 
 %description
 Pure-FTPd is a fast, production-quality, standard-conformant FTP server,
-that focuses on security.
-It is really trivial to set up and it is especially designed
-for modern Linux and FreeBSD kernels (setfsuid, sendfile, capabilities) .
+that focuses on security. It is really trivial to set up.
 Features include chroot()ed and/or virtual chroot()ed home directories,
 virtual domains, built-in 'ls', anti-warez system, bounded ports for passive
 downloads, FXP protocol, bandwidth throttling, ratios, LDAP / MySQL /
@@ -185,9 +183,6 @@ CFLAGS="$RPM_OPT_FLAGS" ./configure --prefix=%{prefix} \
 %if %{con_boring}
   --with-boring \
 %endif  
-%if %{con_privsep}
-  --with-privsep \
-%endif  
 %if %{con_tls}
   --with-tls \
 %endif  
@@ -199,7 +194,10 @@ CFLAGS="$RPM_OPT_FLAGS" ./configure --prefix=%{prefix} \
 %endif  
 %if %{con_bonjour}
   --with-bonjour \
-%endif  
+%endif
+%if %{con_implicittls}
+  --with-implicittls \
+%endif
   --with-paranoidmsg \
   --mandir=%{_mandir} --sysconfdir=%{sysconfdir} \
   --with-certfile=%{certfile}
@@ -310,6 +308,9 @@ install -m 755 configuration-file/pure-config.pl_replaced $RPM_BUILD_ROOT%{prefi
 %endif
 
 %changelog
+* Sun Oct 18 2009 Frank Denis <j at pureftpd dot org>
+- Add implicittls.
+
 * Mon Apr 25 2009 Frank Denis <j at pureftpd dot org>
 - README.Netfilter is no more.
 

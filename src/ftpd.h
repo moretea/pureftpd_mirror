@@ -8,12 +8,6 @@
 # define __attribute__(a)
 #endif
 
-#if defined(SYSTEM_QUOTAS) || defined(WITH_PRIVSEP)
-# ifdef HAVE_SYS_FSUID_H
-#  undef HAVE_SYS_FSUID_H
-# endif
-#endif
-
 #include <stdio.h>
 #ifdef STDC_HEADERS
 # include <stdlib.h>
@@ -67,6 +61,7 @@
 # include <sys/ioctl.h>
 #endif
 #include <sys/socket.h>
+#include <poll.h>
 #ifdef HAVE_NETINET_IN_SYSTM_H
 # include <netinet/in_systm.h>
 #endif
@@ -164,9 +159,6 @@
 # include <sys/sendfile.h>
 #endif
 
-#ifdef HAVE_SYS_FSUID_H
-# include <sys/fsuid.h>
-#endif
 #ifdef HAVE_ALLOCA
 # ifdef HAVE_ALLOCA_H
 #  include <alloca.h>
@@ -272,6 +264,7 @@ typedef struct AuthResult_ {
     gid_t gid;
     const char *dir;
     int slow_tilde_expansion;
+    void *backend_data;
 #ifdef THROTTLING
     unsigned long throttling_bandwidth_ul;
     unsigned long throttling_bandwidth_dl;
@@ -323,9 +316,8 @@ typedef enum {
 
 int safe_write(const int fd, const void *buf_, size_t count);
 #ifdef WITH_TLS
-int secure_safe_write(const void *buf_, size_t count);
+int secure_safe_write(void * const tls_fd, const void *buf_, size_t count);
 #endif
-void *aborttransfer(int);
 void parser(void);
 void stripctrl(char * const buf, size_t len);
 void dobanner(const int type);
@@ -335,6 +327,7 @@ void docwd(const char *dir);
 void doretr(char *name);
 void dorest(const char *name);
 void dodele(char *name);
+void doallo(off_t size);
 void dostor(char *name, const int append, const int autorename);
 void domkd(char *name);
 void dormd(char *name);
@@ -346,6 +339,7 @@ void doport2(struct sockaddr_storage a, unsigned int p);
 #ifndef MINIMAL
 void doesta(void);
 void doestp(void);
+void doallo(const off_t size);
 #endif
 void dopasv(int);
 void doopts(char *args);
@@ -362,13 +356,12 @@ void dostou(void);
 void dofeat(void);
 void domlst(const char * const file);
 void dositetime(void);
+int ul_check_free_space(const char *name);
 void mappedtov4(struct sockaddr_storage *ss);
-#ifndef HAVE_SYS_FSUID_H
 void disablesignals(void);
-#endif
 void getnames(void);
 void donlist(char *arg, const int on_ctrlconn, const int opt_l_,
-             const int split_args);
+             const int opt_a_, const int split_args);
 void opendata(void);
 void closedata(void);
 void addreply(const int code, const char * const line, ...)
@@ -380,9 +373,11 @@ void prevent(char *arg);
 unsigned int daemons(in_port_t server_port);
 void logfile(const int facility, const char *format, ...) 
     __attribute__ ((format(printf, 2, 3)));
+char *skip_telnet_controls(const char *str);
 void die(const int err, const int priority, const char * const format, ...)
-    __attribute__ ((format(printf, 3, 4)));
-void die_mem(void);
+    __attribute__ ((format(printf, 3, 4))) __attribute__ ((noreturn));
+void die_mem(void) __attribute__ ((noreturn));
+void _EXIT(const int status) __attribute__ ((noreturn));
 void setprocessname(const char * const title);
 int modernformat(const char *file, char *target, size_t target_size,
                  const char * const prefix);
@@ -396,13 +391,7 @@ void delete_atomic_file(void);
 #ifdef WITH_RFC2640
 char *charset_fs2client(const char * const string);
 #endif
-
-#ifdef HAVE_SYS_FSUID_H
-# define usleep2 usleep
-#else
 void usleep2(const unsigned long microsec);
-#endif
-
 int mysnprintf(char *str, size_t size, const char *format, ...);
 
 extern int opt_a, opt_C, opt_d, opt_F, opt_l, opt_R;
@@ -427,7 +416,7 @@ extern int opt_a, opt_C, opt_d, opt_F, opt_l, opt_R;
 # ifdef NON_ROOT_FTP
 #  define PID_FILE CONFDIR "/pure-ftpd.pid"
 # else
-#  define PID_FILE "/var/run/pure-ftpd.pid"
+#  define PID_FILE STATEDIR "/run/pure-ftpd.pid"
 # endif
 #endif
 
@@ -435,7 +424,7 @@ extern int opt_a, opt_C, opt_d, opt_F, opt_l, opt_R;
 # ifdef NON_ROOT_FTP
 #  define UPLOADSCRIPT_PID_FILE CONFDIR "/pure-uploadscript.pid"
 # else
-#  define UPLOADSCRIPT_PID_FILE "/var/run/pure-uploadscript.pid"
+#  define UPLOADSCRIPT_PID_FILE STATEDIR "/run/pure-uploadscript.pid"
 # endif
 #endif
 
@@ -443,16 +432,28 @@ extern int opt_a, opt_C, opt_d, opt_F, opt_l, opt_R;
 # ifdef NON_ROOT_FTP
 #  define AUTHD_PID_FILE CONFDIR "/pure-authd.pid"
 # else
-#  define AUTHD_PID_FILE "/var/run/pure-authd.pid"
+#  define AUTHD_PID_FILE STATEDIR "/run/pure-authd.pid"
 # endif
 #endif
 
 #ifndef NON_ROOT_FTP
-# define DEFAULT_FTP_PORT_S "21"
+# ifdef IMPLICIT_TLS
+#  define DEFAULT_FTP_PORT_S "990"
+# else
+#  define DEFAULT_FTP_PORT_S "21"
+# endif
 #elif defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__)
-# define DEFAULT_FTP_PORT_S "21"
+# ifdef IMPLICIT_TLS
+#  define DEFAULT_FTP_PORT_S "990"
+# else
+#  define DEFAULT_FTP_PORT_S "21"
+# endif
 #else
-# define DEFAULT_FTP_PORT_S "2121"
+# ifdef IMPLICIT_TLS
+#  define DEFAULT_FTP_PORT_S "9990"
+# else
+#  define DEFAULT_FTP_PORT_S "2121"
+# endif
 #endif
 
 /*
@@ -486,7 +487,11 @@ Your platform has a very large MAXPATHLEN, we should not trust it.
 # define DEFAULT_MAX_USERS 50
 #endif
 #ifndef DEFAULT_FTP_DATA_PORT
-# define DEFAULT_FTP_DATA_PORT 20
+# ifdef IMPLICIT_TLS
+#  define DEFAULT_FTP_DATA_PORT 989
+# else
+#  define DEFAULT_FTP_DATA_PORT 20
+# endif
 #endif
 #ifndef MAX_SYSLOG_LINE
 # define MAX_SYSLOG_LINE (MAXPATHLEN + 512U)
@@ -498,7 +503,7 @@ Your platform has a very large MAXPATHLEN, we should not trust it.
 # define MAX_SITE_IDLE (42UL * 60UL)
 #endif
 #ifndef DEFAULT_MAX_LS_FILES    
-# define DEFAULT_MAX_LS_FILES 2000U
+# define DEFAULT_MAX_LS_FILES 10000U
 #endif
 #ifndef DEFAULT_MAX_LS_DEPTH
 # define DEFAULT_MAX_LS_DEPTH 5U
@@ -537,30 +542,43 @@ Your platform has a very large MAXPATHLEN, we should not trust it.
 # define CONF_TCP_SO_SNDBUF 65536
 #endif
     
-#define DEFAULT_DL_CHUNK_SIZE (1 << 28)
-#define DEFAULT_UL_CHUNK_SIZE ((CONF_TCP_SO_RCVBUF) * 2)
-#define MAX_UL_CHUNK_SIZE ((CONF_TCP_SO_RCVBUF) * 2)
-#define MAX_THROTTLING_DELAY 42           /* Maximum throttling compensation */
+#ifndef DL_MIN_CHUNK_SIZE
+# define DL_MIN_CHUNK_SIZE (8 * 1024)
+#endif
+#ifndef DL_DEFAULT_CHUNK_SIZE
+# define DL_DEFAULT_CHUNK_SIZE 49152UL
+#endif
+#ifndef DL_DEFAULT_CHUNK_SIZE_ASCII
+# define DL_DEFAULT_CHUNK_SIZE_ASCII 32768UL
+#endif
+#ifndef DL_MAX_CHUNK_SIZE
+# define DL_MAX_CHUNK_SIZE (512 * 1024UL)
+#endif
+#ifndef DL_MMAP_SIZE
+# define DL_MMAP_SIZE (10 * 1024 * 1024UL)
+#endif
+
+#ifndef UL_MIN_CHUNK_SIZE
+# define UL_MIN_CHUNK_SIZE CONF_TCP_SO_RCVBUF
+#endif
+#ifndef UL_DEFAULT_CHUNK_SIZE
+# define UL_DEFAULT_CHUNK_SIZE (CONF_TCP_SO_RCVBUF * 2)
+#endif
+#ifndef UL_DEFAULT_CHUNK_SIZE_ASCII
+# if CONF_TCP_SO_RCVBUF < 65536
+#  define UL_DEFAULT_CHUNK_SIZE_ASCII CONF_TCP_SO_RCVBUF
+# else
+#  define UL_DEFAULT_CHUNK_SIZE_ASCII 65536UL
+# endif
+#endif
+#ifndef UL_MAX_CHUNK_SIZE
+# define UL_MAX_CHUNK_SIZE (512 * 1024UL)
+#endif    
 
 #define VHOST_PREFIX_MAX_LEN 64    
 
 #define PUREFTPD_TMPFILE_PREFIX ".pureftpd-"    
 #define ATOMIC_PREFIX_PREFIX PUREFTPD_TMPFILE_PREFIX "upload."
-
-#ifdef TCP_CORK  
-# ifdef DISABLE_CORK  
-#  undef TCP_CORK
-# endif
-#endif
-#ifdef TCP_CORK
-# define CORK_ON(SK) do { int optval = 1; setsockopt(SK, SOL_TCP, TCP_CORK, \
-  &optval, sizeof optval); } while(0)
-# define CORK_OFF(SK) do { int optval = 0; setsockopt(SK, SOL_TCP, TCP_CORK, \
-  &optval, sizeof optval); } while(0)
-#else
-# define CORK_ON(SK) do { } while(0)
-# define CORK_OFF(SK) do { } while(0)
-#endif
 
 #define STORAGE_PORT(X)  (*storage_port(&(X)))
 #define STORAGE_PORT6(X) (*storage_port6(&(X)))
@@ -729,12 +747,6 @@ Your platform has a very large MAXPATHLEN, we should not trust it.
 
 #ifdef WITH_DMALLOC
 # define _exit(X) exit(X)
-#endif
-
-#ifdef FTPWHO
-# define _EXIT(X) do { delete_atomic_file(); ftpwho_exit(X); } while(0)
-#else
-# define _EXIT(X) do { delete_atomic_file(); _exit(X); } while(0)
 #endif
 
 #include "bsd-realpath.h"    

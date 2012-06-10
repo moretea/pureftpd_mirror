@@ -6,7 +6,7 @@
 # ifdef NON_ROOT_FTP
 #  define SCOREBOARD_PATH CONFDIR "/pure-ftpd-ftpwho"
 # else
-#  define SCOREBOARD_PATH "/var/run/pure-ftpd"
+#  define SCOREBOARD_PATH STATEDIR "/run/pure-ftpd"
 # endif
 #define SCOREBOARD_PREFIX "client-"
 
@@ -26,7 +26,7 @@ typedef struct FTPWhoEntry_ {
     volatile off_t download_total_size;
     volatile off_t download_current_size;    
     char account[MAX_USER_LENGTH + 1U];
-#if defined(__OpenBSD__) || defined(__MicroBSD__) || defined(__ekkoBSD__)
+#if defined(__OpenBSD__)
     char filename[1024];
 #else
 # ifdef PAGE_SIZE
@@ -42,7 +42,7 @@ typedef struct FTPWhoEntry_ {
 } FTPWhoEntry;
 
 int ftpwho_initwho(void);
-void ftpwho_exit(const int ret);
+void ftpwho_exit(void);
 void ftpwho_lock(void);
 void ftpwho_unlock(void);
 #ifndef NO_STANDALONE
