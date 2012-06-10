@@ -430,10 +430,10 @@
 /* define if you have struct addrinfo */
 #undef HAVE_STRUCT_ADDRINFO
 
-/* Define to 1 if `struct nlist' is a member of `n_un.n_name'. */
+/* Define to 1 if `n_un.n_name' is a member of `struct nlist'. */
 #undef HAVE_STRUCT_NLIST_N_UN_N_NAME
 
-/* Define to 1 if `struct tm' is a member of `tm_zone'. */
+/* Define to 1 if `tm_zone' is a member of `struct tm'. */
 #undef HAVE_STRUCT_TM_TM_ZONE
 
 /* define if syslog names are available */
