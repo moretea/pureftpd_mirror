@@ -59,7 +59,7 @@ struct reply {
 };
 
 static const char *GETOPT_OPTIONS =
-    "14Aa:bc:"
+    "014Aa:bc:"
 #ifndef NO_STANDALONE
     "BC:"
 #endif
@@ -102,6 +102,7 @@ static const char *GETOPT_OPTIONS =
 
 #ifndef NO_GETOPT_LONG    
 static struct option long_options[] = {
+    { "notruncate", 0, NULL, '0' },    
     { "logpid", 0, NULL, '1' },
     { "ipv4only", 0, NULL, '4' },
     { "chrooteveryone", 0, NULL, 'A' },

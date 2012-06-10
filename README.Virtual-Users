@@ -9,8 +9,8 @@ Virtual users is a simple mechanism to store a list of users, with their
 password, name, uid, directory, etc. It's just like /etc/passwd. But it's
 not /etc/passwd. It's a different file, only for FTP.
 
-It means that you can easily create FTP-only accounts without messing your
-system accounts.
+It means that you can easily create FTP-only accounts without messing up
+your system accounts.
 
 Additionnaly, virtual users files can store individual quotas, ratios,
 bandwidth, etc. System accounts can't do this.
@@ -24,7 +24,7 @@ root), but it's better to have a dedicated account.
 
 Let's create an "ftpgroup" group and an "ftpuser" user.
 
-Linux/OpenBSD:
+Linux/OpenBSD/NetBSD/Solaris/HPUX/a lot of other Unix-like systems:
 
 groupadd ftpgroup
 useradd -g ftpgroup -d /dev/null -s /etc ftpuser

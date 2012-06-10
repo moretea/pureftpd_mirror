@@ -1,4 +1,32 @@
 
+* Version 1.0.17a:
+ - An old standing issue has been fixed : ungracefully aborted transfers
+caused the session to exit without removing ftpwho entry and atomic files.
+This fix also speeds up ftpwho and peruserlimit.
+
+* Version 1.0.17:
+ - The SSL certificate file can now be changed through a new configuration
+switch, --with-certfile. It doesn't depend on sysconfdir any more and it
+defaults to the original location : /etc/ssl/private/pure-ftpd.pem .
+ - Shadowed NIS accounts and MacOS X Panther system accounts are now processed
+by the pure-pwconvert tool.
+ - The server doesn't reject users any more on Linux when capabilities are
+used.
+ - The documentation has been improved (man pages, README, FAQ, typos).
+ - Optimizations have been made.
+ - SO_REUSEPORT is now used on FreeBSD to always bind the ftp-data port.
+ - SSL-related error messages are now more explicit.
+ - The SITE TIME command has been implemented.
+ - The sample PAM configuration file has been rewritten.
+ - A logfile parser has been added to the contribs.
+ - MacOS X Panther specific instructions have been added.
+ - Upload is now atomic. A file is uploaded with a temporary name and it gets
+its final name only once the upload has been completed. If a file already
+exists with the same name, the content can be preserved until the new content
+has been fully transfered (using the new --notruncate run-time switch). Web
+servers will no more serve partially transfered files during uploads. The new
+handling of uploads also limits the races in virtual quota handling.
+
 * Version 1.0.16c:
  - The PAM backend and the CGI mode were accidentally broken in version
 1.0.16b. This version fixes both issues.

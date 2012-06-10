@@ -107,6 +107,7 @@ option_tuple = (
     ["CreateHomeDir\s+yes",                "-j"                  ],
     ["NoRename\s+yes",                     "-G"                  ],
     ["CustomerProof\s+yes",                "-Z"                  ],
+    ["NoTruncate\s+yes",                   "-0"                  ],    
     ["PIDFile\s+(\S+)",                    "-g", None            ],
     ["PerUserLimits\s+([:0-9]+)",          "-y", None            ],
     ["TLSAuth\s+yes",                      "-Y", None            ])

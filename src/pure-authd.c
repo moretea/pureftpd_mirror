@@ -307,7 +307,7 @@ static void process(const int clientfd)
     char line[4096];
     
     while ((readen = read(clientfd, line, sizeof line - 1U)) < (ssize_t) 0 &&
-           errno == EINTR);
+           (errno == EINTR || errno == EIO));
     if (readen <= (ssize_t) 0) {
         return;
     }

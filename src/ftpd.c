@@ -92,6 +92,14 @@ static void overlapcpy(register char *d, register const char *s)
     *d = 0;
 }
 
+static void safe_fd_set(const int fd, fd_set * const fds)
+{
+    if (fd == -1) {
+        return;
+    }
+    FD_SET(fd, fds);    
+}
+
 static int safe_fd_isset(const int fd, const fd_set * const fds)
 {
     if (fd == -1) {
@@ -195,7 +203,9 @@ void die_mem(void)
 static RETSIGTYPE sigurg(int sig)
 {
     int olderrno;
-
+    int readen;
+    unsigned char fodder;
+    
     (void) sig;
     if (xferfd == -1) {
         return;
@@ -207,7 +217,12 @@ static RETSIGTYPE sigurg(int sig)
 #endif
     addreply_noformat(426, MSG_ABORTED);
     doreply();
-    sfgets();
+    do {
+        if ((readen = read(0, &fodder, (size_t) 1U)) < (ssize_t) 0 && 
+            errno == EINTR) {
+            continue;
+        }
+    } while (readen > (ssize_t) 0 && fodder != '\n');
     addreply_noformat(226, MSG_ABORTED);
     doreply();
 #ifndef HAVE_SYS_FSUID_H
@@ -641,6 +656,9 @@ static int checknamesanity(const char *name, int dot_ok)
         return -1;                     /* .ftpquota => *NO* */
     }
 #endif
+    if (strstr(namepnt, PUREFTPD_TMPFILE_PREFIX) != NULL) {
+        return -1;
+    }
     while (*namepnt != 0) {
         if (ISCTRLCODE(*namepnt) || *namepnt == '\\') {
             return -1;
@@ -990,6 +1008,20 @@ void donoop(void)
 
 #endif
 
+void dositetime(void)
+{
+    char tmp[64];
+    const struct tm *tm;
+    time_t now;
+    
+    if ((now = time(NULL)) == (time_t) -1 || (tm = localtime(&now)) == NULL) {
+        addreply_noformat(550, "time()");
+        return;
+    }
+    strftime(tmp, sizeof tmp, "%Y-%m-%d %H:%M:%S", tm);
+    addreply_noformat(211, tmp);
+}
+
 static int doinitsupgroups(const char *user, const uid_t uid, const gid_t gid)
 {
 #ifndef NON_ROOT_FTP
@@ -1168,12 +1200,6 @@ void douser(const char *username)
         }
 #endif
 
-#ifdef WITH_PRIVSEP
-# ifdef USE_CAPABILITIES
-        drop_login_caps();
-# endif
-#endif        
-
 #ifndef NON_ROOT_FTP
         if (authresult.uid > (uid_t) 0) {
 # ifdef WITH_PRIVSEP
@@ -1193,10 +1219,8 @@ void douser(const char *username)
         }
 #endif
 
-#ifndef WITH_PRIVSEP
-# ifdef USE_CAPABILITIES
+#ifdef USE_CAPABILITIES
         drop_login_caps();
-# endif
 #endif
 
 #ifndef MINIMAL
@@ -1678,9 +1702,6 @@ void dopass(char *password)
             die(421, LOG_ERR, MSG_CHROOT_FAILED);
         }
 #ifdef WITH_PRIVSEP
-# ifdef USE_CAPABILITIES
-        drop_login_caps();
-# endif
         if (setuid(authresult.uid) != 0 || seteuid(authresult.uid) != 0) {
             _EXIT(EXIT_FAILURE);
         }
@@ -1695,6 +1716,9 @@ void dopass(char *password)
 #  endif
 # endif
 #endif
+#ifdef USE_CAPABILITIES
+        drop_login_caps();
+#endif        
         chrooted = 1;
 #ifdef RATIOS
         if (ratio_for_non_anon == 0) {
@@ -1718,13 +1742,8 @@ void dopass(char *password)
     } else {
         addreply(230, MSG_CURRENT_DIR_IS, wd);
     }
-#ifndef WITH_PRIVSEP
-# ifdef USE_CAPABILITIES
-    drop_login_caps();
-# endif
-#endif
     logfile(LOG_INFO, MSG_IS_NOW_LOGGED_IN, account);
-# ifdef FTPWHO
+#ifdef FTPWHO
     if (shm_data_cur != NULL) {
         ftpwho_lock();
         strncpy(shm_data_cur->account, account,
@@ -1733,7 +1752,7 @@ void dopass(char *password)
         ftpwho_unlock();
         state_needs_update = 1;
     }
-# endif
+#endif
     loggedin = 1;
     if (getcwd(wd, sizeof wd - (size_t) 1U) == NULL) {
         wd[0] = '/';
@@ -1976,11 +1995,11 @@ void dopasv(int psvtype)
         return;
     }
     on = 1;
-    if (setsockopt(datafd, SOL_SOCKET, SO_REUSEADDR, 
+    if (setsockopt(datafd, SOL_SOCKET, SO_REUSEADDR,
                    (char *) &on, sizeof on) < 0) {
         error(421, "setsockopt");
         return;
-    }
+    }    
     dataconn = ctrlconn;
     for (;;) {
         if (STORAGE_FAMILY(dataconn) == AF_INET6) {
@@ -2104,8 +2123,13 @@ static int doport3(const int protocol)
         return -1;
     }
     on = 1;
+# ifdef SO_REUSEPORT
+    (void) setsockopt(datafd, SOL_SOCKET, SO_REUSEPORT,
+                      (char *) &on, sizeof on);    
+# else
     (void) setsockopt(datafd, SOL_SOCKET, SO_REUSEADDR,
                       (char *) &on, sizeof on);
+# endif
     memcpy(&dataconn, &ctrlconn, sizeof dataconn);
     for (;;) {
         if (STORAGE_FAMILY(dataconn) == AF_INET6) {
@@ -2454,7 +2478,7 @@ void dodele(char *name)
 	    memcpy(qtfile, name, dirlen);   /* safe, dirlen < sizeof qtfile */
 	}	
         if (SNCHECK(snprintf(qtfile + dirlen, sizeof qtfile - dirlen,
-			     ".pureftpd-rename.%lu.%d",
+			     PUREFTPD_TMPFILE_PREFIX "rename.%lu.%x",
                              (unsigned long) getpid(), zrand()),
                     sizeof qtfile)) {
             goto denied;
@@ -2895,10 +2919,11 @@ void doretr(char *name)
                         FD_ZERO(&rs);
                         FD_ZERO(&ws);
                         FD_SET(0, &rs);
-                        FD_SET(xferfd, &ws);
+                        safe_fd_set(xferfd, &ws);
                         tv.tv_sec = idletime;
                         tv.tv_usec = 0;                        
-                        if (select(xferfd + 1, &rs, &ws, NULL, &tv) <= 0 ||
+                        if (xferfd == -1 ||
+                            select(xferfd + 1, &rs, &ws, NULL, &tv) <= 0 ||
                             FD_ISSET(0, &rs)) {
                             /* we assume it is ABRT since nothing else is legal */
                             (void) close(f);
@@ -2938,7 +2963,7 @@ void doretr(char *name)
                         delay = (transmitted / (long double) throttling_bandwidth_dl)
                             - (long double) (ended - started);
                         if (delay > (long double) MAX_THROTTLING_DELAY) {
-                            started = get_usec_time();
+                            started = ended;
                             transmitted = (off_t) 0;
                             delay = (long double) MAX_THROTTLING_DELAY;
                         }
@@ -2989,10 +3014,11 @@ void doretr(char *name)
                         FD_ZERO(&rs);
                         FD_ZERO(&ws);
                         FD_SET(0, &rs);
-                        FD_SET(xferfd, &ws);
+                        safe_fd_set(xferfd, &ws);
                         tv.tv_sec = idletime;
                         tv.tv_usec = 0;                        
-                        if (select(xferfd + 1, &rs, &ws, NULL, &tv) <= 0 ||
+                        if (xferfd == -1 ||
+                            select(xferfd + 1, &rs, &ws, NULL, &tv) <= 0 ||
                             FD_ISSET(0, &rs)) {
                             /* we assume is is ABRT since nothing else is legal */
                             (void) munmap(buf, s);
@@ -3029,7 +3055,7 @@ void doretr(char *name)
 			     (long double) throttling_bandwidth_dl)
                         - (long double) (ended - started);
                     if (delay > (long double) MAX_THROTTLING_DELAY) {
-                        started = get_usec_time();
+                        started = ended;
                         transmitted = (off_t) 0;
                         delay = (long double) MAX_THROTTLING_DELAY;
                     }
@@ -3072,7 +3098,7 @@ void doretr(char *name)
             p = buf;
             o += left;
             s = left;
-            while ((off_t)left > skip) {
+            while ((off_t) left > skip) {
                 ssize_t w;
                 w = doasciiwrite(xferfd, (const char *) p + skip,
                                  (size_t) (left - skip));
@@ -3086,10 +3112,11 @@ void doretr(char *name)
                         FD_ZERO(&rs);
                         FD_ZERO(&ws);
                         FD_SET(0, &rs);
-                        FD_SET(xferfd, &ws);
+                        safe_fd_set(xferfd, &ws);
                         tv.tv_sec = idletime;
                         tv.tv_usec = 0;                        
-                        if (select(xferfd + 1, &rs, &ws, NULL, &tv) <= 0 ||
+                        if (xferfd == -1 ||
+                            select(xferfd + 1, &rs, &ws, NULL, &tv) <= 0 ||
                             FD_ISSET(0, &rs)) {
                             /* we assume is is ABRT since nothing else is legal */
                             (void) munmap(buf, s);
@@ -3125,7 +3152,7 @@ void doretr(char *name)
                     delay = (transmitted / (long double) throttling_bandwidth_dl)
                         - (long double) (ended - started);
                     if (delay > (long double) MAX_THROTTLING_DELAY) {
-                        started = get_usec_time();
+                        started = ended;
                         transmitted = (off_t) 0;
                         delay = (long double) MAX_THROTTLING_DELAY;
                     }
@@ -3288,10 +3315,10 @@ void dofeat(void)
 #ifndef MINIMAL
 void dostou(void)
 {
+    char file[64];    
     static unsigned int seq = 0U;
     struct timeval tv;
     struct timezone tz;
-    char file[MAXPATHLEN + 1U];        /* needed because of tryautorename() */
 
     if (gettimeofday(&tv, &tz) != 0) {
         error(553, MSG_TIMESTAMP_FAILURE);
@@ -3310,35 +3337,35 @@ void dostou(void)
 }
 #endif
 
-static int tryautorename(char * const name)
+static int tryautorename(const char * const atomic_file, char * const name)
 {
+    char name2[MAXPATHLEN];    
     unsigned int gc = 0U;
-    int f;
-    char name2[MAXPATHLEN];
 
-    if ((f = open(name, O_CREAT | O_EXCL | O_WRONLY,
-                  (mode_t) (0777 & ~u_mask))) != -1) {
-        return f;
+    if (link(atomic_file, name) == 0) {
+        if (unlink(atomic_file) != 0) {
+            unlink(name);
+        }
+        return 0;
     }
     for (;;) {
         gc++;
         if (gc == 0U ||
 #ifdef AUTORENAME_REVERSE_ORDER
             SNCHECK(snprintf(name2, sizeof name2, "%u.%s", gc, name),
-                    sizeof name2))
+                    sizeof name2)
 #else
             SNCHECK(snprintf(name2, sizeof name2, "%s.%u", name, gc),
-                    sizeof name2))
+                    sizeof name2)
 #endif   
-        {
+            ) {
             break;
         }
-        /* O_EXCL avoids races - great */
-        if ((f = open(name2, O_CREAT | O_EXCL | O_WRONLY,
-                      (mode_t) (0777 & ~u_mask))) != -1) {
-            strncpy(name, name2, MAXPATHLEN - (size_t) 1U);
-            name[MAXPATHLEN - (size_t) 1U] = 0;   /* useless, but paranoid */
-            return f;
+        if (link(atomic_file, name2) == 0) {
+            if (unlink(atomic_file) != 0) {
+                unlink(name2);
+            }
+            return 0;
         }
         switch (errno) {
 #ifdef EEXIST
@@ -3354,15 +3381,61 @@ static int tryautorename(char * const name)
         }
         break;
     }
-    error(553, MSG_OPEN_FAILURE2);
-
     return -1;
+}
+
+static char *get_atomic_file(const char * const file)
+{
+    static char res[MAXPATHLEN];
+    char *z;
+    size_t orig_len;
+    size_t slash;
+    size_t sizeof_atomic_prefix;
+
+    if (file == NULL) {
+        return res;
+    }
+    if ((z = strrchr(file, '/')) == NULL) {
+        *res = 0;
+        orig_len = (size_t) 0U;
+    } else {
+        slash = (size_t) (z - file);
+        if (slash >= (sizeof res - (size_t) 1U)) {
+            return NULL;
+        }
+        slash++;
+        if (file[slash] == 0) {
+            return NULL;
+        }        
+        strncpy(res, file, slash);
+        res[slash] = 0;
+        orig_len = strlen(res);        
+    }
+    sizeof_atomic_prefix = strlen(atomic_prefix) + (size_t) 1U;    
+    if (sizeof res - orig_len < sizeof_atomic_prefix) {
+        return NULL;
+    }
+    memcpy(res + orig_len, atomic_prefix, sizeof_atomic_prefix);
+    
+    return res;
+}
+
+void delete_atomic_file(void)
+{
+    const char *atomic_file;
+
+    if ((atomic_file = get_atomic_file(NULL)) == NULL ||
+	*atomic_file == 0) {
+	return;
+    }
+    (void) unlink(atomic_file);
 }
 
 #ifdef QUOTAS
 static int dostor_quota_update_close_f(const int overwrite,
                                        const off_t filesize,
                                        const off_t restartat,
+                                       const char * const atomic_file,
                                        const char * const name, const int f)
 {
     Quota quota;
@@ -3373,10 +3446,10 @@ static int dostor_quota_update_close_f(const int overwrite,
                         (long long) (filesize - restartat), &overflow);
     if (overflow != 0) {
         addreply(550, MSG_QUOTA_EXCEEDED, name);
-        /* ftruncate+unlink is overkill, but it reduce possible races */
+        /* ftruncate+unlink is overkill, but it reduces possible races */
         ftruncate(f, (off_t) 0);
         (void) close(f);
-        unlink(name);
+        unlink(atomic_file);
         ret = -1;
     } else {
         (void) close(f);
@@ -3391,8 +3464,9 @@ void dostor(char *name, const int append, const int autorename)
 {
     int f;
     char *p;
+    const char *atomic_file = NULL;
+    char *buf;    
     const size_t sizeof_buf = ul_chunk_size;
-    char *buf;
     ssize_t r;
     off_t filesize = (off_t) 0U;
     STATFS_STRUCT statfsbuf;
@@ -3469,76 +3543,79 @@ void dostor(char *name, const int append, const int autorename)
             }
         }
     }
-    cantcheckspace:    
-    if (checknamesanity(name, dot_write_ok) != 0) {
+    cantcheckspace:
+    if (checknamesanity(name, dot_write_ok) != 0 ||
+        (atomic_file = get_atomic_file(name)) == NULL) {
         addreply(553, MSG_SANITY_FILE_FAILURE, name);
+        /* implicit : atomic_file = NULL */
         goto end;
     }
-    if (autorename != 0 && restartat == (off_t) 0) {
-        if ((f = tryautorename(name)) < 0) {
+    if (restartat > (off_t) 0 || (autorename == 0 && no_truncate == 0)) {
+        if (rename(name, atomic_file) != 0 && errno != ENOENT) {
+            error(553, MSG_RENAME_FAILURE);
+            atomic_file = NULL;
             goto end;
         }
-    } else {                           /* no auto rename */
-        if ((f = open(name, O_CREAT | O_WRONLY,
-                      (mode_t) 0777 & ~u_mask)) == -1) {
-            error(553, MSG_OPEN_FAILURE2);
-            goto end;
-        }
-        if (fstat(f, &st) < 0) {
-            (void) close(f);
-            error(553, MSG_STAT_FAILURE2);
-            goto end;
-        }
-        if (!S_ISREG(st.st_mode)
+    }
+    if ((f = open(atomic_file, O_CREAT | O_WRONLY,
+                  (mode_t) 0777 & ~u_mask)) == -1) {
+        error(553, MSG_OPEN_FAILURE2);
+        goto end;
+    }
+    if (fstat(f, &st) < 0) {
+        (void) close(f);
+        error(553, MSG_STAT_FAILURE2);
+        goto end;
+    }
+    if (!S_ISREG(st.st_mode)
 #ifndef WITH_LARGE_FILES
-            || st.st_size >= INT_MAX
+        || st.st_size >= INT_MAX
 #endif
-            ) {
+        ) {
+        (void) close(f);
+        addreply_noformat(553, MSG_NOT_REGULAR_FILE);
+        goto end;
+    }
+    /* Anonymous users *CAN* overwrite 0-bytes files - This is the right behavior */
+    if (st.st_size > (off_t) 0) {
+#ifndef ANON_CAN_RESUME
+        if (guest != 0) {
+            addreply_noformat(553, MSG_ANON_CANT_OVERWRITE);
             (void) close(f);
-            addreply_noformat(553, MSG_NOT_REGULAR_FILE);
             goto end;
         }
-        /* Anonymous users *CAN* overwrite 0-bytes files - This is the right behavior */
-        if (st.st_size > (off_t) 0) {
-#ifndef ANON_CAN_RESUME
-            if (guest != 0) {
-                addreply_noformat(553, MSG_ANON_CANT_OVERWRITE);
-                (void) close(f);
-                goto end;
-            }
 #endif
-            if (append != 0) {
-                restartat = st.st_size;
-            }
-        } else {
-            restartat = (off_t) 0;
-        }
-        if (restartat > st.st_size) {
+        if (append != 0) {
             restartat = st.st_size;
         }
-        if (restartat > (off_t) 0 && lseek(f, restartat, SEEK_SET) < (off_t) 0) {
+    } else {
+        restartat = (off_t) 0;
+    }
+    if (restartat > st.st_size) {
+        restartat = st.st_size;
+    }
+    if (restartat > (off_t) 0 && lseek(f, restartat, SEEK_SET) < (off_t) 0) {
+        (void) close(f);
+        error(451, "seek");
+        goto end;
+    }
+    if (restartat < st.st_size) {
+        if (ftruncate(f, restartat) < 0) {
             (void) close(f);
-            error(451, "seek");
+            error(451, "ftruncate");
             goto end;
         }
-        if (restartat < st.st_size) {
-            if (ftruncate(f, restartat) < 0) {
-                (void) close(f);
-                error(451, "ftruncate");
-                goto end;
-            }
 #ifdef QUOTAS
-            {
-                int overflow;
-                Quota quota;
-                
-                (void) quota_update(&quota, 0LL, 
-                                    (long long) (restartat - st.st_size), 
-                                    &overflow);
-            }
-            overwrite++;
-#endif
+        {
+            int overflow;
+            Quota quota;
+            
+            (void) quota_update(&quota, 0LL, 
+                                (long long) (restartat - st.st_size), 
+                                &overflow);
         }
+        overwrite++;
+#endif
     }
     opendata();
     if (xferfd == -1) {
@@ -3587,15 +3664,17 @@ void dostor(char *name, const int append, const int autorename)
 
         FD_ZERO(&rs);
         FD_SET(0, &rs);
-        FD_SET(xferfd, &rs);
+        safe_fd_set(xferfd, &rs);
         tv.tv_sec = idletime;
         tv.tv_usec = 0;        
-        if (select(xferfd + 1, &rs, NULL, NULL, &tv) <= 0 ||
+        if (xferfd == -1 ||
+            select(xferfd + 1, &rs, NULL, NULL, &tv) <= 0 ||
             FD_ISSET(0, &rs) || !(safe_fd_isset(xferfd, &rs))) {
             databroken:
 #ifdef QUOTAS
             (void) dostor_quota_update_close_f(overwrite, filesize,
-                                               restartat, name, f);
+                                               restartat, atomic_file, 
+                                               name, f);
 #else                        
             (void) close(f);
 #endif
@@ -3603,10 +3682,15 @@ void dostor(char *name, const int append, const int autorename)
             addreply_noformat(0, MSG_ABRT_ONLY);
             addreply_noformat(426, MSG_ABORTED);
             if (guest != 0) {
-                unlinkret = unlink(name);
+                unlinkret = unlink(atomic_file);
+                atomic_file = NULL;
             }            
             if (!(safe_fd_isset(xferfd, &rs))) { /* client presumably gone away */
-                die(421, LOG_INFO, MSG_TIMEOUT_DATA , (unsigned long) idletime);                
+                if (atomic_file != NULL) {
+                    (void) rename(atomic_file, name);
+                }
+                die(421, LOG_INFO, MSG_TIMEOUT_DATA,
+                    (unsigned long) idletime);                
             }
             addreply(0, "%s %s", name,
                      unlinkret ? MSG_UPLOAD_PARTIAL : MSG_REMOVED);
@@ -3630,7 +3714,7 @@ void dostor(char *name, const int append, const int autorename)
                 delay = (transmitted / (long double) throttling_bandwidth_ul)
                     - (long double) (ended - started);
                 if (delay > (long double) MAX_THROTTLING_DELAY) {
-                    started = get_usec_time();
+                    started = ended;
                     transmitted = (off_t) 0;
                     delay = (long double) MAX_THROTTLING_DELAY;
                 }
@@ -3669,14 +3753,16 @@ void dostor(char *name, const int append, const int autorename)
                     errasc:
 #ifdef QUOTAS
                     dostor_quota_update_close_f(overwrite, filesize,
-                                                restartat, name, f);
+                                                restartat, atomic_file, 
+                                                name, f);
 #else                        
                     (void) close(f);
 #endif
 		    closedata();
-                    error(-450, MSG_WRITE_FAILED);
+                    error(450, MSG_WRITE_FAILED);
                     if (guest != 0) {
-                        unlinkret = unlink(name);
+                        unlinkret = unlink(atomic_file);
+                        atomic_file = NULL;
                     }
                     addreply(0, "%s %s", name,
                              unlinkret ? MSG_UPLOAD_PARTIAL : MSG_REMOVED);
@@ -3690,7 +3776,7 @@ void dostor(char *name, const int append, const int autorename)
 #endif                    
             }
         } else if (r < 0) {
-            error(-451, MSG_DATA_READ_FAILED);
+            error(451, MSG_DATA_READ_FAILED);
             goto databroken;
         }
     } while (r > (ssize_t) 0);
@@ -3711,7 +3797,8 @@ void dostor(char *name, const int append, const int autorename)
     closedata();
 #ifdef QUOTAS
     quota_exceeded = 
-        dostor_quota_update_close_f(overwrite, filesize, restartat, name, f);
+        dostor_quota_update_close_f(overwrite, filesize, restartat,
+                                    atomic_file, name, f);
 #else
     (void) close(f);
 #endif
@@ -3720,14 +3807,36 @@ void dostor(char *name, const int append, const int autorename)
     if (quota_exceeded == 0)
 #endif
     {
+        if (autorename != 0 && restartat == (off_t) 0) {
+            if (tryautorename(atomic_file, name) != 0) {
+                error(553, MSG_RENAME_FAILURE);
+            }
+        } else {
+            if (rename(atomic_file, name) != 0) {
+                error(553, MSG_RENAME_FAILURE);
+            }
+        }
         displayrate(MSG_UPLOADED, filesize - restartat, started, name, 1);
     }
+#ifdef QUOTAS
+    else {
+        unlink(atomic_file);
+    }
+#endif
+    atomic_file = NULL;
+    
     end:
 #ifndef WITHOUT_ASCII
     free(cpy);
 #endif
     ALLOCA_FREE(buf);
     restartat = (off_t) 0;
+    if (atomic_file != NULL) {
+        if (rename(atomic_file, name) != 0) {
+            error(553, MSG_RENAME_FAILURE);
+            unlink(atomic_file);            
+        }
+    }
 }
 
 void domdtm(const char *name)
@@ -4111,6 +4220,22 @@ static void dns_sanitize(char *z)
     }
 }
 
+static void fill_atomic_prefix(void)
+{
+    char tmp_atomic_prefix[MAXPATHLEN];
+    
+    snprintf(tmp_atomic_prefix, sizeof tmp_atomic_prefix,
+             "%s%lx.%x.%lx.%x",
+             ATOMIC_PREFIX_PREFIX, 
+             (unsigned long) session_start_time,
+             (unsigned int) serverport,
+             (unsigned long) getpid(),
+             zrand());
+    if ((atomic_prefix = strdup(tmp_atomic_prefix)) == NULL) {
+        die_mem();
+    }
+}
+
 static void doit(void)
 {
     socklen_t socksize;
@@ -4190,6 +4315,17 @@ static void doit(void)
 #else
     addreply_noformat(220, "FTP server ready.");
 #endif
+
+#ifndef DISABLE_HUMOR    
+    if (session_start_time >= 1072220400 && session_start_time < 1072393200) {
+        addreply_noformat(220, "Your FTP server wishes you a merry Xmas!");
+    } else if (session_start_time >= 1072825200 &&
+               session_start_time < 1072998000) {
+        addreply_noformat(220, "We wish you a happy new year 2004!");
+    }
+#endif
+    
+    fill_atomic_prefix();
     
     if (maxusers > 0U) {
         unsigned int users;
@@ -4707,10 +4843,14 @@ int main(int argc, char *argv[])
             }
             break;
         }
+        case '0': {
+            no_truncate = 1;
+            break;
+        }
         case '4': {
             bypass_ipv6 = 1;
             break;
-        }
+        }            
         case '1': {
             log_pid = LOG_PID;
             break;

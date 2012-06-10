@@ -1,6 +1,6 @@
 
                               .:. PURE-FTPD .:.
-                      Documentation for version 1.0.16c
+                       Documentation for version 1.0.17
 
 
 
@@ -132,6 +132,9 @@ documentation for additional info.
 --with-brokenrealpath: some Solaris versions have a broken realpath()
 implementation. If altlog and/or pure-uploadscript doesn't seem to work
 properly on your system, try to recompile with this switch.
+
+--with-certfile=<file>: the file with the SSL certificate (see README.TLS). The
+default is /etc/ssl/private/pure-ftpd.pem .
 
 --with-cookie: display a fortune or a customized banner when an user logs
 in (see the '-F' option) .
@@ -616,6 +619,14 @@ there's no need (and you shouldn't do so) for an "ftp" entry in /etc/shells.
 
 Here are the recognised switches:
 
+- '-0': when a file is uploaded and there is already a previous version of the
+file with the same name, the old file will neither get removed nor truncated.
+Upload will take place in a temporary file and once the upload is complete,
+the switch to the new version will be atomic. For instance, when a large PHP
+script is being uploaded, the web server will still serve the old version and
+immediatly switch to the new one as soon as the full file will have been
+transfered. This option is incompatible with virtual quotas.
+
 - '-1': log the PID of each session in syslog output.
 
 - '-4': only listen to IPv4 connections. YOU HAVE TO ENABLE THIS ON OPENBSD,
@@ -628,8 +639,9 @@ without shell access, for instance, WWW-hosting services shared by several
 customers. Only member of group number <gid> will have unrestricted access
 to the whole filesystem. So add a "staff", "admin" or "ftpadmin" group and
 put your trusted users in. <gid> is a NUMERIC group number, not a group name.
+This feature is mainly designed for system users, not for virtual ones.
 
-Note: 'root' always has full filesystem access.
+Note: 'root' (uid 0) always has full filesystem access.
 
 If you want to chroot() everyone, but root, use the following flag:
 
@@ -712,8 +724,9 @@ because with that feature, he'll be able to create/chown directories anywhere
 on the server's filesystem.
 
 - '-k <percentage>': Don't allow uploads if the partition is more than
-<percentage>% full. For instance, "-k 95%" will ensure your disks will never
-get filled more than 95% by FTP.
+<percentage>% full. For instance, "-k 95" will ensure your disks will never
+get filled more than 95% by FTP. No need for the "percent" sign after the
+number.
 
 - '-K': Allow users to resume and upload files, but *NOT* to delete or rename
 them. Directories can be removed, but only if they are empty. However,
@@ -785,9 +798,8 @@ human-readable dates.
 The W3C format is enabled with '-O w3c:/var/log/pureftpd.log' .
 
 For security purposes, the path must be absolute (eg. /var/log/pureftpd.log
-, not ../log/pureftpd.log) . If this log file is stored on a NFS volume, you
-must use at least version 3 of the NFS protocol. NFS 1 and 2 are unreliable
-with shared files (no locking) .
+, not ../log/pureftpd.log) . If this log file is stored on a NFS volume, don't
+forget to start the lock manager (often called "lockd" or "rpc.lockd").
 
 - '-p <first port>:<last port>': Use only ports in the range <first port>
 to <last port> inclusive for passive-mode downloads. This is especially
@@ -936,6 +948,8 @@ aliases are available. You can get this list at any time by typing
 
 --(switches sorted by ##standard switches## lexical order)--
 
+-0  --notruncate
+-1  --logpid                <file>
 -4  --ipv4only
 -a  --trustedgid            <gid>
 -A  --chrooteveryone    
@@ -1026,6 +1040,7 @@ aliases are available. You can get this list at any time by typing
 -K  --keepallfiles
 
 -l  --login                 <auth> or <auth>:<config file>
+-1  --logpid                <file>
 -L  --limitrecursion        <number:number>
 
 -c  --maxclientsnumber      <number>
@@ -1039,6 +1054,7 @@ aliases are available. You can get this list at any time by typing
 -E  --noanonymous   
 -R  --nochmod
 -G  --norename
+-0  --notruncate
 
 -p  --passiveportrange      <minport:maxport>
 -y  --peruserlimits         <per user max>:<max anonymous sessions>
@@ -1187,7 +1203,7 @@ through that protocol can't fill up your network bandwidth.
 
 -> Compile Pure-FTPd with --with-throttling
 -> Run it with the '-T' flag, followed by a number. That number is the
-maximum bandwidth a user can use, in kilobytes/seconds.
+maximum bandwidth a user can use in a session, in kilobytes/seconds.
 
 * You want to allow less bandwidth to your anonymous users than your
 authenticated ones. So that during a bandwidth starvation, real users can
@@ -1226,8 +1242,8 @@ With no column, the value applies to both, so '-t 64' is an alias for
 * When Pure-FTPd serves a session with restricted bandwidth, it decreases
 its process priority to 10. So, '-t 0' makes sense: during a CPU
 starvation, authenticated sessions may be more responsible than anonymous
-ones. '-T 0' is quite useless, but it also works and it will always be nice to the
-server process.
+ones. '-T 0' is quite useless, but it also works and it will always be nice to
+the server process.
 
 * If you need advanced bandwidth management, have a look at your kernel
 Q.O.S. abilities.
@@ -1502,7 +1518,10 @@ the same system uid.
 - Virtual quotas are working even on filesystems that don't support system
 quotas.
 
-However, virtual quotas are slower and can't be as reliable as kernel quotas.
+However, virtual quotas are slower and can't be as reliable as kernel quotas,
+so don't trust them ultimately, they are probably races allowing to bypass
+them. Also the filesystem users directories are on must properly support file
+locking.
 
 Virtual quotas are implemented in Pure-FTPd as simple files called
 ".ftpquota", located in the home directory of chrooted users. This file only

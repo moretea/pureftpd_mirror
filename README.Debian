@@ -15,3 +15,8 @@ packages.
 
   These packages are also available from your favorite Pure-FTPd
 mirror in the "debian" directory.
+
+  Snapshots are usually available for testing from the following sources :
+  
+(woody) deb http://debian.cobolt.net/ pure-ftpd-test main
+(sid)   deb http://debian.cobolt.net/ pure-ftpd-sid main

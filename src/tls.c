@@ -12,7 +12,9 @@
 
 static void tls_error(void) 
 {
-    logfile(LOG_ERR, "SSL/TLS: %s", ERR_error_string(ERR_get_error(), NULL));
+    logfile(LOG_ERR, "SSL/TLS [%s]: %s", 
+            TLS_CERTIFICATE_FILE,
+            ERR_error_string(ERR_get_error(), NULL));
     _EXIT(EXIT_FAILURE);
 }
 
@@ -21,7 +23,7 @@ static int tls_init_diffie(void)
     DH *dh;
     BIO *bio;
 
-    if ((bio = BIO_new_file(TLS_CERTIFICATE_PATH, "r")) == NULL) {
+    if ((bio = BIO_new_file(TLS_CERTIFICATE_FILE, "r")) == NULL) {
         return -1;
     }
     if ((dh = PEM_read_bio_DHparams(bio, NULL, NULL
@@ -63,10 +65,11 @@ int tls_init_library(void)
     tls_init_cache();
     SSL_CTX_set_options(tls_ctx, SSL_OP_ALL);    
     if (SSL_CTX_use_certificate_chain_file
-        (tls_ctx, TLS_CERTIFICATE_PATH) != 1) {
-        tls_error();
+        (tls_ctx, TLS_CERTIFICATE_FILE) != 1) {
+        die(421, LOG_ERR,
+            MSG_FILE_DOESNT_EXIST ": [%s]", TLS_CERTIFICATE_FILE);
     }
-    if (SSL_CTX_use_PrivateKey_file(tls_ctx, TLS_CERTIFICATE_PATH,
+    if (SSL_CTX_use_PrivateKey_file(tls_ctx, TLS_CERTIFICATE_FILE,
                                     SSL_FILETYPE_PEM) != 1) {
         tls_error();
     }

@@ -22,11 +22,15 @@
 %define con_ftpwho 1
 %define con_diraliases 1
 %define con_peruserlimits 1
-%define con_largefile 0
+%define con_largefile 1
 %define con_boring 0
-%define con_privsep 0
+%define con_privsep 1
 %define con_tls 0
-%define con_sysquotas 0
+%define con_sysquotas 1
+
+%define prefixdef  /usr/local
+%define sysconfdef /etc
+%define certfile   /etc/ssl/private/pure-ftpd.pem
 
 %if %{con_tls}
 %define release    1.tls
@@ -34,12 +38,10 @@
 %define release    1
 %endif
 
-#dont change these. Use --define instead. See below.
-%define prefixdef  /usr/local
-%define sysconfdef /etc
-
 #You can override all kinds of default with --define. Like this:
 #rpm -ba|--rebuild --define 'with_pam 1'
+
+#dont change these. Use --define instead.
 %{?with_pam:%define con_pam 1}
 %{?with_pgsql:%define con_pgsql 1}
 %{?with_mysql:%define con_mysql 1}
@@ -189,7 +191,8 @@ CFLAGS="$RPM_OPT_FLAGS" ./configure --prefix=%{prefix} \
   --with-sysquotas \
 %endif  
   --with-paranoidmsg \
-  --mandir=%{_mandir} --sysconfdir=%{sysconfdir}
+  --mandir=%{_mandir} --sysconfdir=%{sysconfdir} \
+  --with-certfile=%{certfile}
   
 if [ "$SMP" != "" ]; then
   (make "MAKE=make -k -j $SMP"; exit 0)
@@ -286,7 +289,7 @@ install -m 755 configuration-file/pure-config.pl_replaced $RPM_BUILD_ROOT%{prefi
 %{_mandir}/man8/*
 
 %defattr(-, root, root)
-%doc FAQ THANKS README.Authentication-Modules README.Windows README.Virtual-Users README.Debian README README.Contrib README.Configuration-File pureftpd.schema AUTHORS CONTACT HISTORY NEWS README.LDAP README.PGSQL README.MySQL README.Netfilter README.TLS pureftpd-ldap.conf pureftpd-mysql.conf pureftpd-pgsql.conf
+%doc FAQ THANKS README.MacOS-X README.Authentication-Modules README.Windows README.Virtual-Users README.Debian README README.Contrib README.Configuration-File pureftpd.schema AUTHORS CONTACT HISTORY NEWS README.LDAP README.PGSQL README.MySQL README.Netfilter README.TLS pureftpd-ldap.conf pureftpd-mysql.conf pureftpd-pgsql.conf
 
 %config(noreplace) %{sysconfdir}/*.conf
 %if %{con_pam}

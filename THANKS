@@ -126,6 +126,15 @@ the example configuration file.
 * Yann Bizeul (projects.tynsoe.org) - Reported a Panther specific issue with
 getnameinfo(). Thanks a lot for providing a temporary account on a Panther
 machine in order to implement a workaround.
+* Flaw Zero <flawzero at eyou.com> - Fixes to the simplified Chinese
+translation.
+* Andrew Victor <andrew@sanpeople.com> - Reported some old negative return
+codes that were still in recent code.
+* Henri Virtanen <hvirtanen@daous.com> - Suggested SO_REUSEPORT for FreeBSD.
+* Joce <joce@presence-pc.com> and Daniel Broms (Hogberg), Lokomo Systems -
+Convinced me to finally implement atomic uploads. Joce by continuously asking
+for it, Daniel by pointing out that users could use the races to upload past
+their virtual quota when uploads and deletes are mixed.
 
 
 Mailing list-members :

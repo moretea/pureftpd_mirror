@@ -43,6 +43,7 @@ my %simple_switch_for = (
 	CreateHomeDir			=> "-j",
 	NoRename			=> "-G",
 	CustomerProof			=> "-Z",
+	NoTruncate			=> "-0",
 );
 
 my %string_switch_for = (

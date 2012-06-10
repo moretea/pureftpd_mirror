@@ -51,7 +51,13 @@ account.
 vpopmail password files.
   Run it the standard way with pure-authd.
 
+* pure-stat.pl (author: Julien Andrieux):
+
+  This script parses Apache-like log files and generates nice text summaries.
+
+
 -----------------------------------------------------------------------------
+
 
 Current related projects:
 
@@ -92,7 +98,7 @@ more easily. Uploads are stored in a MySQL database and duplicate files are
 tracked using MD5 checksums. Includes all setup scripts and comprehensive
 notes.
 
-  URL: http://www.mildewhall.demon.co.uk/
+  URL: http://www.mildewhall.com/stuff/purepostpro/
 
 
 * Pure-FTPd User Manager (author: Solariz)

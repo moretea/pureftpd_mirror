@@ -96,6 +96,7 @@ am__leading_dot = @am__leading_dot@
 am__quote = @am__quote@
 bindir = @bindir@
 build_alias = @build_alias@
+certfile = @certfile@
 datadir = @datadir@
 exec_prefix = @exec_prefix@
 host_alias = @host_alias@
@@ -117,7 +118,8 @@ EXTRA_DIST = \
 	xml_python_processors.txt \
 	redhat.init \
 	suse.init \
-	pure-vpopauth.pl
+	pure-vpopauth.pl \
+	pure-stat.pl
 
 subdir = contrib
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
