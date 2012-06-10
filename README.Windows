@@ -43,7 +43,7 @@ should be there) .
     ------------------------ RUNNING THE SERVER ------------------------
     
     
-  PURE-FTPD.EXE works like Unix's /usr/local/sbin/pure-ftpd program, and all
+  PURE-FTPD.EXE works like Unix's /usr/local/sbin/pure-ftpd program and all
 command-line switches apply as well.
 
   A noticeable difference, though, is that users can't be stored in

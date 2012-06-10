@@ -904,7 +904,9 @@ int getloadavg(double loadavg[], int nelem)
     if (offset == 0L) {
 #  ifndef sgi
 #   ifndef NLIST_STRUCT
-        strcpy(nl[0].n_name, LDAV_SYMBOL);
+        strncpy(nl[0].n_name, LDAV_SYMBOL, 
+                sizeof (nl[0].n_name) - (size_t) 1U);
+        (nl[0].n_name)[sizeof (nl[0].n_name) - (size_t) 1U] = 0;
         *(nl[1].n_name) = 0;
 #   else /* NLIST_STRUCT */
 #    ifdef NLIST_NAME_UNION

@@ -1,4 +1,18 @@
 
+* Version 1.0.16a:
+ - pure-uploadscript was broken in 1.0.16 due to a typo and sometimes it
+wouldn't work on some systems.
+
+* Version 1.0.16:
+ - Authentication is now working on Solaris with shadow/NIS. Based
+upon a patch by Axel Apitz <a_apitz@pixelpark.com>.
+ - Bugs in starting scripts were fixed.
+ - A big cleanup in man pages was performed by Claudiu Costin.
+ - Support for SSL/TLS was implemented. This is the end of cleartext
+passwords sent through the network.
+ - Pure-FTPd is now working on MacOS X Panther.
+ - The software can also be linked against MySQL 4.1.x.
+
 * Version 1.0.15:
  - A turkish translation has been added. Thanks to Mehmet Cokcevik
 <dns@netline.com.tr> .
@@ -18,7 +32,7 @@ BSD license.
 * Version 1.0.14:
  - Privilege separation has been introduced. When this feature is
 enabled, each client session spawns two processes communicating over a
-private channel : a restricted trusted part, and the main part that
+private channel : a restricted trusted part and the main part that
 definitely revokes all privileges after authentication and chroot().
 Add --with-privsep to ./configure in order to enable that feature.
  - Automatic detection of Virtuozzo was added.
@@ -27,7 +41,7 @@ addresses are dynamic (DSL and cable modem users), using symbolic host
 names.
 
 * Version 1.0.13a:
- - The previous release broken compilation with PostgreSQL, and it
+ - The previous release broken compilation with PostgreSQL and it
 didn't work any more with very old versions of the Perl interpreter.
 Both issues were fixed. No other change has been made - If 1.0.13
 works for you, there's absolutely no need to upgrade.
@@ -61,11 +75,11 @@ contributed by Clive Goodhead, adapted to PostgreSQL as well.
  - "make -f Makefile.gui" should work again on most today's Linux
 distributions.
  - The Win32 port was slightly improved. The server is now compiled as
-non-root (but binds port 21), and ASCII transfers are not mangled any
+non-root (but binds port 21) and ASCII transfers are not mangled any
 more.
  - The RPM initialization script (redhat.init, installed as
 /etc/init.d/pure-ftpd) now calls pure-config.pl . It means that
-/etc/sysconfig/pure-ftpd is deprecated, and you must use
+/etc/sysconfig/pure-ftpd is deprecated and you must use
 /etc/pure-ftpd.conf instead.
 
 * Version 1.0.12:
@@ -109,7 +123,7 @@ only static IP addresses.
 bandwidth management and FTP-specific uid/gid attributes.
  - MD5 hashed passwords are now implemented in the PostgreSQL backend.
  - External authentication modules are now properly working on non-Linux
-systems, and they can compile without ratio/quotas/throttling.
+systems and they can compile without ratio/quotas/throttling.
  - Korean, Spanish and Slovak translations were updated.
  - System random devices can now be probed at run-time.
  - PAM examples are now more generic.
@@ -139,7 +153,7 @@ removed, source code was cleaned up, FAQ has grown, etc.
  - Use OpenBSD security features when applicable. Thanks to Brad Smith
 <brad@openbsd.org>
  - Virtual hosts and virtual chroot can now play together.
- - Directory aliases ("cd" shortcuts, and "SITE ALIAS" command) were
+ - Directory aliases ("cd" shortcuts and "SITE ALIAS" command) were
 implemented. (by Kenneth Stailey <kstailey@yahoo.com) .
  - Bug fixes in virtual chroot and -k .
 
@@ -505,7 +519,7 @@ Reported by Brian <silent@heracles.cuties.org> .
  - German, romanian and french translations.
  - Size of downloaded files is always logged.
  - Enhanced support of the FTP protocol and modern extensions: multi-lines
-responses for HELP/FEAT, STAT command, and new format for directory listings
+responses for HELP/FEAT, STAT command and new format for directory listings
 through MLST and MLSD (autodetected by NcFTP) .
  - Minor cosmetic changes and more compilation flexibility.
  - The server can now run as a non-privileged user.
@@ -586,7 +600,7 @@ client doesn't send the '-a' option (ls -la) .
 
 * Version 0.96pre1
  - Added '-P' flag (explicitely set an IP address in reply to a PASV
-command), '-A' flag (to chroot() everyone), and  '-H' flag (to avoid DNS
+command), '-A' flag (to chroot() everyone) and  '-H' flag (to avoid DNS
 resolution), '-U' flag (to limit the maximum depth of a recursive 'ls' and
 the maximum number of displayed files) and '-M' flag (allow anonymous users
 to create directories).
@@ -611,7 +625,7 @@ symbolic links.
 
 * Version 0.95
  - Fixed GUI for old versions of Dialog (Slackware).
- - Handle SPSV, XCWD, and XCUP commands.
+ - Handle SPSV, XCWD and XCUP commands.
  - Improved documentation.
  - Better PAM sample.
  - Minor bug fixes and more security paranoia.

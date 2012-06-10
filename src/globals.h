@@ -158,4 +158,8 @@ GLOBAL(const char *pid_file, PID_FILE);
 
 GLOBAL0(signed char be_customer_proof);
 
+#ifdef WITH_TLS
+GLOBAL0(signed char enforce_tls_auth);
+#endif
+
 #endif

@@ -214,3 +214,7 @@
 #define MSG_ALIASES_LIST "Dess aliaser er tilgængelige :"
 #define MSG_PERUSER_MAX "Jeg kan ikke åbne mere en %lu forbindelser for den samme bruger"
 #define MSG_IPV6_OK "IPv6 forbindelser er også velkomne på denne server"
+#define MSG_TLS_INFO "SSL/TLS: Enabled %s with %s, %d secret bits cipher"
+#define MSG_TLS_WEAK "SSL/TLS: Cipher too weak"
+#define MSG_TLS_NEEDED "Sorry, cleartext sessions are not accepted on this server.\n" \
+    "Please reconnect using SSL/TLS security mechanisms."

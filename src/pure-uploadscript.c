@@ -74,7 +74,7 @@ static int readpipe(const int upload_file_fd,
                     char ** const r_who, char ** const r_file)
 {
     static char who[MAX_USER_LENGTH + 1U];
-    static char file[MAXPATHLEN + 1U];    
+    static char file[MAXPATHLEN + VHOST_PREFIX_MAX_LEN];
     const char * const whoend = &who[sizeof who];
     const char * const fileend = &file[sizeof file];
     char *whopnt = who;    
@@ -125,7 +125,7 @@ static int readpipe(const int upload_file_fd,
 
 static char *checkvirtual(char *path)
 {
-    static char buf[MAXPATHLEN + 1U];
+    static char buf[MAXPATHLEN + 1];
     char *path_pnt;
     
     if (path == NULL || *path == '/' ||

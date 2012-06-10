@@ -1,6 +1,6 @@
 
                               .:. PURE-FTPD .:.
-                       Documentation for version 1.0.15
+                       Documentation for version 1.0.17
 
 
 
@@ -10,41 +10,34 @@
 Pure-FTPd is a fast, production-quality, standard-conformant FTP server,
 based upon Troll-FTPd.
 
-Unlike other popular FTP servers, it's designed to be secure in default
-configuration, has no known buffer overflow, it is really trivial to set up
-and it is especially designed for modern kernels. It was successfully ported
-to Linux, FreeBSD, NetBSD, OpenBSD, ISOS, EkkoBSD, BSDi, Solaris, Darwin,
-Tru64, Irix and HPUX.
+The server has been designed to be secure in default configuration, it has no
+known vulnerability, it is really trivial to set up and it is especially
+designed for modern kernels. It was successfully ported to Linux, FreeBSD,
+NetBSD, OpenBSD, ISOS, EkkoBSD, BSDi, Solaris, Darwin, Tru64, Irix, AIX
+and HPUX.
 
 Features include chroot()ed and/or virtual chroot()ed home directories,
 virtual domains, built-in 'ls', anti-warez system, configurable ports for
 passive downloads, FXP protocol, bandwidth throttling, ratios,
 LDAP / MySQL / PostgreSQL-based authentication, fortune files, Apache-like
 log files, fast standalone mode, text / HTML / XML real-time status report,
-virtual users, virtual quotas, privilege separation and more.
+virtual users, virtual quotas, privilege separation, SSL/TLS and more.
 
 
       ------------------------ WHO'S USING IT? ------------------------
 
 
 Many people new to Unix are running Pure-FTPd because they find it easy to
-install. But that software is also used on highly loaded production servers,
-especially for hosting services. WideXS switched from BSD FTPd (more than 3000
-domains per machine), Cable & Wireless France is also using Pure-FTPd, and
-many hosting services are running it successfully on all their colocated
-servers.
-
-The Spanish National Research Network successfully switched their public FTP
-server to Pure-FTPd, running on a Solaris box.
-
-Lightning Instrumentation sells secure hardware routers for internetwork
-connectivity. Their routers include Pure-FTPd in the firmware.
+install. But that software is also used on embedded systems and highly loaded
+production servers, especially for hosting services. A list of some companies
+successfully using it is available at http://www.pureftpd.org/users.shtml
 
 Pure-FTPd was also part of a crack-a-machine challenge with other software,
 and that machine never got compromised.
 
-For large sites with centralized user management, Pure-FTPd provides LDAP
-and flexible SQL support.
+For large sites with centralized user management, Pure-FTPd provides flexible
+authentication schemes including SQL and LDAP backends, plus the ability to
+easily write new custom handlers in any language.
 
 
         ------------------------ COMPILATION ------------------------
@@ -53,7 +46,7 @@ and flexible SQL support.
 In its current form, Pure-FTPd uses some OS-specific system calls. And altough
 some portability work has been done in order to ease its port to other
 operating systems, only Linux FreeBSD, NetBSD, OpenBSD, ISOS, EkkoBSD, BSDi,
-Darwin, Solaris, Tru64, Irix and HPUX are known to work, other operating
+Darwin, Solaris, Tru64, Irix, AIX and HPUX are known to work, other operating
 systems may need some tweaks. With Linux, any modern distribution should be
 ok.
 
@@ -87,7 +80,7 @@ to /etc/rc.d/rc.local or /etc/rc.d/boot.local . Don't forget the '&' sign.
 Note 1:
 
 On Linux systems, you will notice that the server is always running as root.
-This is intentional, and more secure that servers who are changing their
+This is intentional and more secure that servers who are changing their
 effective uid (and only effective uid, they still have root privileges in
 fact, use ps -U to see what servers are really running as root) . We are
 using Linux kernel-specific tricks to drop privileges that "ps" can't show.
@@ -129,7 +122,7 @@ the compilation:
 specific file, in an alternative format. Currently, the CLF, Stats and W3C
 formats are implemented. CLF (common log format) is the basic format produced
 by Apache, WebFS, Roxen and most web servers. These log files only record
-file transfers, and they can feed web statistic software (Analog, Webalizer,
+file transfers and they can feed web statistic software (Analog, Webalizer,
 etc.) to analyze the load of your FTP server. The Stats format is a special
 output format, designed for log file analys software. The W3C format is a
 standard format parsed by most commercial log analyzers (all analyzers with
@@ -236,7 +229,7 @@ example of such a file.
 messages. When this option is enabled, login failures will show the same
 message to the user, regardless of the source of the problem. Without this
 option, "Authentication failure" is displayed when this is a password
-problem, and "Sorry, I can't trust you" is displayed when the user has been
+problem and "Sorry, I can't trust you" is displayed when the user has been
 banned by the sysadmin.
 
 --with-peruserlimits: enable per-user concurrency limits. Avoid this
@@ -288,7 +281,7 @@ This feature isn't enabled by default.
 --with-virtualhosts: support virtual hosting. It means that you can have
 different anonymouns FTP areas for each IP address. If your server has only
 one IP address, you don't need that feature. But if you have multiple IP
-addresses, and if you want a client that connects to IP xxx to get
+addresses and if you want a client that connects to IP xxx to get
 the content of /etc/pure-ftpd/xxx/ instead of ~ftp/ , enable this option.
 And read the the "VIRTUAL SERVERS" section at the end of this file.
 
@@ -403,7 +396,7 @@ installed in /usr/sbin/. So just replace '/usr/local/sbin/pure-ftpd' with
 '/usr/sbin/pure-ftpd'.
 
 When the previous command is run, the server will listen for incoming
-connections on every interface, all IP addresses, and the standard FTP port
+connections on every interface, all IP addresses and the standard FTP port
 (21) . If your system has IPv6 addresses, they should work as well.
 
 Now, if you want to listen for an incoming connection on a non-standard port,
@@ -415,7 +408,7 @@ Service names are also allowed ('-S smtp' and the daemon will be accepting
 connections on the SMTP port (25) . Very uncommon, but we should please
 everybody anyway, even disturbed minds) .
 
-Now, what if your system has many IP addresses, and you want the FTP server
+Now, what if your system has many IP addresses and you want the FTP server
 to be reachable on only one of these addresses, let's say 192.168.0.42?
 Just use the following command line:
 
@@ -433,7 +426,7 @@ IPv6 addresses are of course supported.
 
 With previous command lines, the server will run in the default
 configuration. Anonymous FTP logins will be allowed if there's a system
-account called 'ftp', and every user of your system will be able to access
+account called 'ftp' and every user of your system will be able to access
 the FTP server using his regular login/password pair.
 
 If you need to tweak that default configuration, other command-lines options
@@ -448,7 +441,7 @@ or
 And only 50 simultanous connections will be allowed. To discover what
 options are available please jump to the 'OPTIONS' chapter below. If the
 server runs perfectly for you in standalone mode, you don't need to read the
-following chapter about super-servers. But read the options. '-m', and '-C'
+following chapter about super-servers. But read the options. '-m' and '-C'
 are recommended. '-D' is also a good choice if you (or your customers) use
 broken clients. Please read on.
 
@@ -464,7 +457,7 @@ after the next connection.
 [DOWNLOADING] shows a client downloading a file.
 [UPLOADING] show a client uploading a file.
 
-For easy scripting, the file '/var/run/pure-ftpd.pid' is created, and it
+For easy scripting, the file '/var/run/pure-ftpd.pid' is created and it
 always contains the PID of the main server process.
 
 
@@ -549,7 +542,7 @@ killall -USR2 xinetd
 
 
 TCPServer is part of the ucspi-tcp package by Dan Bernstein. It's less
-bloated than inetd, less D.O.S.-prone, and has interesting filtering
+bloated than inetd, less D.O.S.-prone and has interesting filtering
 abilities. The simplest way of running Pure-FTPd with TCPserver is the
 following command:
 
@@ -590,7 +583,7 @@ or
 ftp        stream        tcp        nowait        root        /usr/local/sbin/pure-ftpd  pure-ftpd -s -a42
 
 If you use Inetd, don't put space between options and arguments. e.g. use
--a42 instead of -a 42 . Inetd has trouble dealing with a lot of options, and
+-a42 instead of -a 42 . Inetd has trouble dealing with a lot of options and
 with characters like ':' .
 
 - Xinetd:
@@ -626,7 +619,8 @@ Here are the recognised switches:
 - '-1': log the PID of each session in syslog output.
 
 - '-4': only listen to IPv4 connections. YOU HAVE TO ENABLE THIS ON OPENBSD,
-NETBSD, ISOS, EKKOBSD AND FREEBSD 5.X IF YOUR NETWORK IS NOT 100% IPV6!
+NETBSD, ISOS, EKKOBSD, MACOS X AND FREEBSD 5.X IF YOUR NETWORK IS NOT 100%
+IPV6! Even if you are starting the server through a superserver like inetd.
 
 - '-a <gid>': Authenticated users will be granted access to their home
 directory and nothing else (chroot) . This is especially useful for users
@@ -709,7 +703,7 @@ when they are idle for twice (because they are active anyway) the normal
 timeout.
 
 - '-j': If the home directory of a user doesn't exist, automatically create
-it. The newly created home directory belongs to the user, and permissions are
+it. The newly created home directory belongs to the user and permissions are
 set according to the current directory mask. Only the home directory can be
 created (so /home/john/./public_html won't work, but /home/john will) . To
 avoid local attacks, the parent directory should never belong to an untrusted
@@ -776,9 +770,9 @@ CLF and the old broken "xferlog" format.
 The Stats format is:
 <date> <session id> <user> <ip> <U or D> <size> <duration> <file>
 
-<date> is a GMT timestamp (time()), and <session id> identifies the current
+<date> is a GMT timestamp (time()) and <session id> identifies the current
 session. <file> is unquoted, but it's always the last element of a log line.
-"U" means "Upload", and "D" means "Download".
+"U" means "Upload" and "D" means "Download".
 
 Warning: the session id is only designed for statistics purposes. While it's
 always an unique string in the real world, it's theoretically possible to have
@@ -856,9 +850,9 @@ user can change the permissions of his own files.
 
 - '-V <ip address>': Allow non-anonymous FTP access only on this specific
 local IP address. All other IP addresses are only anonymous. With that
-option, you can have routed IPs for public access, and a local IP (like
+option, you can have routed IPs for public access and a local IP (like
 10.x.x.x) for administration. You can also have a routable trusted IP
-protected by firewall rules, and only that IP can be used to login as a
+protected by firewall rules and only that IP can be used to login as a
 non-anonymous user.
 
 - '-w': Support the FXP protocol only for authenticated users. FXP works
@@ -888,7 +882,7 @@ beginning with a dot ('.') . Anonymous users can't, for security reasons
 authenticated users can download dot-files, but not overwrite/create them,
 even if they own them. That way, you can prevent hosted users from messing
 .qmail files. If you want to give user access to a special dot-file, create a
-symbolic link to the dot-file with a file name that has no dot in it, and the
+symbolic link to the dot-file with a file name that has no dot in it and the
 client will be able to retrieve the file through that link.
 
 - '-X': This flag is identical to the previous one (writing dot-files is
@@ -918,6 +912,13 @@ Here, we allow:
   * 20 anonymous users max.
   
 With such a setup, a single user can't easily fill all slots.  
+
+- '-Y 0': Disable the SSL/TLS encryption layer (default).
+  '-Y 1': Accept both standard and encrypted sessions.
+  '-Y 2': Refuse connections that aren't using SSL/TLS security mechanisms,
+including anonymous sessions. The server must have been compiled with
+--with-tls and a valid certificate must be in place to get this feature.
+See the README.TLS file for more info about SSL/TLS.
 
 - '-z': Allow anonymous users to read files and directories starting with a
 dot ('.') .
@@ -982,6 +983,7 @@ aliases are available. You can get this list at any time by typing
 -x  --prohibitdotfileswrite 
 -X  --prohibitdotfilesread  
 -y  --peruserlimits         <per user max>:<max anonymous sessions>
+-Y  --tls                   <0:no TLS | 1:TLS+cleartext | 2:enforce TLS>
 -z  --allowdotfiles
 -Z  --customerproof
 
@@ -1011,6 +1013,8 @@ aliases are available. You can get this list at any time by typing
 -B  --daemonize 
 -D  --displaydotfiles   
 -H  --dontresolve   
+
+-Y  --tls                   <0:no TLS | 1:TLS+cleartext | 2:enforce TLS>
 
 -P  --forcepassiveip        <ip address>
 -F  --fortunesfile          <file>
@@ -1058,7 +1062,7 @@ aliases are available. You can get this list at any time by typing
 ------------------------ SETTING UP AN ANONYMOUS FTP ------------------------
     
     
-If a 'ftp' user exists, and its home directory is reachable, Pure-FTPd will
+If a 'ftp' user exists and its home directory is reachable, Pure-FTPd will
 accept anonymous login, as 'ftp' or 'anonymous'. Files have to be located in
 the home FTP directory. There's no need for 'bin', 'lib', 'etc' and 'dev'
 directories, nor any external program. Don't chown the public files to
@@ -1128,7 +1132,7 @@ directory:
 
 mimi:x:501:100:Mimi:/home/mimi/./:/bin/zsh
 
-So what? Mimi's home directory is still the same, and common applications
+So what? Mimi's home directory is still the same and common applications
 shouldn't notice any difference. But Pure-FTPd understands "chroot() until
 /./". So when mimi next carries out a FTP log in, only the /home/mimi
 directory will be reachable, not the whole filesystem. If you don't like the
@@ -1154,7 +1158,7 @@ access dot files.
 
 If you want to force people to upload new files before being able to
 download other files, ratios are for you. It's a very good way to get lotsa
-fresh stuff on a public FTP server, and a must for warez traders. I don't
+fresh stuff on a public FTP server and a must for warez traders. I don't
 like that kind of business, but well... Pure-FTPd has to be designed to
 please everybody.
 
@@ -1279,14 +1283,14 @@ A more flexible way is to use '-V <ip address>' to define a "trusted" IP
 address. When a client connects to that trusted IP, anonymous and real
 logins are permitted. But on all other IP, only anonymous users are permitted.
 
-If you are a hosting service provider, and if each customer has its own IP
+If you are a hosting service provider and if each customer has its own IP
 address, it may be a nice idea to have a trusted IP you give to all your
 customers, so that they can manage the files in their account. That IP is
 the same for all customers. You can easily restrict access to that IP with
 firewall rules if your customers have static IP addresses.
-Use '-V <trusted ip>', and link /etc/pure-ftpd/<customer ip> to
+Use '-V <trusted ip>' and link /etc/pure-ftpd/<customer ip> to
 ~customer/ftp . Every customer will have his own *anonymous only* FTP
-server, and hackers will have to find the trusted IP to get in.
+server and hackers will have to find the trusted IP to get in.
 
 
        ------------------------ IPv6 SUPPORT ------------------------
@@ -1344,7 +1348,7 @@ The default output looks like this:
 |  ''  |    ''   |       |      | ->                     gw2.crn.kjop.co.uk |
 +------+---------+-------+------+-------------------------------------------+
 
-'D/L' means that the client is downloading, and 'U/L' means he's uploading
+'D/L' means that the client is downloading and 'U/L' means he's uploading
 some file whose name is shown in the next column. '33%' is the real-time
 completion of the current operation. '41K/s' is the bandwidth used by the
 client. You can track down who's starving your bandwidth with this.
@@ -1359,7 +1363,7 @@ server (Apache, Roxen, Caudium, WN, ...) .
 
 '-h': show command-line options summary.
 
-'-n': don't resolve host names, and only show IP addresses (faster).
+'-n': don't resolve host names and only show IP addresses (faster).
 
 '-s': output an easily parsable format for shell scripts (but not very user
 friendly) . 
@@ -1376,11 +1380,11 @@ Type 'pure-ftpwho -h' to check the format.
 mode, suitable for inline calls from CGI, SSI or PHP scripts.
 
 '-x': output well-formed XML data for post-processing. This is the most
-acurate mode. Time is in seconds, and file sizes are in bytes (in other
+acurate mode. Time is in seconds and file sizes are in bytes (in other
 output formats, sizes are in kbytes for easier readability) .
 
 '-v': verbose output in text mode. Additional info includes the size of
-files being downloaded/uploaded, the local IP or local host name, and the
+files being downloaded/uploaded, the local IP or local host name and the
 connection port. This is especially useful for virtual hosts. Here's a
 sample output of 'pure-ftpwho -v':
 
@@ -1410,7 +1414,7 @@ run-time option. Finally, you have to run another daemon called
 
 IMPORTANT:
 
-YOU MUST START PURE-FTPD _FIRST_, AND _THEN_ START PURE-UPLOADSCRIPT.
+YOU MUST START PURE-FTPD _FIRST_ and _THEN_ START PURE-UPLOADSCRIPT.
 THE REVERSE ORDER WON'T WORK.
 
 For security purposes, the server never launches any external program. It's
@@ -1460,7 +1464,7 @@ Here are the ones you should know for a better life with FTP:
 - '-t': sort by date.
 - '-r': reverse the sorting order.
 
-If you aren't very familiar with Unix, log in to your FTP server, and try
+If you aren't very familiar with Unix, log in to your FTP server and try
 these variants:
 
 ls
@@ -1483,7 +1487,7 @@ ls */gnome*.rpm
       ------------------------ VIRTUAL QUOTAS ------------------------
 
 
-With virtual quotas, you can restrict the maximum number of files, and the
+With virtual quotas, you can restrict the maximum number of files and the
 total size of a user directory.
 
 These quotas are "virtual" because they aren't handled at kernel-level, but
@@ -1510,7 +1514,7 @@ user, that user must be 1) chrooted, 2) not allowed to write quota files, 3)
 not allowed to forbid access to some directories to fool the counter.
 
 Quotas can be enabled for all users for the -n (--quotas) option. This
-option is followed by the max number of files, and the max size (in Megabytes)
+option is followed by the max number of files and the max size (in Megabytes)
 . Every user will have the same quota. Exception: members of the trusted
 group, if -a is enabled.
 
@@ -1518,7 +1522,7 @@ You can also have different quotas for every user if you use PureDB or SQL
 databases. See the "README.Virtual-Users" file for more info about PureDB
 databases.
 
-So, if you want 1000 files max, and 10 Mb max for all your customers, run
+So, if you want 1000 files max and 10 Mb max for all your customers, run
 the server like this:
 
 /usr/local/sbin/pure-ftpd -n 1000:10
@@ -1529,7 +1533,7 @@ not the case, you must run the "pure-quotacheck" utility to create an
 initial ".ftpquota" file.
 
 "pure-quotacheck" is a tool that computes the size and the number of files
-in a directory, and create a ".ftpquota" file with this info.
+in a directory and create a ".ftpquota" file with this info.
 
 The syntax is:
 
@@ -1555,7 +1559,7 @@ user begins an upload, the newly uploaded file can be as huge as his total
 quota. It means that if his quota is 10 Mb, he can upload a 10 Mb file, even
 if he already has 9 Mb of other files in his directory. The idea is that
 while he's uploading the file, he can realize that his quota will be
-reached, and he can move/compress/delete other files to save space before
+reached and he can move/compress/delete other files to save space before
 the end of the upload. And only after completion of the upload, the quota is
 checked. If the quota is still crunched, the newly uploaded file will be
 deleted.
@@ -1627,7 +1631,7 @@ If the user is found in the LDAP directory, but the given password is wrong,
 further authentication methods are skipped.
 
 If you don't specify any -l option, PAM is assumed by default if the server
-is compiled with PAM support, and Unix is assumed by default otherwise.
+is compiled with PAM support and Unix is assumed by default otherwise.
 
 
      ------------------------ DIRECTORY ALIASES ------------------------
@@ -1635,7 +1639,7 @@ is compiled with PAM support, and Unix is assumed by default otherwise.
 
 Directory aliases provides "shortcuts" for the "cd" command. For instance,
 if you define an alias called "pictures" for "/usr/misc/pictures", when an
-user will type "cd pictures", and if no real "pictures" directory exists, he
+user will type "cd pictures" and if no real "pictures" directory exists, he
 will be automatically redirected to "/usr/misc/pictures". Unlike symbolic
 links, "cd pictures" will work from any directory. Tildes are *not* expanded.
 
@@ -1673,9 +1677,9 @@ pureftpd-port
 
 When privilege separation is enabled, each session will spawn two processes :
 a "privileged" process running as root, but that can only do very basic
-and trusted actions (binding a port and remove the ftpwho scoreboard), and
+and trusted actions (binding a port and remove the ftpwho scoreboard) and
 the "client" process. The "client" process definitely revokes all privileges
-after authentication and chroot(), and punctually communicates with the
+after authentication and chroot() and punctually communicates with the
 parent over a private channel.
 
 Privilege separation decreases performance of loaded servers, but it
@@ -1807,9 +1811,9 @@ mknod dev/ticotsord c 105 1
 they are consuming CPU time both at client and server sides. And they even
 consume *more* bandwidth than binary transfers. But they allow Windows
 clients to upload scripts to Unix servers, stripping these nasty ^M signs.
-ASCII transfers are implemented in Pure-FTPd. But they can't be resumed, and
+ASCII transfers are implemented in Pure-FTPd. But they can't be resumed and
 this is intentional. To restart an ASCII transfer, the file has to be
-read and analyzed byte by byte. It can be very long, and by sending two
+read and analyzed byte by byte. It can be very long and by sending two
 trivial commands, a client can completely kill a server (take a lot of CPU and
 disk resources) . And there's no workaround.
 Another point is that while RFC describe a way to resume ASCII transfers,
@@ -1819,7 +1823,7 @@ didn't follow RFC, so some clients did the same mistake to support these
 servers, while some other modern clients and servers are trying to fully
 conform to RFC. So when clients and servers are speaking the same dialect, it
 works. When it's not the case, you get corrupted files. Messy, eh?
-And what if a customer uploads a script to your server, and thinks he can
+And what if a customer uploads a script to your server and thinks he can
 safely delete it from its hard disk? If the remote file is corrupted, he
 will get really angry.
 It's why Pure-FTPd *refuses* to resume ASCII transfers. If a customer tells
@@ -1844,6 +1848,10 @@ cvs -z3 -d:pserver:anonymous@cvs.pureftpd.org:/cvsroot/pureftpd co pureftpd
 cd pureftpd
 ./autogen.sh
 
+Alternatively you can peek at the "snapshots" directory of the FTP mirrors
+carrying the source tarball. It contains experimental tarballs that are ready
+to compile.
+
 FreeBSD port is available in: ports/ftp/pure-ftpd/
 
 OpenBSD port is available in: ports/net/pure-ftpd/
@@ -1859,6 +1867,8 @@ http://fink.sourceforge.net/pdb/package.php/pure-ftpd/
 
 Gentoo Linux emerging : emerge pure-ftpd
 
+EkkoBSD ships it in the base install.
+
 Latest releases and regular snapshots are always available from:
 
   ftp://ftp.pureftpd.org/pub/pure-ftpd/         (a link to a fast mirror)
@@ -1868,6 +1878,7 @@ Latest releases and regular snapshots are always available from:
   ftp://ftp.nl.pureftpd.org/pub/pure-ftpd/      (WideXS NL, fast)  
   ftp://ftp.dk.pureftpd.org/mirrors/pure-ftpd/  (Sunsite DK mirror, fast)
   ftp://ftp.cn.pureftpd.org/pub/pureftpd/pure-ftpd/ (Chinese mirror)
+  ftp://ftp.es.pureftpd.org/mirror/pureftpd/latest/ (Spanish mirror, fast)
 
 New mirrors are always welcome.
 

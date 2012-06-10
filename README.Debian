@@ -10,7 +10,7 @@ preferred repository.
  - pure-ftpd-ldap
  - pure-ftpd-mysql
  
-  Have fun with apt-get, and please report any bug in order to improve these
+  Have fun with apt-get and please report any bug in order to improve these
 packages.
 
   These packages are also available from your favorite Pure-FTPd

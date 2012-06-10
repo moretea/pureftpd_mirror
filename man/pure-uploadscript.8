@@ -8,27 +8,27 @@ pure\-uploadscript [\fI\-B\fP] [\fI\-g\fP <\fIgid\fP>] [\fI\-h\fP] \fI\-r\fP <\f
 .SH "DESCRIPTION"
 .LP 
 If Pure\-FTPd is compiled with \fB\-\-with\-uploadscript\fR (default in binary distributions), and if the \fB\-o\fR (or \fB\-\-uploadscript\fR) is passed to the server, a named pipe called \fB/var/run/pure\-ftpd.upload.pipe\fR is created. You will also notice an important file called \fB/var/run/pure\-ftpd.upload.lock\fR, used for locking.
-.br 
+.br
 After a successful upload, the file name is written to the pipe.
-.br 
+.br
 \fBpure\-uploadscript\fR reads this pipe to automatically run any program or script to process the newly uploaded file.
 .SH "OPTIONS"
 .LP 
-.TP 
+.TP
 \fB\-B\fR
 Daemonize the process and fork it in background.
-.TP 
+.TP
 \fB\-g\fR <\fIgid\fP>
 Switch the group ID to <\fIgid\fP>.
-.TP 
+.TP
 \fB\-h\fR or \fB\-\-help\fR
 Display available options.
-.TP 
+.TP
 \fB\-r\fR <\fIprogram to run\fP>
 Tell what program/script to run. It has to be \fIan absolute filename\fR, the \fBPATH\fR environment variable is ignored.
 The first argument of that program will be the \fIunquoted\fR name of the newly uploaded file.
 Environment variables aren't cleared. So don't put sensitive data in them before calling pure\-uploadscript if you switch uid.
-.TP 
+.TP
 \fB\-u\fR <\fIuid\fP>
 Switch the user ID to <\fIuid\fP>.
 .SH "ENVIRONMENT"
@@ -98,5 +98,6 @@ Frank DENIS <j@pureftpd.org>
 .BR "pure-authd(8)"
 
 .BR "RFC 959" ,
-.BR "RFC 2228" " and"
+.BR "RFC 2228",
+.BR "RFC 2389" " and"
 .BR "RFC 2428" .

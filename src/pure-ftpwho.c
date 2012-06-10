@@ -697,17 +697,46 @@ int main(int argc, char *argv[])
             } else {
                 xfer_since = 0UL;
             }
-            if (getnameinfo((struct sockaddr *) &scanned_entry->addr,
-                            STORAGE_LEN(scanned_entry->addr),
-                            hbuf, sizeof hbuf, NULL, (size_t) 0U,
-                            dont_resolve_ip != 0 ? NI_NUMERICHOST : 0) != 0 ||
-                getnameinfo((struct sockaddr *) &scanned_entry->local_addr,
-                            STORAGE_LEN(scanned_entry->addr),
-                            local_hbuf, sizeof local_hbuf,
-                            local_port, sizeof local_port,
-                            dont_resolve_ip != 0 ?
-                            (NI_NUMERICHOST | NI_NUMERICSERV) :
-                            NI_NUMERICSERV) != 0) {
+            for (;;) {
+                int eai;
+                                
+                if ((eai = getnameinfo
+                     ((struct sockaddr *) &scanned_entry->addr,
+                      STORAGE_LEN(scanned_entry->addr),
+                      hbuf, sizeof hbuf, NULL, (size_t) 0U,
+                      dont_resolve_ip != 0 ? NI_NUMERICHOST : 0)) == 0) {
+                    break;
+                }
+#ifdef EAI_NONAME
+                if (eai == EAI_NONAME && dont_resolve_ip == 0 &&
+                    getnameinfo
+                    ((struct sockaddr *) &scanned_entry->addr,
+                     STORAGE_LEN(scanned_entry->addr),
+                     hbuf, sizeof hbuf, NULL, (size_t) 0U,
+                     NI_NUMERICHOST) == 0) {
+                    break;
+                }                
+#endif
+                if ((eai = getnameinfo
+                     ((struct sockaddr *) &scanned_entry->local_addr,
+                      STORAGE_LEN(scanned_entry->addr),
+                      local_hbuf, sizeof local_hbuf,
+                      local_port, sizeof local_port,
+                      dont_resolve_ip != 0 ? (NI_NUMERICHOST | NI_NUMERICSERV) :
+                      NI_NUMERICSERV)) == 0) {
+                    break;
+                }
+#ifdef EAI_NONAME                
+                if (eai == EAI_NONAME && dont_resolve_ip == 0 &&
+                    getnameinfo
+                    ((struct sockaddr *) &scanned_entry->local_addr,
+                     STORAGE_LEN(scanned_entry->addr),
+                     local_hbuf, sizeof local_hbuf,
+                     local_port, sizeof local_port,
+                     NI_NUMERICHOST | NI_NUMERICSERV) == 0) {
+                    break;
+                }
+#endif
                 goto nextone;
             }
             output_line(scanned_entry->pid, scanned_entry->account,

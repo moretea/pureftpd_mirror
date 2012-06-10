@@ -394,6 +394,12 @@ extern int opt_a, opt_C, opt_d, opt_F, opt_l, opt_R;
 # define VHOST_PATH CONFDIR "/pure-ftpd"
 #endif
 
+#ifdef WITH_TLS
+# ifndef TLS_CERTIFICATE_PATH
+#  define TLS_CERTIFICATE_PATH "/etc/ssl/private/pure-ftpd.pem"
+# endif
+#endif
+
 #define FAKE_SHELL "ftp"
 
 #ifndef PID_FILE
@@ -446,13 +452,13 @@ extern int opt_a, opt_C, opt_d, opt_F, opt_l, opt_R;
 #  define MAXPATHLEN PATH_MAX
 # else
 #  define MAXPATHLEN 65536U
-Warning: neither PATH_MAX nor MAXPAHLEN were found.
+Warning: neither PATH_MAX nor MAXPATHLEN were found.
 Remove these lines if you really want to compile the server, but
 the server may be insecure if a wrong value is set here.    
 # endif
 #endif
 #if (MAXPATHLEN) >= (INT_MAX)
-Your platform has a very large maximum path len, we should not trust it.
+Your platform has a very large MAXPATHLEN, we should not trust it.
 #endif
 
 #define DEFAULT_MAX_USERS 50
@@ -493,6 +499,8 @@ Your platform has a very large maximum path len, we should not trust it.
 #define MAX_UL_CHUNK_SIZE (CONF_TCP_SO_RCVBUF)
 #define MAX_THROTTLING_DELAY 42           /* Maximum throttling compensation */
 
+#define VHOST_PREFIX_MAX_LEN 64    
+    
 /*
  * Some users reported that something was wrong with TCP_CORK.
  * Better disable it for now, but we have to investigate.

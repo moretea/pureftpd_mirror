@@ -103,10 +103,5 @@
 extern int errno;
 #endif
 
-#ifndef HAVE_STRDUP
-# define strdup(X) do { char *x; if ((x = malloc(strlen(X) + 1)) != NULL) \
-        strcpy(x, (X)); } while(0)
-#endif
-
 #endif
 

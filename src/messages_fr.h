@@ -214,3 +214,7 @@
 #define MSG_ALIASES_LIST "Les raccourcis suivants sont utilisables :"
 #define MSG_PERUSER_MAX "Je ne peux pas accepter plus de %lu connexions du meme utilisateur"
 #define MSG_IPV6_OK "Les connections en IPv6 sont les bienvenues sur ce serveur."
+#define MSG_TLS_INFO "SSL/TLS: Protocole %s activé (%s), chiffrage en %d bits secrets"
+#define MSG_TLS_WEAK "SSL/TLS: Chiffrement trop faible"
+#define MSG_TLS_NEEDED "Desole, les sessions en clair ne sont pas acceptees sur ce serveur.\n" \
+    "Veuillez vous reconnecter en utilisant les mechanismes de securite SSL/TLS."

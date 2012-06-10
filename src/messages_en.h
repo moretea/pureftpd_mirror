@@ -16,7 +16,7 @@
 #define MSG_DEBUG_COMMAND "Command"
 #define MSG_IS_YOUR_CURRENT_LOCATION "is your current location"
 #define MSG_NOT_LOGGED_IN "You aren't logged in"
-#define MSG_AUTH_UNIMPLEMENTED "Security extensions not implemented"
+#define MSG_AUTH_UNIMPLEMENTED "This security scheme is not implemented"
 #define MSG_NO_FILE_NAME "No file name"
 #define MSG_NO_DIRECTORY_NAME "No directory name"
 #define MSG_NO_RESTART_POINT "No restart point"
@@ -214,3 +214,7 @@
 #define MSG_ALIASES_LIST "The following aliases are available :"
 #define MSG_PERUSER_MAX "I can't accept more than %lu connections as the same user"
 #define MSG_IPV6_OK "IPv6 connections are also welcome on this server."
+#define MSG_TLS_INFO "SSL/TLS: Enabled %s with %s, %d secret bits cipher"
+#define MSG_TLS_WEAK "SSL/TLS: Cipher too weak"
+#define MSG_TLS_NEEDED "Sorry, cleartext sessions are not accepted on this server.\n" \
+    "Please reconnect using SSL/TLS security mechanisms."

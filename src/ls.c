@@ -266,8 +266,8 @@ static int listfile(const FileInfo * const fi,  const char *name)
         }
     }
     if (opt_l) {
-        strncpy(m, " ---------", (sizeof m) - 1U);
-        m[(sizeof m) - 1] = 0;
+        strncpy(m, " ---------", (sizeof m) - (size_t) 1U);
+        m[(sizeof m) - (size_t) 1U] = 0;
         switch (st.st_mode & S_IFMT) {
         case S_IFREG:
             m[0] = '-';
@@ -378,7 +378,7 @@ static int listfile(const FileInfo * const fi,  const char *name)
                         suffix[0] = '*';
                     }
                 }
-                /* 2*MAXPATHLEN+gap should be enough, but be paranoid... */
+                /* 2 * MAXPATHLEN + gap should be enough, but be paranoid... */
                 if (SNCHECK
                     (snprintf(p, (sizeof_nameline) - strlen(alloca_nameline),
                               " -> %s", m), 

@@ -214,3 +214,7 @@
 #define MSG_ALIASES_LIST "Nasledovne aliasy su dostupne :"
 #define MSG_PERUSER_MAX "Nemozem akceptovat viac ako %lu pripojeni od toho isteho pouzivatela"
 #define MSG_IPV6_OK "Pripojenia pomocou IPv6 su tiez vitane na tomto serveri"
+#define MSG_TLS_INFO "SSL/TLS: Zapnute %s pouziva sifru %s, %d tajnych bitov"
+#define MSG_TLS_WEAK "SSL/TLS: Sifra je prilis slaba"
+#define MSG_TLS_NEEDED "Prepacte, ale nesifrovane spojenia nie su povolene na tomto serveri.\n" \
+    "Pri najblizsom spojeni pouzite zabezpecovacie mechanizmy SSL/TLS."

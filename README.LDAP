@@ -91,11 +91,11 @@ default filter is (&(objectClass=posixAccount)(uid=\L)) .
 - LDAPHomeDir is the attribute to get the home directory ('homeDirectory' by
 default) .
 
-- LDAPVersion is the protocol version to use. Version 3 is recommended, and
+- LDAPVersion is the protocol version to use. Version 3 is recommended and
 needed with OpenLDAP servers. It is the default.
 
 In fact, the only mandatory keyword is LDAPBaseDN. Other keywords are
-optional, and defaults are ok for local testing.
+optional and defaults are ok for local testing.
 
 Save the configuration file anywhere. Let's say /etc/pureftpd-ldap.conf .
 
@@ -143,7 +143,7 @@ MD5, SHA, SMD5 or SSHA digests. Modern LDAP clients should handle all,
 anyway (or get GQ from http://biot.com/gq/) .
 
 SSHA is believed to be the most secure one-way hashing method, but it's also
-the slowest, and it can be time-consuming if you're accepting a lot of
+the slowest and it can be time-consuming if you're accepting a lot of
 users.
 
 Please note that a login ('uid' field) can only contains common characters:
@@ -156,13 +156,13 @@ to customize attribute names.
   ----------- EXTENDED LDAP SCHEMA (QUOTAS, THROTTLING, RATIOS) ----------
 
 
-To enable quotas, download/upload rate throttling, and/or download/upload
+To enable quotas, download/upload rate throttling and/or download/upload
 ratios, an extended LDAP schema is needed.  This modified schema also allows
 you to completely enable and disable users' FTP access by simply changing
 the "FTPStatus" field in their LDAP entry.
 
 Simply copy the included pureftpd.schema file to your OpenLDAP schema
-directory (/usr/local/etc/openldap/schema in this example), and add the
+directory (/usr/local/etc/openldap/schema in this example) and add the
 appropriate line to your slapd.conf, like so:
 
 
@@ -170,7 +170,7 @@ include         /usr/local/etc/openldap/pureftpd.schema
 
 
 This schema defines a new objectClass, PureFTPdUser, which contains the
-*OPTIONAL* status, quota, throttling, and ratio fields as in the example
+*OPTIONAL* status, quota, throttling and ratio fields as in the example
 below:
 
 

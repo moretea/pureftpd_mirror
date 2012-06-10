@@ -214,3 +214,7 @@
 #define MSG_ALIASES_LIST "Følgende alias er tilgjengelige :"
 #define MSG_PERUSER_MAX "Kan ikke tillate mer enn %lu tilkoplinger fra samme bruker"
 #define MSG_IPV6_OK "IPv6 forbindelser er også velkommen på denne serveren"
+#define MSG_TLS_INFO "SSL/TLS: Aktivert %s med %s, %d bits kryperingsnøkkel"
+#define MSG_TLS_WEAK "SSL/TLS: Krypteringsnøkkelen er for svak"
+#define MSG_TLS_NEEDED "Beklager, klartekst sessjoner er ikke tillatt på denne serveren.\n" \
+    "Vær vennlig å kople til på ny med SSL/TLS aktivert."

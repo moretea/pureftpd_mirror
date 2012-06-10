@@ -33,7 +33,7 @@ attribute. If you want to develop something related to ftpwho in Python,
 this is a very good base.
 
   The other script creates a web page similar to "pure-ftpwho -w", but
-better: you can choose which columns you want in which order, and sort
+better: you can choose which columns you want in which order and sort
 the rows on multiple fields. You can also see bandwidth totals per
 account.
 
@@ -67,7 +67,7 @@ center.
 * ftpStats (author: Chris Elsworth):
 
 ftpStats is a real-time xferlog analyser. It parses Pure-FTPd 'Stats' log
-files, stores them in MySQL, and then generates HTML output on the fly. It
+files, stores them in MySQL and then generates HTML output on the fly. It
 can display statistics between any two given times, show you a transfer
 list, average and max speeds, details on each user, etc.
 
@@ -79,7 +79,7 @@ list, average and max speeds, details on each user, etc.
 * ModLogAn (author: Ostborn)
 
 ModLogAn is a modular logfile analyzer that combines speed with flexibility.
-It generates Webalizer-like, custom, and text reports. It has a built-in
+It generates Webalizer-like, custom and text reports. It has a built-in
 plugin to parse Pure-FTPd's 'Stats' log files.
 
   URL: http://www.kneschke.de/projekte/modlogan/
@@ -88,7 +88,7 @@ plugin to parse Pure-FTPd's 'Stats' log files.
 * PurePostPro (author: Peter Garner)
 
 PurePostPro is a Perl + MySQL script that enables user uploads to be managed
-more easily. Uploads are stored in a MySQL database, and duplicate files are
+more easily. Uploads are stored in a MySQL database and duplicate files are
 tracked using MD5 checksums. Includes all setup scripts and comprehensive
 notes.
 
@@ -143,6 +143,6 @@ compiled with quotas, puredb, throttling, ftpwho and virtualchroot.
   This MacOS X software includes a precompiled Pure-FTPd binary and a
 powerful yet very simple graphical interface to configure the server.
 
-  URL : http://gritsch.themac.de/ftp-config_web/index_en.html
+  URL : http://ftp-config.pureftpd.org/ftp-config_web/
         http://www.versiontracker.com/dyn/moreinfo/macosx/19713
 

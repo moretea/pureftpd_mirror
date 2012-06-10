@@ -214,3 +214,7 @@
 #define MSG_ALIASES_LIST "다음의 별칭이 있음 :"
 #define MSG_PERUSER_MAX "같은 유저로 %lu 번 이상의 연결을 허용하지 않습니다."
 #define MSG_IPV6_OK "이 서버는 IPv6 연결도 허용합니다."
+#define MSG_TLS_INFO "SSL/TLS: Enabled %s with %s, %d secret bits cipher"
+#define MSG_TLS_WEAK "SSL/TLS: Cipher too weak"
+#define MSG_TLS_NEEDED "Sorry, cleartext sessions are not accepted on this server.\n" \
+    "Please reconnect using SSL/TLS security mechanisms."

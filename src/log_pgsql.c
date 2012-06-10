@@ -16,7 +16,7 @@
 #endif
 
 static size_t prv_PQescapeString(char * const to, const char * const from,
-                                 size_t length)
+                                 const size_t length)
 {
     register const char *source = from;
     register char *target = to;
@@ -27,13 +27,13 @@ static size_t prv_PQescapeString(char * const to, const char * const from,
         case 0:
             remaining = (size_t) 1U;
             break;
-        case '\n':
-            *target++ = '\\';
-            *target++ = 'n';
-            break;
         case '\r':
             *target++ = '\\';
             *target++ = 'r';            
+            break;
+        case '\n':
+            *target++ = '\\';
+            *target++ = 'n';
             break;
         case '\b':
             *target++ = '\\';
@@ -297,7 +297,7 @@ static char *pw_pgsql_getquery(PGconn * const id_sql_server,
                                const char * const decimal_ip)
 {
     PGresult *qresult = NULL;
-    int length;
+    size_t length;
     char *answer = NULL;
     char query[PGSQL_MAX_REQUEST_LENGTH];
 
@@ -318,12 +318,12 @@ static char *pw_pgsql_getquery(PGconn * const id_sql_server,
         PQgetisnull(qresult, 0, 0)) {
         goto bye;
     }
-    if ((length = PQgetlength(qresult, 0, 0)) <= 0 ||
-	(answer = malloc(length + 1U)) == NULL) {
+    if ((length = (size_t) PQgetlength(qresult, 0, 0) + (size_t) 1U)
+        <= (size_t) 1U || (answer = malloc(length)) == NULL) {
         goto bye;
     }
-    strncpy(answer, PQgetvalue(qresult, 0, 0), length); 
-    answer[length] = 0;
+    strncpy(answer, PQgetvalue(qresult, 0, 0), length - (size_t) 1U);
+    answer[length - (size_t) 1U] = 0;
     
     bye:
     if (qresult != NULL) {

@@ -229,11 +229,12 @@ static char *pw_mysql_getquery(MYSQL * const id_sql_server,
                                const char * const peer_ip,
                                const char * const decimal_ip)
 {
+    char query[MYSQL_MAX_REQUEST_LENGTH];    
     MYSQL_RES *qresult = NULL;
     unsigned long *lengths;
+    char *answer = NULL;    
     MYSQL_ROW row;
-    char *answer = NULL;
-    char query[MYSQL_MAX_REQUEST_LENGTH];
+    size_t length;
     
     if (orig_query == NULL || *orig_query == 0) {
         goto bye;
@@ -259,14 +260,15 @@ static char *pw_mysql_getquery(MYSQL * const id_sql_server,
         goto bye;
     }
     lengths = mysql_fetch_lengths(qresult);
-    if (lengths == NULL || lengths[0] <= 0U) {
+    if (lengths == NULL || 
+        (length = (size_t) lengths[0] + (size_t) 1U) <= (size_t) 1U) {
         goto bye;
     }
-    if ((answer = malloc(lengths[0] + 1U)) == NULL) {
+    if ((answer = malloc(length)) == NULL) {
         goto bye;
     }
-    strncpy(answer, row[0], lengths[0]);
-    answer[lengths[0]] = 0;
+    strncpy(answer, row[0], length - (size_t) 1U);
+    answer[length - (size_t) 1U] = 0;
     
     bye:
     if (qresult != NULL) {
@@ -303,7 +305,6 @@ void pw_mysql_check(AuthResult * const result,
     char *escaped_port = NULL;
     char *escaped_peer_ip = NULL;
     char *escaped_decimal_ip = NULL;    
-    char *scrambled_password = NULL;
     int committed = 1;
     int crypto_crypt = 0, crypto_mysql = 0, crypto_md5 = 0, crypto_plain = 0;
     unsigned long decimal_ip_num = 0UL;
@@ -417,25 +418,12 @@ void pw_mysql_check(AuthResult * const result,
         }
     }
     if (crypto_mysql != 0) {
-        unsigned int t;
-        unsigned char t1, t2;
+        unsigned long hash_res[2];
+        char scrambled_password[MYSQL_CRYPT_LEN];
         
-        if ((scrambled_password = 
-             malloc((size_t) (MYSQL_CRYPT_LEN + 2))) == NULL) {
-            goto bye;
-        }
-        t = zrand();
-        t1 = t & 0xff;
-        t2 = (t >> 8) & 0xff;
-        scrambled_password[MYSQL_CRYPT_LEN] = (char) t1;
-        scrambled_password[MYSQL_CRYPT_LEN + 1] = (char) t2;        
-        make_scrambled_password(scrambled_password, password);
-        if ((unsigned char) scrambled_password[MYSQL_CRYPT_LEN] != t1 ||
-            (unsigned char) scrambled_password[MYSQL_CRYPT_LEN + 1] != t2) {
-            for (;;) {
-                *scrambled_password++ = 0;
-            }
-        }
+        hash_password(hash_res, password);
+        snprintf(scrambled_password, sizeof scrambled_password, "%08lx%08lx", 
+                 hash_res[0], hash_res[1]);
         if (strcmp(scrambled_password, spwd) == 0) {
             goto auth_ok;
         }
@@ -573,9 +561,6 @@ void pw_mysql_check(AuthResult * const result,
     }
     if (dir != NULL) {
         free((void *) dir);
-    }
-    if (scrambled_password != NULL) {
-        free(scrambled_password);
     }
 #ifdef QUOTAS
     if (sqta_fs != NULL) {

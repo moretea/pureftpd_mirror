@@ -30,10 +30,10 @@ merged them (and it wasn't painless), added my own ones, cleaned up the code,
 audited it, repackaged it, rewrote the documentation... and the Pure-FTPd
 project was born.
 
-The first released version of Pure-FTPd was labeled 0.90 because I'd like
+The first released version of Pure-FTPd was labeled 0.90 because I wanted
 some margin before 1.00, just to add missing features that prevent people
-with moving from other FTP servers. Also the documentation was needing to be
-fully updated before version 1.00 . It was based on Troll-FTPd 1.25, and
+from moving from other FTP servers. Also the documentation was in need for
+a full update before version 1.00 . It was based on Troll-FTPd 1.25, and
 changes from 1.26 were backported.
 
 Troll-FTPd 1.26 and earlier are vulnerable to a local root exploit

@@ -36,7 +36,7 @@
 
 #include "ftpd.h"
 #include "bsd-realpath.h"
-#if !defined(HAVE_REALPATH) || defined(BROKEN_REALPATH)
+#if !defined(HAVE_REALPATH) || defined(USE_BUILTIN_REALPATH)
 
 # ifdef WITH_DMALLOC
 #  include <dmalloc.h>
@@ -59,14 +59,25 @@
  */
 char *bsd_realpath(const char *path, char *resolved)
 {
+    char wbuf[MAXPATHLEN + 1U];
+    char origpath[MAXPATHLEN + 1U];
+    char *p, *q;    
     struct stat sb;
-    int fd, n, rootd, serrno;
-    char *p, *q, wbuf[MAXPATHLEN + 1U];
+    int fd, n, needslash, serrno;
     unsigned int symlinks = 0U;
     const size_t sizeof_resolved = MAXPATHLEN;
 
-    /* Save the starting point. */
-    if ((fd = open(".", O_RDONLY)) == -1) {
+    /* 
+     * Save the starting point.
+     * The right way to do it is obviously to use open()/fchdir(),
+     * but unfortunately it will fail if the directory is not readable by
+     * the current user. We fall back to the raceful getcwd()/chdir() path
+     * though, because in this context this is harmless : the process is
+     * already owned by the logged user so no nasty security flaw can occur.
+     * Don't blindly reuse this modified code in a different context.
+     */
+    if ((fd = open(".", O_RDONLY)) == -1 &&
+        getcwd(origpath, sizeof origpath - (size_t) 1U) == NULL) {
         resolved[0] = '.';
         resolved[1] = 0;
         
@@ -74,7 +85,7 @@ char *bsd_realpath(const char *path, char *resolved)
     }
 
     /* Convert "." -> "" to optimize away a needless lstat() and chdir() */
-    if (path[0] == '.' && path[1] == '\0') {
+    if (path[0] == '.' && path[1] == 0) {
         path = "";
     }
     
@@ -118,7 +129,7 @@ char *bsd_realpath(const char *path, char *resolved)
     }
 
     /* Deal with the last component. */
-    if (*p != '\0' && lstat(p, &sb) == 0) {
+    if (*p != 0 && lstat(p, &sb) == 0) {
         if (S_ISLNK(sb.st_mode)) {
             if (symlinks >= MAXSYMLINKS) {
 #ifdef ELOOP
@@ -127,8 +138,8 @@ char *bsd_realpath(const char *path, char *resolved)
                 goto err1;
             }
             symlinks++;
-            n = readlink(p, resolved, sizeof resolved);
-            if (n < 0) {
+            n = readlink(p, resolved, sizeof_resolved - (size_t) 1U);
+            if (n < 1 || n >= sizeof_resolved) {
                 goto err1;
             }
             resolved[n] = 0;
@@ -146,8 +157,8 @@ char *bsd_realpath(const char *path, char *resolved)
      * Save the last component name and get the full pathname of
      * the current directory.
      */
-    (void) strncpy(wbuf, p, sizeof wbuf);
-    wbuf[sizeof wbuf - 1U] = 0;
+    (void) strncpy(wbuf, p, sizeof wbuf - (size_t) 1U);
+    wbuf[sizeof wbuf - (size_t) 1U] = 0;
     if (getcwd(resolved, sizeof_resolved) == NULL) {
         goto err1;
     }
@@ -157,43 +168,48 @@ char *bsd_realpath(const char *path, char *resolved)
      * happens if the last component is empty, or the dirname is root.
      */
     if (resolved[0] == '/' && resolved[1] == 0) {
-        rootd = 1;
+        needslash = 0;
     } else {
-        rootd = 0;
+        needslash = 1;
     }
 
-    if (*wbuf) {
-        if (strlen(resolved) + strlen(wbuf) + rootd + 1U > sizeof_resolved) {
+    if (*wbuf != 0) {
+        if (strlen(resolved) + strlen(wbuf) + (size_t) needslash +
+            (size_t) 1U > sizeof_resolved) {
 #ifdef ENAMETOOLONG
             errno = ENAMETOOLONG;
 #endif
             goto err1;
         }
-        if (rootd == 0) {
+        if (needslash != 0) {
             (void) strcat(resolved, "/");   /* flawfinder: ignore - safe */
         }
         (void) strcat(resolved, wbuf); /* flawfinder: ignore - safe, see above */
     }
 
+    bye:
+    serrno = errno;    
     /* Go back to where we came from. */
-    if (fchdir(fd) < 0) {
-        serrno = errno;
-        goto err2;
+    if (fd != -1) {
+        if (fchdir(fd) != 0) {
+            serrno = errno;
+            (void) close(fd);
+            errno = serrno;
+            
+            return NULL;
+        }
+        /* It's okay if the close fails, what's an fd more or less? */
+        (void) close(fd);        
+    } else if (chdir(origpath) != 0) {
+        return NULL;
     }
-
-    /* It's okay if the close fails, what's an fd more or less? */
-    (void) close(fd);
+    errno = serrno;
+    
     return resolved;
 
     err1:
-    serrno = errno;
-    (void) fchdir(fd);
-    
-    err2:
-    (void) close(fd);
-    errno = serrno;
-    
-    return NULL;
+    resolved = NULL;
+    goto bye;
 }
 
 #endif

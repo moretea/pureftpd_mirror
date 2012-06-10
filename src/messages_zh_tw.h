@@ -214,3 +214,7 @@
 #define MSG_ALIASES_LIST "以下的別名可用："
 #define MSG_PERUSER_MAX "無法接受來自同一使用者超過 %lu 的連線數"
 #define MSG_IPV6_OK "這部主機也歡迎IPv6的連線"
+#define MSG_TLS_INFO "SSL/TLS: 啟用 %s with %s, %d 位元加密"
+#define MSG_TLS_WEAK "SSL/TLS: 密碼不足"
+#define MSG_TLS_NEEDED "抱歉，此伺服器不接受明文式連線。\n" \
+    "請使用SSL/TLS的安全機制重新連線。"

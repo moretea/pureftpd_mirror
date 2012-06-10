@@ -8,6 +8,9 @@
 #ifdef WITH_DIRALIASES
 # include "diraliases.h"
 #endif
+#ifdef WITH_TLS
+# include "tls.h"
+#endif
 
 #ifdef WITH_DMALLOC
 # include <dmalloc.h>
@@ -81,8 +84,17 @@ int sfgets(void)
             if (readend >= cmdsize) {
                 break;
             }
-            while ((readen = read(0, cmd + readend, cmdsize - readend))
-                   < (ssize_t) 0 && errno == EINTR);
+#ifdef WITH_TLS
+            if (tls_cnx != NULL) {
+                while ((readen = SSL_read
+                        (tls_cnx, cmd + readend, cmdsize - readend))
+                       < (ssize_t) 0 && errno == EINTR);
+            } else
+#endif
+            {
+                while ((readen = read(0, cmd + readend, cmdsize - readend))
+                       < (ssize_t) 0 && errno == EINTR);
+            }
             if (readen <= (ssize_t) 0) {
                 return -2;
             }
@@ -268,6 +280,11 @@ void parser(void)
         }
 #endif
         if (!strcmp(cmd, "user")) {
+#ifdef WITH_TLS
+            if (enforce_tls_auth > 1 && tls_cnx == NULL) {
+                die(421, LOG_WARNING, MSG_TLS_NEEDED);
+            }
+#endif
             douser(arg);
         } else if (!strcmp(cmd, "acct")) {
             addreply(202, MSG_WHOAREYOU);
@@ -285,8 +302,37 @@ void parser(void)
             antiidle();
             addreply_noformat(215, "UNIX Type: L8");
             goto wayout;
+#ifdef WITH_TLS
+        } else if (enforce_tls_auth > 0 &&
+                   !strcmp(cmd, "auth") && !strcasecmp(arg, "tls")) {
+            addreply_noformat(234, "AUTH TLS OK.");
+            doreply();
+            if (tls_cnx == NULL) {
+                (void) tls_init_new_session();
+            }
+            goto wayout;
+        } else if (!strcmp(cmd, "pbsz")) {
+            addreply_noformat(tls_cnx == NULL ? 503 : 200, "PBSZ=0");
+        } else if (!strcmp(cmd, "prot")) {
+            if (tls_cnx == NULL) {
+                addreply_noformat(503, "PBSZ?");
+                goto wayout;
+            }
+            switch (*arg) {
+            case 0:
+                addreply_noformat(503, MSG_MISSING_ARG);
+                break;
+            case 'C':
+                if (arg[1] == 0) {
+                    addreply_noformat(200, "OK");
+                    break;
+                }
+            default:
+                addreply_noformat(534, "Fallback to [C]");
+                break;
+            }
+#endif
         } else if (!strcmp(cmd, "auth") || !strcmp(cmd, "adat")) {
-            /* RFC 2228 Page 5 Authentication/Security mechanism (AUTH) */
             addreply_noformat(500, MSG_AUTH_UNIMPLEMENTED);
         } else if (!strcmp(cmd, "type")) {
             antiidle();
@@ -417,8 +463,15 @@ void parser(void)
 #ifndef MINIMAL
             } else if (!strcmp(cmd, "stat")) {
                 if (*arg != 0) {
-                    modern_listings = 0;
-                    donlist(arg, 1, 1, 1);
+# ifdef WITH_TLS
+                    if (tls_cnx != NULL) {
+                        addreply_noformat(500, MSG_UNKNOWN_COMMAND);
+                    } else
+# endif
+                    {
+                        modern_listings = 0;
+                        donlist(arg, 1, 1, 1);
+                    }
                 } else {
                     addreply_noformat(211, "http://www.pureftpd.org/");
                 }

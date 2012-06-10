@@ -96,8 +96,8 @@ format. Pure-FTPd also accepts the "any" value for the MySQLCrypt field.
 With "any", all hashing functions (not plaintext) are tried.
 
 * RECOMMENDATION: On Solaris systems and on very old C libraries, use MySQL
-password() hashing. On all other systems, better use crypt(), which is
-probably more secure *
+MD5 hashing. On all other systems, better use crypt(), which adds a salt.
+Avoid password() whoose hash function is rather weak.
 
 - The system uid to map the user to. This can be a numeric id or an user
 name, looked up at run-time.
@@ -147,7 +147,7 @@ Please note that a login can only contains common characters: A...Z, a...z,
 0...9, -, ., _, space, :, @ and ' . For security purposes, other characters
 are forbidden.
 
-You can also remove uid and gid fields in your tables, and use default
+You can also remove uid and gid fields in your tables and use default
 values instead (thus saving useless lookups) . Two directives are
 useful to serve that purpose: MYSQLDefaultUID and MYSQLDefaultGID.
 
@@ -208,7 +208,7 @@ MySQLTransactions On
 
 Don't enable transactions on tables that still are in ISAM or MyISAM
 formats. Transactions are only working with newer backends (Gemini, InnoDB,
-BerkeleyDB...), and in recent MySQL versions.
+BerkeleyDB...) and in recent MySQL versions.
 
 
       ------------------------ ANONYMOUS USERS ------------------------

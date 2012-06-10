@@ -135,7 +135,7 @@ Please note that a login can only contains common characters: A...Z, a...z,
 0...9, -, ., _, space, :, @ and  and ' . For security purposes, other
 characters are forbidden.
 
-You can also remove uid and gid fields in your tables, and use default
+You can also remove uid and gid fields in your tables and use default
 values instead (thus saving useless lookups) . Two directives are
 useful to serve that purpose: PGSQLDefaultUID and PGSQLDefaultGID.
 
@@ -203,7 +203,7 @@ queries.
 Hint:
 
 PostgreSQL supports views and it's common practice to define a new DB
-user, e.g., ftpd, and a view of the 'real' user database with just the
+user, e.g., ftpd and a view of the 'real' user database with just the
 bits that the server needs. E.g., if you have virtual domains you
 could use:
 

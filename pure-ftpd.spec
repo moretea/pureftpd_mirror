@@ -1,6 +1,5 @@
 %define name       pure-ftpd
-%define version    1.0.15
-%define release    1
+%define version    1.0.16a
 %define builddir   $RPM_BUILD_DIR/%{name}-%{version}
 %define no_install_post_compress_docs    1
 %define con_pam    0
@@ -26,7 +25,14 @@
 %define con_largefile 0
 %define con_boring 0
 %define con_privsep 0
+%define con_tls 0
 %define con_sysquotas 0
+
+%if %{con_tls}
+%define release    1.tls
+%else
+%define release    1
+%endif
 
 #dont change these. Use --define instead. See below.
 %define prefixdef  /usr/local
@@ -57,6 +63,7 @@
 %{?with_largefile:%define con_largefile 1}
 %{?with_boring:%define con_boring 1}
 %{?with_privsep:%define con_privsep 1}
+%{?with_tls:%define con_tls 1}
 %{?with_sysquotas:%define con_sysquotas 1}
 
 #If you don't like the prefix '/usr/local' you can override it like this:
@@ -175,6 +182,9 @@ CFLAGS="$RPM_OPT_FLAGS" ./configure --prefix=%{prefix} \
 %if %{con_privsep}
   --with-privsep \
 %endif  
+%if %{con_tls}
+  --with-tls \
+%endif  
 %if %{con_sysquotas}
   --with-sysquotas \
 %endif  
@@ -276,7 +286,7 @@ install -m 755 configuration-file/pure-config.pl_replaced $RPM_BUILD_ROOT%{prefi
 %{_mandir}/man8/*
 
 %defattr(-, root, root)
-%doc FAQ THANKS README.Authentication-Modules README.Windows README.Virtual-Users README.Debian README README.Contrib README.Configuration-File pureftpd.schema AUTHORS CONTACT HISTORY NEWS README.LDAP README.PGSQL README.MySQL README.Netfilter pureftpd-ldap.conf pureftpd-mysql.conf pureftpd-pgsql.conf
+%doc FAQ THANKS README.Authentication-Modules README.Windows README.Virtual-Users README.Debian README README.Contrib README.Configuration-File pureftpd.schema AUTHORS CONTACT HISTORY NEWS README.LDAP README.PGSQL README.MySQL README.Netfilter README.TLS pureftpd-ldap.conf pureftpd-mysql.conf pureftpd-pgsql.conf
 
 %config(noreplace) %{sysconfdir}/*.conf
 %if %{con_pam}

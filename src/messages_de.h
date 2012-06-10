@@ -214,3 +214,7 @@
 #define MSG_ALIASES_LIST "Folgende Aliase stehen zur Verfügung:"
 #define MSG_PERUSER_MAX "Mehr als %lu Verbindungen vom selben Benutzer sind nicht erlaubt"
 #define MSG_IPV6_OK "Auf diesem Server sind auch IPv6-Verbindungen willkommen"
+#define MSG_TLS_INFO "SSL/TLS: %s Verschlüsselung mit %s, %d bit Schlüssellänge"
+#define MSG_TLS_WEAK "SSL/TLS: Verschlüsselung zu schwach"
+#define MSG_TLS_NEEDED "Sorry, unverschlüsselte Sitzungen werden auf diesem Server nicht akzeptiert.\n" \
+    "Bitte verbinden Sie sich mittels SSL/TLS-Verschlüsselung"
