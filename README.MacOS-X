@@ -2,14 +2,9 @@
 
    ------------------------ MACOS X SPECIFIC NOTES ------------------------
 
+
   To get Pure-FTPd authenticate against system users on MacOS X (at least
-since version 10.3) you need to use PAM. In order to make PAM work you
-currently have to:
-  
-$ cd /usr/include
-$ ln -s pam security
-     
-  Then configure and build.
+since version 10.3) you need to use PAM.
        
 $ ./configure --with-pam <your other favorite options like --with-everything>
 $ make install-strip
@@ -44,7 +39,7 @@ session required pam_uwtmp.so
 $ kill -HUP $(cat /var/run/xinetd.pid)
  
 
-  To take advantage of Rendezvous, please add --with-rendezvous to ./configure
-switches and give the server a Rendezvous service name with the -v (--rendezvous=)
+  To take advantage of Bonjour, please add --with-bonjour to ./configure
+switches and give the server a Bonjour service name with the -v (--bonjour=)
 switch.
 

@@ -218,3 +218,4 @@
 #define MSG_TLS_WEAK "SSL/TLS: Titkosítás túl gyenge"
 #define MSG_TLS_NEEDED "Hiba, cleartext belépési forma nem engedélyezett.\n" \
     "Kérem kapcsolódjon újra SSL/TLS biztonsági módot használva."
+#define MSG_ILLEGAL_CHARSET "Illegal charset"

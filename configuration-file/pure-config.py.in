@@ -1,8 +1,8 @@
 #! @PYTHON@
 
-#  Authors Unknown of original pure-config.py
+#  Original pure-config.py by Frank Denis <j@pureftpd.org>
 #  Copyright 2001 by Joshua Rodman <joshua_rodman@yahoo.com>,
-#  Modifications Copyright 2001-2004 by Matthias Andree
+#  Modifications Copyright 2001-2006 by Matthias Andree
 #  
 #                All Rights Reserved
 # 
@@ -55,6 +55,8 @@ comment = re.compile("[ ]*#+.*")
 option_tuple = (
     ["IPV4Only[\s]+yes",                   "-4"                  ],
     ["IPV6Only[\s]+yes",                   "-6"                  ],    
+    ["FileSystemCharset\s+(\S+)",          "-8", None            ],
+    ["ClientCharset\s+(\S+)",              "-9", None            ],    
     ["ChrootEveryone[\s]+yes",             "-A"                  ],
     ["TrustedGID[\s]+([\d]+)",             "-a", None            ],
     ["BrokenClientsCompatibility[\s]+yes", "-b"                  ],

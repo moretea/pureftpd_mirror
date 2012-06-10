@@ -288,7 +288,9 @@ int main(int argc, char *argv[])
     (void) setlocale(LC_COLLATE, "");
 # endif
 #endif           
-    
+
+    tzset();
+	
     while ((fodder = getopt(argc, argv, "d:g:u:h")) != -1) {
         switch(fodder) {
         case 'h':
@@ -346,11 +348,11 @@ int main(int argc, char *argv[])
         return -1;
     }
     if (uid <= (uid_t) 0) {
-        fprintf(stderr, "Invalid/insecure uid - must be > 0\n");
+        fprintf(stderr, "Invalid/insecure/missing uid - must be > 0\n");
         return -2;
     }
     if (gid <= (gid_t) 0) {
-        fprintf(stderr, "Invalid/insecure gid - must be > 0\n");
+        fprintf(stderr, "Invalid/insecure/missing gid - must be > 0\n");
         return -2;
     }
     if (isroot != 0) {

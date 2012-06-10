@@ -227,6 +227,13 @@ tab and :
   SSL/TLS is automatically detected and works out of the box.
 
 
+* RBrowser (MacOS X)
+  URL: http://www.rbrowser.com/
+  
+  A cute graphical client for MacOS that was reported to work by Jason Rust
+and Robert Vasvari.
+
+
 * FTPTLS (OpenBSD, possibly other Unices as well)
   URL: http://www-user.tu-chemnitz.de/~grmo/ftptls/
   Port: http://www-user.tu-chemnitz.de/~grmo/ftptls/port/ftptls-port.tar.gz
@@ -239,6 +246,14 @@ tab and :
   URL: http://secureftp.glub.com/
 
   SSL/TLS is automatically detected and works out of the box.
+
+
+* FileZilla (Windows)
+  URL: http://filezilla.sourceforge.net
+  
+  SSL/TLS works. In the "Site details" dialog box, pick "FTP over TLS
+(explicit encryption)" as the "Servertype".
+  Reported by Philip Hallstrom.
 
 
 The following clients are _not_ compatible with Pure-FTPd's TLS :

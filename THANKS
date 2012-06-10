@@ -239,8 +239,3 @@ STOU command.
 * Oscar Sundbon <moose@djuren.org> - Fixed pastos in pid files removal.
 * Agri <agri@desnol.ru> reported that some write() were still in blocking mode
 before forking after a new connection was accepted.
-
-
-In the memory of all people dead because brain-damaged people think they can
-live in a better world by killing their fellow men.
-

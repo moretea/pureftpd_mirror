@@ -111,11 +111,11 @@ name, looked up at run-time.
 Here's a dump of a simple table to handle this:
 
 CREATE TABLE users (
-  User varchar(16) NOT NULL default '',
-  Password varchar(64) NOT NULL default '',
-  Uid int(11) NOT NULL default '-1',
-  Gid int(11) NOT NULL default '-1',
-  Dir varchar(128) NOT NULL default '',
+  User VARCHAR(16) BINARY NOT NULL,
+  Password VARCHAR(64) BINARY NOT NULL,
+  Uid INT(11) NOT NULL default '-1',
+  Gid INT(11) NOT NULL default '-1',
+  Dir VARCHAR(128) BINARY NOT NULL,
   PRIMARY KEY  (User)
 );
 
@@ -144,6 +144,9 @@ You can mix all of these to store info in various tables. For instance, with
 \I, you can have a different table for every domain, so that joe@domain1
 won't be the same account than joe@domain2 . And with \R, you can restrict
 one account to one specific address.
+
+With MySQL 4.1 and later, multiple statements can be used using a semicolumn
+(";") as a delimiter.
 
 Please note that a login can only contains common characters: A...Z, a...z,
 0...9, -, ., _, space, :, @ and ' . For security purposes, other characters
@@ -211,6 +214,22 @@ MySQLTransactions On
 Don't enable transactions on tables that still are in ISAM or MyISAM
 formats. Transactions are only working with newer backends (Gemini, InnoDB,
 BerkeleyDB...) and in recent MySQL versions.
+
+
+     ------------------------ STORED PROCEDURES ------------------------
+
+
+Mike Goins says:
+
+To get pure-ftp to use a MySQL 5 stored procedure, use statements like:
+
+MYSQLGetDir   CALL get_path_from_name("\L")
+instead of
+MYSQLGetDir   SELECT user_dir FROM user WHERE user_name="\L"
+
+Note that this requires the type of Stored Procedure that returns a result set
+in a single call as opposed to the two call method:
+CALL sp('value', @a); SELECT @a
 
 
       ------------------------ ANONYMOUS USERS ------------------------

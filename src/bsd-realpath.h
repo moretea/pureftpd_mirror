@@ -15,7 +15,7 @@
 #endif
 
 #if !defined(HAVE_REALPATH) || defined(USE_BUILTIN_REALPATH)
-char *bsd_realpath(const char *path, char *resolved);
+char *bsd_realpath(const char *path, char resolved[MAXPATHLEN]);
 # define realpath(A, B) bsd_realpath(A, B)
 #endif
 

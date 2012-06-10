@@ -218,3 +218,4 @@
 #define MSG_TLS_WEAK "SSL/TLS: Cifrado demasiado débil"
 #define MSG_TLS_NEEDED "Lo siento. No se aceptan sesiones sin cifrar en este servidor.\n" \
     "Por favor, vuelva a conectar utilizando mecanismos de seguridad SSL/TLS."
+#define MSG_ILLEGAL_CHARSET "Illegal charset"

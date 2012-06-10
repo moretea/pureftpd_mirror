@@ -1,7 +1,7 @@
 dnl AM_ACLOCAL_INCLUDE(m4)
 
-AC_PREREQ(2.58)
-AC_INIT([pure-ftpd],[1.0.20],[bugs@pureftpd.org])
+AC_PREREQ(2.59)
+AC_INIT([pure-ftpd],[1.0.21],[bugs@pureftpd.org])
 AC_CONFIG_SRCDIR(src/ftpd.c)
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([1.6 dist-bzip2])
@@ -63,7 +63,10 @@ AC_CHECK_HEADERS(sys/mount.h, [], [],
 # include <sys/param.h>
 #endif])
 AC_CHECK_HEADERS(fcntl.h sys/fcntl.h sys/loadavg.h sys/ptrace.h)
-AC_CHECK_HEADERS(security/pam_appl.h security/pam_misc.h security/pam_filter.h)
+AC_CHECK_HEADERS(security/pam_appl.h security/pam_misc.h)
+AC_CHECK_HEADERS(security/pam_modules.h security/pam_filter.h)
+AC_CHECK_HEADERS(pam/pam_appl.h pam/pam_misc.h pam/pam_modules.h)
+AC_CHECK_HEADERS(pam/pam_filter.h)
 AC_CHECK_HEADERS(sgtty.h termio.h)
 AC_CHECK_HEADERS(locale.h)
 AC_CHECK_HEADERS(stdarg.h varargs.h)
@@ -72,7 +75,10 @@ AC_CHECK_HEADERS(crypt.h)
 AC_CHECK_HEADERS(utime.h)
 AC_CHECK_HEADERS(openssl/ssl.h)
 AC_CHECK_HEADERS(CoreFoundation/CoreFoundation.h)
+AC_CHECK_HEADERS(iconv.h)
 AC_SYS_POSIX_TERMIOS
+AC_SYS_LARGEFILE
+AC_DEFINE(WITH_LARGE_FILES,,[with largefile])
 
 if test "x$ac_cv_sys_posix_termios" = "xyes"; then
 AC_DEFINE(HAVE_POSIX_TERMIOS,,[Define if you have POSIX termios])
@@ -320,6 +326,12 @@ AC_ARG_WITH(sendfile,
     AC_DEFINE(DISABLE_SENDFILE,,[without sendfile])
   fi ])
 
+AC_ARG_WITH(cork,
+[AS_HELP_STRING(--without-cork,Don't use TCP_CORK optimization)],
+[ if test "x$withval" = "xno" ; then
+    AC_DEFINE(DISABLE_CORK,,[without cork])
+  fi ])
+
 AC_ARG_WITH(boring,
 [AS_HELP_STRING(--with-boring,Display only boring messages)],
 [ if test "x$withval" = "xyes" ; then
@@ -354,7 +366,7 @@ AC_ARG_WITH(minimal,
   fi ])
 
 AC_ARG_WITH(paranoidmsg,
-[AS_HELP_STRING(--with-paranoidmsg,Use paranoid, but not admin-friendly messages)],
+[AS_HELP_STRING(--with-paranoidmsg,Use paranoid but not admin-friendly messages)],
 [ if test "x$withval" = "xyes" ; then
     AC_DEFINE(PARANOID_MESSAGES,,[with paranoidmsg])
   fi ])
@@ -390,7 +402,8 @@ AC_ARG_WITH(pam,
   fi ])
 
 if test "x$with_pam" = "xyes" ; then
-  if test "x$ac_cv_header_security_pam_appl_h" != "xyes" ; then
+  if test "x$ac_cv_header_security_pam_appl_h" != "xyes" &&
+     test "x$ac_cv_header_pam_pam_appl_h" != "xyes"; then
     AC_MSG_ERROR(PAM headers not found.)  
   else
     AC_CHECK_LIB(dl, dlopen, , )
@@ -567,6 +580,33 @@ do {
   AC_MSG_RESULT(no)
 ])  
 
+AC_MSG_CHECKING([if a linuxish sendfile64 is available])
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
+#include <sys/types.h>
+#include <sys/socket.h>
+#ifdef HAVE_SYS_UIO_H
+# include <sys/uio.h>
+#endif
+#ifdef HAVE_SYS_SENDFILE_H
+# include <sys/sendfile.h>
+#endif
+]], [[
+do {
+ int fd = 0;
+ off_t *off = NULL;
+ size_t cnt = (size_t) 0;
+ 
+ (void) sendfile64(fd, fd, off, cnt);
+} while(0)
+]])],[
+  AC_MSG_RESULT(yes)
+  AC_DEFINE(SENDFILE64_LINUX,,[define if you have a linuxish sendfile64])
+],[
+  AC_MSG_RESULT(no)
+])
 
 AC_MSG_CHECKING([if a freebsdish sendfile is available])
 AC_LINK_IFELSE([AC_LANG_PROGRAM([[
@@ -679,10 +719,9 @@ AC_ARG_WITH(ftpwho,
   fi ])
 
 AC_ARG_WITH(largefile,
-[AS_HELP_STRING(--with-largefile,Support for files > 2 Gb (may be slower))],
+[AS_HELP_STRING(--with-largefile,Support for files > 2 Gb)],
 [ if test "x$withval" = "xyes" ; then
-    AC_SYS_LARGEFILE
-    AC_DEFINE(WITH_LARGE_FILES,,[with largefile])
+    AC_MSG_WARN(Support for large files is now enabled by default)
   fi ])
 
 AC_ARG_WITH(welcomemsg,
@@ -716,7 +755,8 @@ AC_ARG_WITH(diraliases,
   fi ])
 
 AC_ARG_WITH(nonroot,
-[AS_HELP_STRING(--with-nonroot,Non-root FTP)],
+[AS_HELP_STRING(--with-nonroot,[Unprivileged, limited mode. Only enable this
+option if you really don't have root privileges on the server host.])],
 [ if test "x$withval" = "xyes" ; then
       AC_DEFINE(NON_ROOT_FTP,,[with nonroot])
       AC_DEFINE(WITH_VIRTUAL_CHROOT)
@@ -751,7 +791,7 @@ AC_ARG_WITH(everything,
     AC_DEFINE(FTPWHO)
     AC_DEFINE(WITH_DIRALIASES)
     AC_DEFINE(PER_USER_LIMITS)
-    with_rendezvous='yes'
+    with_bonjour='yes'
   fi ])
 
 AC_ARG_WITH(language,
@@ -823,11 +863,23 @@ AC_FUNC_STAT
 AC_FUNC_VPRINTF
 AC_FUNC_GETLOADAVG(src)
 AC_FUNC_GETGROUPS
+AC_FUNC_WAIT3
+AC_FUNC_UTIME_NULL
+AC_FUNC_STRTOD
+AC_FUNC_SELECT_ARGTYPES
+AC_FUNC_MKTIME
+AC_FUNC_LSTAT
+AC_FUNC_FORK
+AC_FUNC_ERROR_AT_LINE
+AC_FUNC_CLOSEDIR_VOID
+AC_C_VOLATILE
+
 
 AC_CHECK_FUNCS(initgroups setrlimit waitpid setproctitle getopt_long)
 AC_CHECK_FUNCS(seteuid setreuid setresuid setegid setregid setresgid)
 AC_CHECK_FUNCS(statvfs statfs putenv getpagesize realpath pread ptrace)
 AC_CHECK_FUNCS(strtoull strtoq)
+AC_CHECK_FUNCS(strlcpy strlcat)
 AC_CHECK_FUNCS(memset munmap strdup fileno mapviewoffile madvise)
 AC_CHECK_FUNCS(getaddrinfo getnameinfo inet_ntop inet_pton)
 AC_CHECK_FUNCS(setusershell setgroups snprintf vsnprintf vfprintf gethostname)
@@ -973,7 +1025,7 @@ int main(void)
 }
 ]])],[
 AC_MSG_RESULT(yes)
-AC_DEFINE(REALPATH_IGNORES_UNREADABLE_DIRECTORIES,,
+AC_DEFINE(REALPATH_WORKS_WITH_UNREADABLE_DIRECTORIES,,
 [Define if realpath() works on unreadable directories])
 ],[AC_MSG_RESULT(no)
 AC_DEFINE(USE_BUILTIN_REALPATH)
@@ -1236,21 +1288,35 @@ AC_ARG_WITH(certfile,
       AC_MSG_WARN(No certificate is installed in $certfile yet)
     fi
   fi ])
-  
-AC_ARG_WITH(rendezvous,
-[AS_HELP_STRING(--with-rendezvous,Enable Rendezvous support on MacOS X (experimental))],
+
+AC_ARG_WITH(rfc2640,
+[AS_HELP_STRING(--with-rfc2640,Enable RFC 2640 (UTF-8 encoding for file names) support (experimental, needs iconv))],
 [ if test "x$withval" = "xyes" ; then
-    with_rendezvous="yes"
+    with_rfc2640="yes"
   fi ])
 
-if test "x$with_rendezvous" = "xyes" ; then
+if test "x$with_rfc2640" = "xyes" ; then
+  if test "x$ac_cv_header_iconv_h" != "xyes" ; then
+    AC_MSG_ERROR(iconv headers not found.)  
+  fi
+  AC_CHECK_LIB(iconv, libiconv)
+  AC_DEFINE(WITH_RFC2640,,[Enable RFC2640 (UTF-8) support])
+fi
+
+AC_ARG_WITH(bonjour,
+[AS_HELP_STRING(--with-bonjour,Enable Bonjour support on MacOS X)],
+[ if test "x$withval" = "xyes" ; then
+    with_bonjour="yes"
+  fi ])
+
+if test "x$with_bonjour" = "xyes" ; then
   if test "x$ac_cv_header_CoreFoundation_CoreFoundation_h" = "xyes" ; then
-    AC_DEFINE(WITH_OSX_RENDEZVOUS,,[Enable Rendezvous on MacOS X])
-    RENDEZVOUS_LDADD='-framework CoreFoundation -framework CoreServices'
+    AC_DEFINE(WITH_OSX_BONJOUR,,[Enable Bonjour on MacOS X])
+    BONJOUR_LDADD='-framework CoreFoundation -framework CoreServices'
   fi
 fi
 
-AC_SUBST(RENDEZVOUS_LDADD)
+AC_SUBST(BONJOUR_LDADD)
 
 if test "x$sysconfdir" = 'xNONE' || test "x$sysconfdir" = 'x'; then
   CONFDIR='/etc'

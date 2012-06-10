@@ -218,3 +218,4 @@
 #define MSG_TLS_WEAK "SSL/TLS: Krypteringsnøkkelen er for svak"
 #define MSG_TLS_NEEDED "Beklager, klartekst-forbindelser er ikke tillatt på denne serveren.\n" \
     "Vær vennlig å koble til på nytt ved bruk av SSL/TLS-sikkerhetsmekanismer."
+#define MSG_ILLEGAL_CHARSET "Illegal charset"

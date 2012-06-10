@@ -294,6 +294,18 @@ enabled.
 
     URL encoding for CLF and W3C log files.
 
+* Jui-Nan Lin
+
+    RFC2640 Support.
+
+* Old Sparty
+
+    --pidfile= option for pure-authd and pure-uploadscript.
+
+* Patrick Gosling
+
+    Fix for file uploads
+
 * Frank DENIS aka Jedi/Sector One <j@pureftpd.org> :
 
     Pure-FTPd project initiator and maintainer.

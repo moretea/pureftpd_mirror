@@ -156,7 +156,7 @@ static int glob_(const char *pattern,
     if (flags & GLOB_NOESCAPE) {
         while (bufnext < bufend && (c = *patnext++) != EOS) {
             *bufnext++ = (Char) c;
-    }
+	}
     } else {
         /* Protect the quoted characters. */
         while (bufnext < bufend && (c = *patnext++) != EOS) {
@@ -204,7 +204,7 @@ sglob(char *pattern,
 static int globexp1(const Char * pattern, glob_t * pglob, int recursion)
 {
     const Char *ptr = pattern;
-    int rv;
+    int rv = 0;
 
     if (pglob->gl_maxdepth > 0 && recursion > pglob->gl_maxdepth) {
         errno = 0;
@@ -571,7 +571,7 @@ glob3(Char * pathbuf, Char * pathbuf_last, Char * pathend,
       Char * restpattern_last, glob_t * pglob, size_t * limitp,
       int recursion)
 {
-    register struct dirent *dp;
+    struct dirent *dp;
     DIR *dirp;
     int err;
     char buf[MAXPATHLEN + 1];
@@ -603,8 +603,8 @@ glob3(Char * pathbuf, Char * pathbuf_last, Char * pathend,
     err = 0;
 
     while ((dp = (*readdir) (dirp))) {
-        register unsigned char *sc;
-        register Char *dc;
+        unsigned char *sc;
+        Char *dc;
 
         /* Initial DOT must be matched literally. */
         if (dp->d_name[0] == DOT && *pattern != DOT) {
@@ -656,7 +656,7 @@ glob3(Char * pathbuf, Char * pathbuf_last, Char * pathend,
  */
 static int globextend(const Char * path, glob_t * pglob, size_t * limitp)
 {
-    register char **pathv;
+    char **pathv;
     unsigned int newsize;
     size_t len;
     char *copy;
@@ -707,7 +707,7 @@ static int globextend(const Char * path, glob_t * pglob, size_t * limitp)
  * pattern causes a recursion level.
  */
 static int
-match(register Char * name, register Char * pat, register Char * patend)
+match(Char * name, Char * pat, Char * patend)
 {
     int ok, negate_range;
     Char c, k;
@@ -762,8 +762,8 @@ match(register Char * name, register Char * pat, register Char * patend)
 /* Free allocated data belonging to a glob_t structure. */
 void globfree(glob_t * pglob)
 {
-    register int i;
-    register char **pp;
+    int i;
+    char **pp;
 
     if (pglob->gl_pathv != NULL) {
         pp = pglob->gl_pathv;
@@ -775,7 +775,7 @@ void globfree(glob_t * pglob)
     }
 }
 
-static DIR *g_opendir(register Char * str)
+static DIR *g_opendir(Char * str)
 {
     char buf[MAXPATHLEN + 1];
 
@@ -789,7 +789,7 @@ static DIR *g_opendir(register Char * str)
     return (opendir(buf));
 }
 
-static int g_lstat(register Char * fn, struct stat *sb)
+static int g_lstat(Char * fn, struct stat *sb)
 {
     char buf[MAXPATHLEN + 1];
 
@@ -807,7 +807,7 @@ static const Char *g_strchr(const Char * str, int ch)
     return NULL;
 }
 
-static int g_Ctoc(register const Char * str, char *buf, unsigned int len)
+static int g_Ctoc(const Char * str, char *buf, unsigned int len)
 {
     while (len--) {
         if ((*buf++ = (char) *str++) == EOS)

@@ -97,11 +97,11 @@ name, looked up at run-time.
 Here's a dump of a simple table to handle this:
 
 CREATE TABLE "users" (
-  "User" varchar(16) NOT NULL default '',
-  "Password" varchar(64) NOT NULL default '',
-  "Uid" int(11) NOT NULL default '-1',
-  "Gid" int(11) NOT NULL default '-1',
-  "Dir" varchar(128) NOT NULL default '',
+  "User" CHAR(16) BINARY NOT NULL,
+  "Password" VARCHAR(64) BINARY NOT NULL,
+  "Uid" INT(11) NOT NULL default '-1',
+  "Gid" INT(11) NOT NULL default '-1',
+  "Dir" VARCHAR(128) BINARY NOT NULL,
   PRIMARY KEY ("User")
 );
 

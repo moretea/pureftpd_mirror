@@ -218,3 +218,4 @@
 #define MSG_TLS_WEAK "SSL/TLS: Chiffrement trop faible"
 #define MSG_TLS_NEEDED "Desole, les sessions en clair ne sont pas acceptees sur ce serveur.\n" \
     "Veuillez vous reconnecter en utilisant les mechanismes de securite SSL/TLS."
+#define MSG_ILLEGAL_CHARSET "Jeu de caracteres illegal"

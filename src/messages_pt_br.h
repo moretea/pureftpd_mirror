@@ -218,3 +218,4 @@
 #define MSG_TLS_WEAK "SSL/TLS: Criptografia muito fraca"
 #define MSG_TLS_NEEDED "Desculpe, sessões sem criptografia não são aceitas neste servidor.\n" \
     "Por favor reconecte-se usando mecanismos de segurança SSL/TLS."
+#define MSG_ILLEGAL_CHARSET "Illegal charset"

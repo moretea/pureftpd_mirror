@@ -9,9 +9,6 @@
 # define GLOBAL(A, B) extern A
 #endif
 
-#ifndef HAVE_SETPROCTITLE
-GLOBAL0(char *prg_name);                /* argv[0] */
-#endif
 GLOBAL0(unsigned long long downloaded);                /* bytes downloaded */
 GLOBAL0(unsigned long long uploaded);                /* bytes uploaded */
 GLOBAL0(signed char anon_only);         /* allows only anonymous connections */
@@ -171,4 +168,14 @@ GLOBAL0(signed char enforce_tls_auth);
 
 GLOBAL0(char *atomic_prefix);
 
+#endif
+
+#ifdef WITH_RFC2640
+GLOBAL(char utf8, 0);	/* 0: ascii 1: utf-8 */
+GLOBAL(char *charset_fs, NULL);
+GLOBAL(char *charset_client, NULL);
+GLOBAL(iconv_t iconv_fd_fs2client, NULL);
+GLOBAL(iconv_t iconv_fd_fs2utf8, NULL);
+GLOBAL(iconv_t iconv_fd_client2fs, NULL);
+GLOBAL(iconv_t iconv_fd_utf82fs, NULL);
 #endif

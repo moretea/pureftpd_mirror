@@ -1,10 +1,7 @@
-
+/*	$OpenBSD: realpath.c,v 1.13 2005/08/08 08:05:37 espie Exp $ */
 /*
- * Copyright (c) 1994
- *    The Regents of the University of California.  All rights reserved.
- *
- * This code is derived from software contributed to Berkeley by
- * Jan-Simon Pendry.
+ * realpath:
+ * Copyright (c) 2003 Constantin S. Svintsoff <kostik@iclub.nsu.ru>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -14,14 +11,14 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of the University nor the names of its contributors
- *    may be used to endorse or promote products derived from this software
- *    without specific prior written permission.
+ * 3. The names of the authors may not be used to endorse or promote
+ *    products derived from this software without specific prior written
+ *    permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
  * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
@@ -30,6 +27,24 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
+
+/*
+ * strlcpy() / strlcat():
+ * Copyright (c) 1998 Todd C. Miller <Todd.Miller@courtesan.com>
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+
 
 #include <config.h>
 #define FAKECHROOT_EXCEPTION 1
@@ -50,166 +65,227 @@
 #  define MAXSYMLINKS UINT_MAX
 # endif
 
+#ifndef HAVE_STRLCPY
 /*
- * char *realpath(const char *path, char resolved_path[MAXPATHLEN]);
- *
+ * Copy src to string dst of size siz.  At most siz-1 characters
+ * will be copied.  Always NUL terminates (unless siz == 0).
+ * Returns strlen(src); if retval >= siz, truncation occurred.
+ */
+static size_t strlcpy(char *dst, const char * const src, const size_t siz)
+{
+    char *d = dst;
+    const char *s = src;
+    size_t n = siz;
+    
+    /* Copy as many bytes as will fit */
+    if (n != 0 && --n != 0) {
+	do {
+	    if ((*d++ = *s++) == 0) {
+		break;
+	    }
+	} while (--n != 0);
+    }
+    
+    /* Not enough room in dst, add NUL and traverse rest of src */
+    if (n == 0) {
+	if (siz != 0) {
+	    *d = '\0';		/* NUL-terminate dst */
+	}
+	while (*s++) {
+	}
+    }    
+    return s - src - 1;	/* count does not include NUL */
+}
+#endif
+
+#ifndef HAVE_STRLCAT
+/*
+ * Appends src to string dst of size siz (unlike strncat, siz is the
+ * full size of dst, not space left).  At most siz-1 characters
+ * will be copied.  Always NUL terminates (unless siz <= strlen(dst)).
+ * Returns strlen(src) + MIN(siz, strlen(initial dst)).
+ * If retval >= siz, truncation occurred.
+ */
+static size_t strlcat(char *dst, const char * const src, const size_t siz)
+{
+    char *d = dst;
+    const char *s = src;
+    size_t n = siz;
+    size_t dlen;
+    
+    /* Find the end of dst and adjust bytes left but don't go past end */
+    while (n-- != 0 && *d != '\0') {
+	d++;
+    }
+    dlen = d - dst;
+    n = siz - dlen;    
+    if (n == 0) {
+	return dlen + strlen(s);
+    }
+    while (*s != '\0') {
+	if (n != 1) {
+	    *d++ = *s;
+	    n--;
+	}
+	s++;
+    }
+    *d = '\0';
+    
+    return dlen + (s - src);	/* count does not include NUL */
+}
+#endif
+
+/*
  * Find the real name of path, by removing all ".", ".." and symlink
- * components.  Returns (resolved) on success, or (NULL) on failure,
+ * components.  Returns resolved on success, or NULL on failure,
  * in which case the path which caused trouble is left in (resolved).
  */
-char *bsd_realpath(const char *path, char *resolved)
+char *bsd_realpath(const char *path, char resolved[MAXPATHLEN])
 {
-    char wbuf[MAXPATHLEN + 1U];
-    char origpath[MAXPATHLEN + 1U];
-    char *p, *q;    
     struct stat sb;
-    int fd, n, needslash, serrno;
-    unsigned int symlinks = 0U;
-    const size_t sizeof_resolved = MAXPATHLEN;
+    char *p, *q, *s;
+    size_t left_len, resolved_len;
+    unsigned symlinks;
+    int serrno, slen;
+    char left[MAXPATHLEN], next_token[MAXPATHLEN], symlink[MAXPATHLEN];
 
-    /* 
-     * Save the starting point.
-     * The right way to do it is obviously to use open()/fchdir(),
-     * but unfortunately it will fail if the directory is not readable by
-     * the current user. We fall back to the raceful getcwd()/chdir() path
-     * though, because in this context this is harmless : the process is
-     * already owned by the logged user so no nasty security flaw can occur.
-     * Don't blindly reuse this modified code in a different context.
-     */
-    if ((fd = open(".", O_RDONLY)) == -1 &&
-        getcwd(origpath, sizeof origpath - (size_t) 1U) == NULL) {
-        resolved[0] = '.';
-        resolved[1] = 0;
-        
-        return NULL;
-    }
-
-    /* Convert "." -> "" to optimize away a needless lstat() and chdir() */
-    if (path[0] == '.' && path[1] == 0) {
-        path = "";
-    }
-    
-    /*
-     * Find the dirname and basename from the path to be resolved.
-     * Change directory to the dirname component.
-     * lstat the basename part.
-     *     if it is a symlink, read in the value and loop.
-     *     if it is a directory, then change to that directory.
-     * get the current directory name and append the basename.
-     */
-    {
-        const size_t path_len = strlen(path) + (size_t) 1U;
-        
-        if (path_len > sizeof_resolved) {
-#ifdef ENAMETOOLONG
-            errno = ENAMETOOLONG;
-#endif            
-            return NULL;
-        }
-        memcpy(resolved, path, path_len);
-    }
-    
-    loop:    
-    if ((q = strrchr(resolved, '/')) != NULL) {
-        p = q + 1;
-        if (q == resolved) {
-            q = (char *) "/";
-        } else {
-            do {
-                q--;
-            } while (q > resolved && *q == '/');
-            q[1] = 0;
-            q = resolved;
-        }
-        if (chdir(q) < 0) {
-            goto err1;
-        }
+    serrno = errno;
+    symlinks = 0;
+    if (path[0] == '/') {
+	resolved[0] = '/';
+	resolved[1] = '\0';
+	if (path[1] == '\0') {
+	    return resolved;
+	}
+	resolved_len = 1;
+	left_len = strlcpy(left, path + 1, sizeof left);
     } else {
-        p = resolved;
+	if (getcwd(resolved, MAXPATHLEN) == NULL) {
+	    strlcpy(resolved, ".", MAXPATHLEN);
+	    return NULL;
+	}
+	resolved_len = strlen(resolved);
+	left_len = strlcpy(left, path, sizeof left);
     }
-
-    /* Deal with the last component. */
-    if (*p != 0 && lstat(p, &sb) == 0) {
-        if (S_ISLNK(sb.st_mode)) {
-            if (symlinks >= MAXSYMLINKS) {
-#ifdef ELOOP
-                errno = ELOOP;
-#endif
-                goto err1;
-            }
-            symlinks++;
-            n = readlink(p, resolved, sizeof_resolved - (size_t) 1U);
-            if (n < 1 || n >= (int) sizeof_resolved) {
-                goto err1;
-            }
-            resolved[n] = 0;
-            goto loop;
-        }
-        if (S_ISDIR(sb.st_mode)) {
-            if (chdir(p) < 0) {
-                goto err1;
-            }
-            p = (char *) "";
-        }
+    if (left_len >= sizeof left || resolved_len >= MAXPATHLEN) {
+	errno = ENAMETOOLONG;
+	return NULL;
     }
-
-    /*
-     * Save the last component name and get the full pathname of
-     * the current directory.
-     */
-    (void) strncpy(wbuf, p, sizeof wbuf - (size_t) 1U);
-    wbuf[sizeof wbuf - (size_t) 1U] = 0;
-    if (getcwd(resolved, sizeof_resolved) == NULL) {
-        goto err1;
-    }
-
-    /*
-     * Join the two strings together, ensuring that the right thing
-     * happens if the last component is empty, or the dirname is root.
-     */
-    if (resolved[0] == '/' && resolved[1] == 0) {
-        needslash = 0;
-    } else {
-        needslash = 1;
-    }
-
-    if (*wbuf != 0) {
-        if (strlen(resolved) + strlen(wbuf) + (size_t) needslash +
-            (size_t) 1U > sizeof_resolved) {
-#ifdef ENAMETOOLONG
-            errno = ENAMETOOLONG;
-#endif
-            goto err1;
-        }
-        if (needslash != 0) {
-            (void) strcat(resolved, "/");   /* flawfinder: ignore - safe */
-        }
-        (void) strcat(resolved, wbuf); /* flawfinder: ignore - safe, see above */
-    }
-
-    bye:
-    serrno = errno;    
-    /* Go back to where we came from. */
-    if (fd != -1) {
-        if (fchdir(fd) != 0) {
-            serrno = errno;
-            (void) close(fd);
-            errno = serrno;
-            
-            return NULL;
-        }
-        /* It's okay if the close fails, what's an fd more or less? */
-        (void) close(fd);        
-    } else if (chdir(origpath) != 0) {
-        return NULL;
-    }
-    errno = serrno;
     
+    /*
+     * Iterate over path components in `left'.
+     */
+    while (left_len != 0) {
+	/*
+	 * Extract the next path component and adjust `left'
+	 * and its length.
+	 */
+	p = strchr(left, '/');
+	s = p ? p : left + left_len;
+	if ((size_t) (s - left) >= sizeof next_token) {
+	    errno = ENAMETOOLONG;
+	    return NULL;
+	}
+	memcpy(next_token, left, s - left);
+	next_token[s - left] = '\0';
+	left_len -= s - left;
+	if (p != NULL) {
+	    memmove(left, s + 1, left_len + 1);
+	}
+	if (resolved[resolved_len - 1] != '/') {
+	    if (resolved_len + 1 >= MAXPATHLEN) {
+		errno = ENAMETOOLONG;
+		return NULL;
+	    }
+	    resolved[resolved_len++] = '/';
+	    resolved[resolved_len] = '\0';
+	}
+	if (next_token[0] == '\0' || strcmp(next_token, ".") == 0) {
+	    continue;
+	} else if (strcmp(next_token, "..") == 0) {
+	    /*
+	     * Strip the last path component except when we have
+	     * single "/"
+	     */
+	    if (resolved_len > 1) {
+		resolved[resolved_len - 1] = '\0';
+		q = strrchr(resolved, '/') + 1;
+		*q = '\0';
+		resolved_len = q - resolved;
+	    }
+	    continue;
+	}
+	
+	/*
+	 * Append the next path component and lstat() it. If
+	 * lstat() fails we still can return successfully if
+	 * there are no more path components left.
+	 */
+	resolved_len = strlcat(resolved, next_token, MAXPATHLEN);
+	if (resolved_len >= MAXPATHLEN) {
+	    errno = ENAMETOOLONG;
+	    return NULL;
+	}
+	if (lstat(resolved, &sb) != 0) {
+	    if (errno == ENOENT && p == NULL) {
+		errno = serrno;
+		return resolved;
+	    }
+	    return NULL;
+	}
+	if (S_ISLNK(sb.st_mode)) {
+	    if (symlinks++ > MAXSYMLINKS) {
+		errno = ELOOP;
+		return NULL;
+	    }
+	    slen = readlink(resolved, symlink, (sizeof symlink) - 1);
+	    if (slen < 0) {
+		return NULL;
+	    }
+	    symlink[slen] = '\0';
+	    if (symlink[0] == '/') {
+		resolved[1] = 0;
+		resolved_len = 1;
+	    } else if (resolved_len > 1) {
+		/* Strip the last path component. */
+		resolved[resolved_len - 1] = '\0';
+		q = strrchr(resolved, '/') + 1;
+		*q = '\0';
+		resolved_len = q - resolved;
+	    }
+	    
+	    /*
+	     * If there are any path components left, then
+	     * append them to symlink. The result is placed
+	     * in `left'.
+	     */
+	    if (p != NULL) {
+		if (symlink[slen - 1] != '/') {
+		    if ((size_t) slen >= (sizeof symlink) - 1U) {
+			errno = ENAMETOOLONG;
+			return NULL;
+		    }
+		    symlink[slen] = '/';
+		    symlink[slen + 1] = 0;
+		}
+		left_len = strlcat(symlink, left, sizeof left);
+		if (left_len >= sizeof left) {
+		    errno = ENAMETOOLONG;
+		    return NULL;
+		}
+	    }
+	    left_len = strlcpy(left, symlink, sizeof left);
+	}
+    }
+    
+    /*
+     * Remove trailing slash except when the resolved pathname
+     * is a single "/".
+     */
+    if (resolved_len > 1 && resolved[resolved_len - 1] == '/') {
+	resolved[resolved_len - 1] = '\0';
+    }
     return resolved;
-
-    err1:
-    resolved = NULL;
-    goto bye;
 }
 
 #endif

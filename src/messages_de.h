@@ -218,3 +218,4 @@
 #define MSG_TLS_WEAK "SSL/TLS: Verschlüsselung zu schwach"
 #define MSG_TLS_NEEDED "Sorry, unverschlüsselte Sitzungen werden auf diesem Server nicht akzeptiert.\n" \
     "Bitte verbinden Sie sich mittels SSL/TLS-Verschlüsselung"
+#define MSG_ILLEGAL_CHARSET "Illegal charset"

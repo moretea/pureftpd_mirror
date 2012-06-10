@@ -1,4 +1,49 @@
 
+* Version 1.0.21:
+    When SHA1HANDSOFF is defined, we shouldn't cast a pointer to a large union
+to a char buffer, because of alignment required by some architectures.
+    WITH_THROTTLING should actually be THROTTLING in src/log_extauth.c . It
+fixes throttling with extauth. Reported and fixed by Marcus Merighi
+<mcmer@tor.at> through Brad our beloved OpenBSD maintainer.
+    Rendezvous has been renamed Bonjour.
+    A double-close in the CHMOD command has been fixed.
+    The old PAM sample has been removed.
+    -F option added to pure-pw.
+    MAX_USER_LENGTH has been bumped to 127 due to popular demand.
+    pam/* can now be used if security/* doesn't exist. Fixes PAM
+detection on MacOS X.
+    Call tzset() in chrooted apps in order to get correct time zones in
+syslog messages.
+    simplify() simplifies paths ending by /. and /..
+    MySQL's hash_password() needs 3 arguments since mySQL 4.1.
+    Experimental support for RFC2640 (UTF-8 filename encoding) has been
+added, derived from code by Jui-Nan Lin.
+    The LDAP schema has been changed: FTPStatus should be a boolean.
+    New switch: -p (--pidfile=) for pure-authd and pure-uploadscript, by Old
+Sparky.
+    By popular request, even non-chrooted users are now denied access if their
+home directory is not mounted.
+    If die() is called during a TLS-enabled session, encrypt the death
+message. Contributed by Cynix.
+    Don't wrongly abort transfer during file upload. Fix by Patrick Gosling.
+    WITH_LARGE_FILES is now defined by default.
+    sendfile64() support on Linux.
+    privsep and main processes were swapped out so that pure-ftpwho displays
+the right pid.
+    OPTS MLST has been implemented.
+    SITE UTIME has been implemented.
+    TCP_CORK is on by default again. A new configure switch, --without-cork,
+can disable it.
+    Correctly format %c and %% in fakesprintf().
+    The connection socket is now created with the Nagle algorithm disabled.
+It was the trick to dramatically improve performance when transfering a lot
+of small files.
+    Updated getopt_long() and realpath() substitutes.
+    Allow logging to named pipes (thanks to Steve Marple).
+    Use CLIENT_MULTI_STATEMENTS while connecting to a MySQL server.
+    Documentation updates.
+    MySQL errors are now logged.
+
 * Version 1.0.20:
     MacOS X Panther and Tiger sometimes returns EAI_SYSTEM (errno=ENOENT)
 when a host is not found.

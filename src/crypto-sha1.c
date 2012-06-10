@@ -61,9 +61,9 @@ static void SHA1Transform(crypto_uint4 state[5],
     } CHAR64LONG16;
     CHAR64LONG16 *block;
 #ifdef SHA1HANDSOFF
-    static unsigned char workspace[64];
+    static CHAR64LONG16 workspace;
 
-    block = (CHAR64LONG16 *) workspace;
+    block = &workspace;
     memcpy(block, buffer, 64);
 #else
     block = (CHAR64LONG16 *) buffer;

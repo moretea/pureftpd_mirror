@@ -195,13 +195,24 @@ static int pw_mysql_connect(MYSQL ** const id_sql_server)
     if ((*id_sql_server = mysql_init(NULL)) == NULL) {
         down:
         if (server_down == 0) {
+	    const char *mysql_err = "mysql_init()";
+	    
+	    if (*id_sql_server != NULL) {
+		mysql_err = mysql_error(*id_sql_server);
+	    }
             server_down++;
-            logfile(LOG_ERR, MSG_SQL_DOWN);
+            logfile(LOG_ERR, MSG_SQL_DOWN " [%s]", mysql_err);
         }
         return -1;
     }
     if (mysql_real_connect(*id_sql_server, server, user, pw,
-                           db, port, socket_path, 0) == NULL) {
+                           db, port, socket_path,
+#ifdef CLIENT_MULTI_STATEMENTS
+			   CLIENT_MULTI_STATEMENTS
+#else
+			   0
+#endif
+			   ) == NULL) {
         goto down;
     }
     if (mysql_ping(*id_sql_server) != 0) {
@@ -417,19 +428,21 @@ void pw_mysql_check(AuthResult * const result,
             goto auth_ok;
         }
     }
-#if MYSQL_VERSION_ID < 40100
     if (crypto_mysql != 0) {
         unsigned long hash_res[2];
         char scrambled_password[MYSQL_CRYPT_LEN];
-        
+     
+#if MYSQL_VERSION_ID < 40100	    
         hash_password(hash_res, password);
+#else
+        hash_password(hash_res, password, strlen(password));	    
+#endif	    
         snprintf(scrambled_password, sizeof scrambled_password, "%08lx%08lx", 
                  hash_res[0], hash_res[1]);
         if (strcmp(scrambled_password, spwd) == 0) {
             goto auth_ok;
         }
     }
-#endif
     if (crypto_md5 != 0) {
         register const char *crypted;
 

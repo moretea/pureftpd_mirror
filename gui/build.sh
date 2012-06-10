@@ -68,6 +68,7 @@ $dialog \
 'without-unicode' "Disable utf8 non-latin characters" off \
 'without-globbing' "Don't include the globbing code" off \
 'without-sendfile' "Don't use zero-copy optimizations" off \
+'without-cork' "Don't use TCP_CORK optimizations" off \
 'with-brokenrealpath' "If your C library has a broken realpath()" off \
 'with-probe-random-dev' "To check for /dev/*random at run-time" off \
 'with-minimal' "Build only a minimal server for embedded systems" off \
@@ -85,7 +86,6 @@ $dialog \
 'with-ratios' "Support upload/download ratios" on \
 'with-quotas' "Support .ftpquota files" on \
 'with-welcomemsg' "welcome.msg files backward compatibility" off \
-'with-largefile' "Support for files > 2 Gb (slower)" off \
 'with-uploadscript' "Allow running scripts after upload (experimental)" on \
 'with-virtualhosts' "Allow a distinct content for each IP address" on \
 'with-virtualchroot' "Follow symlinks outside a chroot jail" off \
@@ -93,7 +93,8 @@ $dialog \
 'with-peruserlimits' "Support per-user concurrency limits" on \
 'with-privsep' "Enable privilege separation" off \
 'with-tls' "Support SSL/TLS security layer (experimental)" off \
-'with-rendezvous' "Support Rendezvous on MacOS X" off \
+'with-rfc2640' "Support for UTF-8 encoding for file names" off \
+'with-bonjour' "Support Bonjour on MacOS X" off \
 2> $tmp
 
 cfgline='';

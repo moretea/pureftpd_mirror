@@ -16,7 +16,7 @@ static const char *GETOPT_OPTIONS =
 # ifndef NO_GETOPT_LONG
     "h"
 # endif
-    "r:u:";
+    "p:r:u:";
 
 #ifndef NO_GETOPT_LONG
 static struct option long_options[] = {
@@ -25,6 +25,7 @@ static struct option long_options[] = {
 # ifndef NO_GETOPT_LONG
     { "help", 0, NULL, 'h' },
 # endif
+    { "pidfile", 1, NULL, 'p' },
     { "run", 1, NULL, 'r' },
     { "uid", 1, NULL, 'u' },
     { NULL, 0, NULL, 0 }    
@@ -32,6 +33,7 @@ static struct option long_options[] = {
 #endif
 
 static signed char daemonize;
+static const char *uploadscript_pid_file = UPLOADSCRIPT_PID_FILE;
 static uid_t uid;
 static gid_t gid;
 static const char *script;

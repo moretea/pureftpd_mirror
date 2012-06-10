@@ -1,5 +1,3 @@
-/* $Id: diraliases.h,v 1.2 2004/02/29 12:52:51 chrysalis Exp $ */
-
 #ifndef __DIRALIASES_H__
 #define __DIRALIASES_H__ 1
 

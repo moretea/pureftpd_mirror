@@ -16,7 +16,7 @@ noinst_PROGRAMS = \
 
 pure_ftpd_LDADD = \
 	../puredb/src/libpuredb_read.a \
-	@LDAP_SSL_LIBS@ @GETLOADAVG_LIBS@ @RENDEZVOUS_LDADD@
+	@LDAP_SSL_LIBS@ @GETLOADAVG_LIBS@ @BONJOUR_LDADD@
 
 pure_ftpd_CFLAGS = -DINCLUDE_IO_WRAPPERS=1
 

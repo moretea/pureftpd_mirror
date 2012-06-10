@@ -130,6 +130,12 @@ static int parseoptions(int argc, char *argv[])
             }
             break;            
         }
+        case 'p': {
+            if ((authd_pid_file = strdup(optarg)) == NULL) {
+                perror("Oh no ! More memory !");
+            }
+            break;
+        }
 #ifndef NO_GETOPT_LONG
         case 'h': {
             usage();
@@ -255,10 +261,10 @@ static void updatepidfile(void)
                          (unsigned long) getpid()), sizeof buf)) {
         return;
     }
-    if (unlink(AUTHD_PID_FILE) != 0 && errno != ENOENT) {
+    if (unlink(authd_pid_file) != 0 && errno != ENOENT) {
         return;
     }
-    if ((fd = open(AUTHD_PID_FILE, O_CREAT | O_WRONLY | O_TRUNC |
+    if ((fd = open(authd_pid_file, O_CREAT | O_WRONLY | O_TRUNC |
                    O_NOFOLLOW, (mode_t) 0644)) == -1) {
         return;
     }
@@ -486,7 +492,7 @@ int main(int argc, char *argv[])
     updatepidfile();
     if (changeuidgid() < 0) {
         perror("Identity change");
-        (void) unlink(AUTHD_PID_FILE);
+        (void) unlink(authd_pid_file);
         return -1;
     }
 #ifdef SIGPIPE
@@ -496,7 +502,7 @@ int main(int argc, char *argv[])
     signal(SIGCHLD, SIG_DFL);
 #endif    
     err = listencnx();    
-    (void) unlink(AUTHD_PID_FILE);    
+    (void) unlink(authd_pid_file);    
     
     return err;
 }

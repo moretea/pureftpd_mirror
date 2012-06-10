@@ -1,6 +1,6 @@
 #! @PERL@
 
-# (C) 2001-2004 Aristotle Pagaltzis
+# (C) 2001-2006 Aristotle Pagaltzis
 # derived from code (C) 2001-2002 Frank Denis and Matthias Andree
 
 use strict;
@@ -48,6 +48,8 @@ my %simple_switch_for = (
 );
 
 my %string_switch_for = (
+  	FileSystemCharset	=> "-8",
+	ClientCharset		=> "-9",
 	SyslogFacility		=> "-f",
 	FortunesFile		=> "-F",
 	ForcePassiveIP		=> "-P",

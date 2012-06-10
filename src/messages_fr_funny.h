@@ -218,3 +218,4 @@
 #define MSG_TLS_WEAK "SSL/TLS: C'est quoi ce chiffrement de tafiole ?"
 #define MSG_TLS_NEEDED "Ecoute-moi connard : t'as 10 secondes pour configurer\n" \
     "ton client de merde en SSL/TLS. En attendant, degage."
+#define MSG_ILLEGAL_CHARSET "Ton jeu de caractere il puxore grave."

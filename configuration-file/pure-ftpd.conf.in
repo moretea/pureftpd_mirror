@@ -434,3 +434,11 @@ CustomerProof              yes
 # By default, both IPv4 and IPv6 are enabled.
 
 # IPV6Only                 yes
+
+# UTF-8 support for file names (RFC 2640)
+# Define charset of the server filesystem and optionnally the default charset
+# for remote clients if they don't use UTF-8.
+# Works only if pure-ftpd has been compiled with --with-rfc2640
+
+# FileSystemCharset	big5
+# ClientCharset		big5

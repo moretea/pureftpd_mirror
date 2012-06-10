@@ -1,4 +1,26 @@
 
+* Version 1.0.21:
+ - pure-pw has a new option (-F) to specify the location of the puredb
+database.
+ - --with-rendezvous is now --with-bonjour.
+ - User names can now be up to 127 characters long by default.
+ - Compilation with PAM support has been fixed on MacOS X.
+ - The MySQL PASSWORD() function can now be used with MySQL >= 4.1.
+ - Logging has now the correct timezone.
+ - Experimental support for RFC2640 (UTF-8), based upon code contributed by
+Jui-Nan Lin.
+ - The LDAP schema has been changed: FTPStatus should be a boolean.
+ - The pid file can now be set for pure-authd and pure-uploadscript.
+Contributed by Old Sparky.
+ - Support for large files is now enabled by default, with no slowdown on
+Linux.
+ - SITE UTIME and OPTS MLST have been implemented.
+ - Huge performance improvement while transfering a lot of small files.
+ - Better handling of aborted transfers.
+ - MySQL queries can now include multiple statements (MysQL 4.1 and later)
+and call MySQL 5 stored procedures. Thanks to Mike Goins.
+ - MySQL connection errors are now logged.
+
 * Version 1.0.20:
  - On MacOS X Panther and Tiger, clients were sometimes rejected when they has
 no reverse DNS entry and DNS resolution was enabled. This has been fixed.
