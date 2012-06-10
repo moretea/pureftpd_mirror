@@ -238,7 +238,8 @@ static int listfile(const PureFileInfo * const fi, const char *name)
     struct stat st;
     struct tm *t;
     char suffix[2] = { 0, 0 };
-    char m[MAXPATHLEN + 1U];    
+    char m[MAXPATHLEN + 1U];
+    const char *format;
 
 #ifndef MINIMAL
     if (modern_listings != 0) {
@@ -384,8 +385,13 @@ static int listfile(const PureFileInfo * const fi, const char *name)
             if ((alloca_nameline = ALLOCA(sizeof_nameline)) == NULL) {
                 return 0;
             }
+            if (st.st_size < 10000000000U) {
+                format = "%s %4u %s %s %10llu %s %2d %s %s";
+            } else {
+                format = "%s %4u %s %s %18llu %s %2d %s %s";
+            }
             if (SNCHECK(snprintf(alloca_nameline, sizeof_nameline,
-                                 "%s %4u %s %s %10llu %s %2d %s %s", 
+                                 format,
                                  m, (unsigned int) st.st_nlink,
                                  getname(st.st_uid),
                                  getgroup(st.st_gid), 
@@ -699,16 +705,21 @@ static void listdir(unsigned int depth, int f, void * const tls_fd,
     }
     s = dir;
     while (s->name_offset != (size_t) -1) {
+        d = 0;
         if (FI_NAME(s)[0] != '.') {
             d = listfile(s, NULL);
         } else if (opt_a) {
-            d = listfile(s, NULL);
             if (FI_NAME(s)[1] == 0 ||
                 (FI_NAME(s)[1] == '.' && FI_NAME(s)[2] == 0)) {
-                d = 0;
+                listfile(s, NULL);
+#ifndef DONT_LIE_ABOUT_DOT_FILES
+            } else if (dot_read_ok != 0) {
+                d = listfile(s, NULL);
+#else
+            } else {
+                d = listfile(s, NULL);
+#endif
             }
-        } else {
-            d = 0;
         }
         if (!d) {
             s->name_offset = (size_t) -1;

@@ -163,16 +163,16 @@ static int init_tz(void)
 #ifdef HAVE_TZSET
     tzset();
 #endif
-#ifdef HAVE_PUTENV    
-    if ((tm = localtime(&now)) == NULL ||
-        strftime(stbuf, sizeof stbuf, "%z", tm) != (size_t) 5U) {
-        return -1;
+#ifdef HAVE_PUTENV
+    if ((tm = localtime(&now)) != NULL &&
+        strftime(stbuf, sizeof stbuf, "%z", tm) == (size_t) 5U) {
+        snprintf(default_tz_for_putenv, sizeof default_tz_for_putenv,
+                 "TZ=UTC%c%c%c:%c%c", (*stbuf == '-' ? '+' : '-'),
+                 stbuf[1], stbuf[2], stbuf[3], stbuf[4]);
     }
-    snprintf(default_tz_for_putenv, sizeof default_tz_for_putenv,
-             "TZ=UTC%c%c%c:%c%c", (*stbuf == '-' ? '+' : '-'),
-             stbuf[1], stbuf[2], stbuf[3], stbuf[4]);
     putenv(default_tz_for_putenv);
 #endif
+    (void) localtime(&now);
     (void) gmtime(&now);
 
     return 0;
@@ -850,9 +850,11 @@ static int checknamesanity(const char *name, int dot_ok)
     }
 #endif
     while (*namepnt != 0) {
+#ifndef ALLOW_EVERYTHING_IN_FILE_NAMES
         if (ISCTRLCODE(*namepnt) || *namepnt == '\\') {
             return -1;
         }
+#endif
         if (dot_ok == 0) {
             if (*namepnt == '/') {
                 namepnt++;
@@ -3316,12 +3318,10 @@ void doretr(char *name)
         addreply(550, MSG_LOAD_TOO_HIGH, load);
         goto end;
     }
-# if !defined(WIN32) && !defined(_WIN32) && !defined(__WIN32__) && !defined(__CYGWIN__)
     if (type < 1 || (type == 1 && restartat > (off_t) 1)) {
         addreply_noformat(503, MSG_NO_ASCII_RESUME);
         goto end;
     }
-# endif
     if (checknamesanity(name, dot_read_ok) != 0) {
         addreply(553, MSG_SANITY_FILE_FAILURE, name);
         goto end;
@@ -4989,20 +4989,12 @@ static void doit(void)
               resolve_hostnames != 0 ? 0 : NI_NUMERICHOST)) == 0) {
             break;
         }
-        /* 
-         * getnameinfo() is lousy on MacOS X Panther and returns EAI_NONAME
-         * or EAI_SYSTEM (errno=ENOENT) when no name is found instead of
-         * filling the buffer with the IP.
-         */
-# if defined(EAI_NONAME) && defined(EAI_SYSTEM)
-        if ((eai == EAI_NONAME || eai == EAI_SYSTEM) &&
-            resolve_hostnames != 0 &&
-           getnameinfo
+        if (resolve_hostnames != 0 &&
+            getnameinfo
             ((struct sockaddr *) &peer, STORAGE_LEN(peer), host,
              sizeof host, NULL, (size_t) 0U, NI_NUMERICHOST) == 0) {
             break;
         }
-# endif
         die(425, LOG_ERR, MSG_INVALID_IP);        
     }
 #endif
