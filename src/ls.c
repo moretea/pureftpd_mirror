@@ -226,7 +226,7 @@ static void addfile(const char *name, const char *suffix)
 }
 
 /* listfile returns non-zero if the file is a directory */
-static int listfile(const PureFileInfo * const fi,  const char *name)
+static int listfile(const PureFileInfo * const fi, const char *name)
 {
     int rval = 0;
     struct stat st;
@@ -768,6 +768,32 @@ static void listdir(unsigned int depth, int f, void * const tls_fd,
     names = NULL;
 }
 
+static char *unescape_and_return_next_file(char * const str) {
+    char *pnt = str;
+    signed char seen_backslash = 0;    
+    
+    while (*pnt != 0) {
+        if (seen_backslash == 0) {
+            if (*pnt == '\\') {
+                seen_backslash = 1;
+            } else if (*pnt == ' ') {
+                *pnt++ = 0;
+                if (*pnt != 0) {
+                    return pnt;
+                }
+                break;
+            }
+            pnt++;            
+        } else {
+            seen_backslash = 0;
+            if (*pnt == ' ' || *pnt == '\\') {
+                memmove(pnt - 1, pnt, strlen(pnt) + (size_t) 1U);
+            }
+        }
+    }
+    return NULL;
+}
+
 void donlist(char *arg, const int on_ctrl_conn, const int opt_l_,
              const int opt_a_, const int split_args)
 {
@@ -870,8 +896,7 @@ void donlist(char *arg, const int on_ctrl_conn, const int opt_l_,
 
             if (split_args == 0) {
                 endarg = NULL;
-            } else if ((endarg = strchr(arg, ' ')) != NULL) {
-                *endarg++ = 0;
+            } else if ((endarg = unescape_and_return_next_file(arg)) != NULL) {
                 justone = 0;
             }
 #ifdef DEBUG
