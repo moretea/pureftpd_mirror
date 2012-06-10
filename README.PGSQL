@@ -52,10 +52,10 @@ PGSQLUser       root
 PGSQLPassword   rootpw
 PGSQLDatabase   pureftpd
 PGSQLCrypt      cleartext
-PGSQLGetPW      SELECT Password FROM users WHERE User='\L'
-PGSQLGetUID     SELECT Uid FROM users WHERE User='\L'
-PGSQLGetGID     SELECT Gid FROM users WHERE User='\L'
-PGSQLGetDir     SELECT Dir FROM users WHERE User='\L'
+PGSQLGetPW      SELECT "Password" FROM "users" WHERE "User"='\L'
+PGSQLGetUID     SELECT "Uid" FROM "users" WHERE "User"='\L'
+PGSQLGetGID     SELECT "Gid" FROM "users" WHERE "User"='\L'
+PGSQLGetDir     SELECT "Dir" FROM "users" WHERE "User"='\L'
 
 Have a look at the sample pureftpd-pgsql.conf configuration file for
 explanations of every keyword.
@@ -96,13 +96,13 @@ name, looked up at run-time.
 
 Here's a dump of a simple table to handle this:
 
-CREATE TABLE users (
-  User varchar(16) NOT NULL default '',
-  Password varchar(64) NOT NULL default '',
-  Uid int(11) NOT NULL default '-1',
-  Gid int(11) NOT NULL default '-1',
-  Dir varchar(128) NOT NULL default '',
-  PRIMARY KEY  (User)
+CREATE TABLE "users" (
+  "User" varchar(16) NOT NULL default '',
+  "Password" varchar(64) NOT NULL default '',
+  "Uid" int(11) NOT NULL default '-1',
+  "Gid" int(11) NOT NULL default '-1',
+  "Dir" varchar(128) NOT NULL default '',
+  PRIMARY KEY ("User")
 );
 
 Uid and Gid can be char() instead of int() if you want to use names instead
@@ -113,10 +113,10 @@ templates to fetch the needed info.
 
 Let's take the previous example:
 
-PGSQLGetPW      SELECT Password FROM users WHERE User='\L'
-PGSQLGetUID     SELECT Uid FROM users WHERE User='\L'
-PGSQLGetGID     SELECT Gid FROM users WHERE User='\L'
-PGSQLGetDir     SELECT Dir FROM users WHERE User='\L'
+PGSQLGetPW      SELECT "Password" FROM "users" WHERE "User"='\L'
+PGSQLGetUID     SELECT "Uid" FROM "users" WHERE "User"='\L'
+PGSQLGetGID     SELECT "Gid" FROM "users" WHERE "User"='\L'
+PGSQLGetDir     SELECT "Dir" FROM "users" WHERE "User"='\L'
 
 For each query:
 
@@ -156,25 +156,25 @@ Individual settings can be set for every user, using optional queries.
 directory.
 
 Example:
-PGSQLGetQTAFS  SELECT QuotaFiles FROM users WHERE User='\L'
+PGSQLGetQTAFS SELECT "QuotaFiles" FROM "users" WHERE "User"='\L'
 
 - PGSQLGetQTASZ is the maximal disk usage, in Megabytes.
 
 Example:
-PGSQLGetQTASZ  SELECT QuotaSize FROM users WHERE User='\L'
+PGSQLGetQTASZ SELECT "QuotaSize" FROM "users" WHERE "User"='\L'
 
 - PGSQLGetRatioUL and PGSQLGetRatioDL are optional ratios.
 
 Example:
-PGSQLGetRatioUL SELECT ULRatio FROM users WHERE User='\L'
-PGSQLGetRatioDL SELECT DLRatio FROM users WHERE User='\L'
+PGSQLGetRatioUL SELECT "ULRatio" FROM "users" WHERE "User"='\L'
+PGSQLGetRatioDL SELECT "DLRatio" FROM "users" WHERE "User"='\L'
 
 - PGSQLGetBandwidthUL and PGSQLGetBandwidthDL are optional upload and
 download bandwidth restrictions. Returned values should be in KB/s.
 
 Example:
-PGSQLGetBandwidthUL SELECT ULBandwidth FROM users WHERE User='\L'
-PGSQLGetBandwidthDL SELECT DLBandwidth FROM users WHERE User='\L'
+PGSQLGetBandwidthUL SELECT "ULBandwidth" FROM "users" WHERE "User"='\L'
+PGSQLGetBandwidthDL SELECT "DLBandwidth" FROM "users" WHERE "User"='\L'
 
 
 

@@ -94,7 +94,7 @@ Binary packages are compiled with this feature turned on.
 Unfortunately, no. Server-side gzip/tar creation is not a present nor a
 planned feature. It has been responsible of severe security flaws in Wu-ftpd
 and BSD ftpd, it can take a lot of server resource (denial-of-service), and
-it's a pain to set up (chrooted environnement => need to add /etc /lib /bin
+it's a pain to set up (chrooted environment => need to add /etc /lib /bin
 directories, /dev on some platforms, etc) .
 
 
@@ -192,8 +192,8 @@ port forwarding for all passive ports.
 
 On the client side, if a client if behind a firewall, that firewall must
 understand the FTP protocol. On Linux firewalls (iptables), just load
-the ip_conntrack_ftp and ip_nat_ftp modules. On OpenBSD and MicroBSD firewalls
-(PF), redirect all traffic to port 21, to ftp-proxy.
+the ip_conntrack_ftp and ip_nat_ftp modules. On OpenBSD, ISOS and EkkoBSD
+firewalls (PF), redirect all traffic to port 21, to ftp-proxy.
 
 
 
@@ -264,15 +264,15 @@ then launch it again:
                          
 
 
-* OpenBSD, NetBSD and MicroBSD.
+* OpenBSD, NetBSD, ISOS and EkkoBSD.
 
 -> I'm trying to run Pure-FTPd on OpenBSD. The daemon is running, but I
 can't connect: nobody answers on port 21.
 
 Intentionally, OpenBSD refuses to listen for IPv4 and IPv6 connections on a
 single socket. By defaut, Pure-FTPd will only listen to IPv6 connections on
-OpenBSD. The same thing applies to recent releases of NetBSD, MicroBSD
-and FreeBSD 5.
+OpenBSD. The same thing applies to recent releases of NetBSD, ISOS,
+EkkoBSD and FreeBSD 5.
 To listen to IPv4 addresses, you must run pure-ftpd with the '-4' switch:
 /usr/local/sbin/pure-ftpd -4 &
 
@@ -309,7 +309,7 @@ People with no home directory (/dev/null) and no valid shell
 (/usr/bin/false) won't be able to get a shell nor to run any command on your
 server. But they will be granted FTP-over-SSH sessions.
 
-Here are examples (Linux/OpenBSD/MicroBSD commands, translate them if
+Here are examples (Linux/OpenBSD/ISOS/EkkoBSD commands, translate them if
 necessary) .
 
 1) Creating a regular FTP account:
@@ -437,6 +437,24 @@ switch first.
 
 
 
+* The server starts, but doesn't listen to any port?
+
+-> The server is properly running, I see it in the process list, but any try
+to connect to the configured port (or port 21 by default) fails. The socket
+isn't even open.
+
+Check two things :
+
+- If you are running a BSD system and you want to listen to IPv4 addresses,
+check that the "-4" switch ("IPV4Only" in config file) is enabled.
+
+- If you upload script are enabled ("-o", or "CallUploadScript"), make sure
+that the pure-uploadscript is started. Or the FTP server will actually wait
+until pure-uploadscript is actually ready to process new uploads. If you don't
+need the uploadscript facility, remove "-o".
+
+
+
 * Double slash.
 
 -> Why do I see double slashes in log files? For instance, the path of a
@@ -481,11 +499,11 @@ Other mechanisms would work, like signals to interrupt transfers, re-read
 parameters, then resume. But it would introduce a lot of complexity to the
 code.
 
-If you're using a modern operating system like OpenBSD, MicroBSD or Linux,
+If you're using a modern operating system like OpenBSD, ISOS, EkkoBSD or Linux,
 your kernel already includes a fair TCP/IP traffic shaper. And because it
 works at kernel-level, you can easily change the bandwidth allowed to IPs or
-services on-the-fly. Have a look at altq.conf(5), altqd(8) and tbrconfig(8) on
-OpenBSD and MicroBSD, and at tc (or read the Linux networking HOWTO) on Linux.
+services on-the-fly. Have a look at pf.conf(5) OpenBSD, ISOS and EkkoBSD,
+and at tc (or read the Linux networking HOWTO) on Linux.
 Also see the 'Global bandwidth limitation' section later in this document.
 
 
@@ -517,10 +535,10 @@ errors), but you just have to deinstall Kerberos on your client host to have
 uploads a file, that one belongs to 'john', but to another group like
 'wheel' (whoose John isn't a member of). What's wrong?
 
-This is a BSD standard behavior (verified on OpenBSD, MicroBSD and FreeBSD):
-when a new file is created, the group is inherited from the parent directory.
-On other systems (like GNU/Linux), files are owned by the primary group of the
-user, unless the directory has the setgid bit set.
+This is a BSD standard behavior (verified on OpenBSD, ISOS, EkkoBSD and
+FreeBSD): when a new file is created, the group is inherited from the parent
+directory. On other systems (like GNU/Linux), files are owned by the primary
+group of the user, unless the directory has the setgid bit set.
 
 If you want new files uploaded in John's directory to belong to group
 'johngroup', have that directory (and probably also subdirectories) belong

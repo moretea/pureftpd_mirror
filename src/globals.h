@@ -33,7 +33,7 @@ GLOBAL0(char cmd[MAXPATHLEN + 32U]);        /* command line - about 30 chars for
 GLOBAL0(char wd[MAXPATHLEN + 1U]);            /* current working directory */
 GLOBAL0(char *root_directory);                /* root directory, for chroot'd environments */
 GLOBAL0(signed char loggedin);                    /* != 0 if the user if logged in */
-GLOBAL0(char account[42]);                /* user login */
+GLOBAL0(char account[MAX_USER_LENGTH + 1U]);      /* user login */
 GLOBAL0(char *renamefrom);
 GLOBAL0(unsigned short int serverport);    /* local server port */
 GLOBAL0(signed char userchroot);                /* don't chroot() by default for regular users */

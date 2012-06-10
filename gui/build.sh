@@ -63,7 +63,6 @@ $dialog \
 'without-usernames' "Use only numerical UIDs/GIDs" off \
 'without-iplogging' "Never log remote IP addresses (confidentiality)" off \
 'without-humor' "Disable humor (enabled by default)" off \
-'without-longoptions' "Don't support long options (like --help)" off \
 'without-ascii' "Don't support 7-bits (ASCII) transfers" off \
 'without-banner' "Don't display the nice initial banner" off \
 'without-nonalnum' "Only allow minimal alpha-numeric characters" off \
@@ -123,6 +122,7 @@ $dialog \
 'traditional-chinese' "Contributed by Hether Fygul" off \
 'simplified-chinese' "Contributed by Hether Fygul" off \
 'czech' "Contributed by Martin Sarfy" off \
+'turkish' "Contributed by Mehmet Cokcevik" off \
 2> $tmp
 
 z=$(cat $tmp)

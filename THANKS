@@ -119,6 +119,9 @@ for reporting that simplified and traditional chinese settings were swapped
 in 1.0.12 .
 * Kyle Herbert (http://www.firstnetimpressions.com/) for reporting a typo in
 the example configuration file.
+* Anthony DeRobertis - Fixed the on-demand creation of home directories.
+* Maharaja - Reported a typo in the README file.
+* Darth Vader (freddyke) - Suggested to have consistent max user lengths.
 
 
 Mailing list-members :
@@ -199,6 +202,10 @@ ugly fucking stupid huge bug (initgroups() called after chroot()).
 * TJ Saunders <tj@castaglia.org> - Reported that Proftpd and
 Proftpd-modquota were different packages.
 * Kittiwat Manosuthi <kittiwat@hostpacific.com> - Help with Virtuozzo.
+* Henrik Edlund <henrik@edlund.org> - Suggested documentation fixes
+(quoting field names) in PostgreSQL templates.
+* Joerg Pulz <Joerg.Pulz@frm2.tum.de> - Pointed out that upload-pipe
+locking didn't work with daemonization.
 
 
 In the memory of all people dead on September 11 2001, in Manhattan and in

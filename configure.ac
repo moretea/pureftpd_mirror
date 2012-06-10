@@ -1,7 +1,7 @@
 dnl AM_ACLOCAL_INCLUDE(m4)
 
 AC_PREREQ(2.50)
-AC_INIT(pure-ftpd, 1.0.14, bugs@pureftpd.org)
+AC_INIT(pure-ftpd, 1.0.15, bugs@pureftpd.org)
 AC_CONFIG_SRCDIR(src/ftpd.c)
 AM_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE([1.6 dist-bzip2])
@@ -265,7 +265,7 @@ AC_ARG_WITH(humor,
   fi ])
 
 AC_ARG_WITH(longoptions,
-[AC_HELP_STRING([--without-longoptions],[Don't support long options (like --help)])],
+[AC_HELP_STRING([--without-longoptions],[Ignored - just for backward compatibility])],
 [ if test "x$withval" = "xno" ; then
     AC_DEFINE(NO_GETOPT_LONG,,[without longoptions])
   fi ])
@@ -762,7 +762,7 @@ AC_ARG_WITH(language,
 [AC_HELP_STRING([--with-language=],[< english | german | romanian | french |
 french-funny | polish | spanish | danish | dutch | italian |
 brazilian-portuguese | slovak | korean | swedish | norwegian | russian |
-traditional-chinese | simplified-chinese | czech >])],
+traditional-chinese | simplified-chinese | czech | turkish >])],
 [ if test "x$withval" = "xenglish" ; then
     AC_DEFINE(MESSAGES_EN,,[english])
   elif test "x$withval" = "xgerman" ; then
@@ -801,6 +801,8 @@ traditional-chinese | simplified-chinese | czech >])],
     AC_DEFINE(MESSAGES_ZH_CN,,[simplified chinese])
   elif test "x$withval" = "xczech" ; then
     AC_DEFINE(MESSAGES_CS_CZ,,[czech])
+  elif test "x$withval" = "xturkish" ; then
+    AC_DEFINE(MESSAGES_TR,,[turkish])
   else 
     AC_MSG_WARN("--with-language=$withval is not recognized") 
   fi ])
@@ -1140,7 +1142,7 @@ AC_ARG_WITH(pgsql,
   fi ])
 
 AC_ARG_WITH(privsep,
-[AC_HELP_STRING([--with-privsep],[Enable privilege separation (experimental)])],
+[AC_HELP_STRING([--with-privsep],[Enable privilege separation])],
 [ if test "x$withval" = "xyes" ; then
     AC_DEFINE(WITH_PRIVSEP,,[enable privilege separation])
     with_privsep=yes

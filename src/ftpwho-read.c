@@ -36,11 +36,11 @@ unsigned int ftpwho_read_count(const char * const user)
     unsigned int count = 0;
     DIR *dir;
     struct dirent *entry;
-    char foundaccount[9];
+    char foundaccount[MAX_USER_LENGTH + 1U];
     
     if (chdir(SCOREBOARD_PATH) != 0 || (dir = opendir(".")) == NULL) {
         return 0;
-    }    
+    }
     while ((entry = readdir(dir)) != NULL) {
         if (strncmp(entry->d_name, SCOREBOARD_PREFIX,
                     sizeof SCOREBOARD_PREFIX - 1U) != 0 ||

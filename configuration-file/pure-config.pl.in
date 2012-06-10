@@ -101,12 +101,12 @@ die "Usage: pure-config.pl <configuration file> [extra options]\n"
 open CONF, "< $conffile" or die "Can't open $conffile: $!\n";
 
 !/^\s*(?:$|#)/ and (chomp, push @flg,
-	/$simple_switch/		? ($simple_switch_for{$1}) :
-	/$string_switch/		? ($string_switch_for{$1} . $2) :
-	/$numeric_switch/		? ($numeric_switch_for{$1} . $2) :
-	/$numpairb_switch/		? ($numpairb_switch_for{$1} . "$2:$3") :
-	/$numpairc_switch/		? ($numpairc_switch_for{$1} . "$2:$3") :
-	/$auth_method/			? ("-l" . "$auth_method_for{$1}:$2") :
+	/$simple_switch/i		? ($simple_switch_for{$1}) :
+	/$string_switch/i		? ($string_switch_for{$1} . $2) :
+	/$numeric_switch/i		? ($numeric_switch_for{$1} . $2) :
+	/$numpairb_switch/i		? ($numpairb_switch_for{$1} . "$2:$3") :
+	/$numpairc_switch/i		? ($numpairc_switch_for{$1} . "$2:$3") :
+	/$auth_method/i			? ("-l" . "$auth_method_for{$1}:$2") :
 	/UnixAuthentication\s+yes/i	? ("-l" . "unix") :
 	/PAMAuthentication\s+yes/i	? ("-l" . "pam") :
 	()

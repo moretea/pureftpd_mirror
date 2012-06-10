@@ -74,7 +74,7 @@ int sfgets(void)
     while (scanned < cmdsize) {
         if (scanned >= readend) {      /* nothing left in the buffer */
             FD_SET(0, &rs);
-            while (select(1, &rs, NULL, NULL, &tv) == -1 && errno == EINTR);
+            while (select(1, &rs, NULL, NULL, &tv) <= 0 && errno == EINTR);
             if (FD_ISSET(0, &rs) == 0) {
                 return -1;
             }

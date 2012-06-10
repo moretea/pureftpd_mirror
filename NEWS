@@ -1,4 +1,20 @@
 
+* Version 1.0.15:
+ - A turkish translation has been added. Thanks to Mehmet Cokcevik
+<dns@netline.com.tr> .
+ - Various functional and portability fixes have been made to the
+handling of upload scripts, to the pure-pw command and to the
+automatic creation of home directories.
+ - Accounts in a puredb database can now be quickly listed ("pure-pw
+list").
+ - The anonymous FTP directory can now be overriden on the Windows
+port (using a WIN32_ANON_DIR environment variable).
+ - The default banner has been stripped down to look more
+professionnal (ie. boring).
+ - Transfer speed on BSD systems has been improved.
+ - The license of the whole package has changed from GPL to a simplified
+BSD license.
+
 * Version 1.0.14:
  - Privilege separation has been introduced. When this feature is
 enabled, each client session spawns two processes communicating over a

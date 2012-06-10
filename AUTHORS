@@ -39,9 +39,10 @@ Credits for Pure-FTPd are going to the following ones.
     ftpwho design and reference implementation.
 
 * The OpenBSD team (http://www.openbsd.org/)
+  The NetBSD team (http://www.netbsd.org/)
   The Regents of the University of California :
 
-    Most of the glob() function, and realpath() replacement.
+    Most of the glob() function, getopt_long() and realpath() replacements.
 
 * The sh-utils team (ftp://alpha.gnu.org/gnu/fetish/)
 
@@ -195,7 +196,8 @@ Credits for Pure-FTPd are going to the following ones.
 
 * Thomas Briggs <tom@sane.com> :
 
-    Implementation of the W3C logfile format.    
+    Implementation of the W3C logfile format.
+    Helped with Tru64 portability.
 
 * Stanton Gallegos
 
@@ -269,6 +271,10 @@ enabled.
 
     Debian maintainer.
 
+* Mehmet Cokcevik <dns@netline.com.tr>
+
+    Turkish translation.
+
 * Frank DENIS aka Jedi/Sector One <j@pureftpd.org> :
 
     Pure-FTPd project initiator and maintainer.
@@ -276,7 +282,7 @@ enabled.
     
     
 
-Original licence :
+Original license :
 
 Copyright 1995-2000 Trolltech AS. Copyright 2001-2002 Arnt Gulbrandsen.
 Use, modification and distribution is allowed without limitation,

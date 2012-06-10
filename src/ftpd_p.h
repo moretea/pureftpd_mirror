@@ -21,12 +21,11 @@
 #ifdef WITH_EXTAUTH
 # include "log_extauth.h"
 #endif
-#if !defined(NO_GETOPT_LONG) && !defined(HAVE_GETOPT_LONG)
-# include "gnu-getopt.h"
+
+#ifndef HAVE_GETOPT_LONG
+# include "bsd-getopt_long.h"
 #else
-# ifdef HAVE_GETOPT_H
-#  include <getopt.h>
-# endif
+# include <getopt.h>
 #endif
 
 #ifdef HAVE_SYS_WAIT_H
@@ -186,7 +185,7 @@ static const AltLogPrefixes altlogprefixes[] = {
 #endif
 
 #ifdef WITH_PRIVSEP
-# define VERSION_PRIVSEP "-privsep"
+# define VERSION_PRIVSEP " [privsep]"
 #else
 # define VERSION_PRIVSEP ""
 #endif

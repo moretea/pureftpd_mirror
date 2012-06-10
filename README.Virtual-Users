@@ -97,7 +97,7 @@ separated by a coma (-r 192.168.1.0/24,10.1.0.0/16,127.0.0.1/32), single IPs
 combination of those.
 
 -y is to restrict the number of concurrent sessions an user can have
-at the same time. 0 means unlimited. Avoid this feature on very loaded
+at the same time. '' or 0 mean unlimited. Avoid this feature on very loaded
 servers. Use per-ip limits instead.
 
 Ok, "joe" has been created. By default, the list of virtual users is stored

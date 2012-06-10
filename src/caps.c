@@ -19,6 +19,9 @@ static void apply_caps(cap_value_t * const ncaps,
 #ifndef NON_ROOT_FTP
     cap_t caps;
 
+    if (geteuid() != (uid_t) 0U) {
+        return;
+    }
     if ((caps = cap_init()) == (cap_t) 0 ||
         cap_clear(caps) == -1 ||
         cap_set_flag(caps, CAP_PERMITTED, ncaps_size, ncaps, CAP_SET) == -1 ||

@@ -1,20 +1,15 @@
 #ifndef __PURE_UPLOADSCRIPT_P_H__
-#define __PURE_UPLOADSCRIPT_P_H__ 1
+# define __PURE_UPLOADSCRIPT_P_H__ 1
 
-# if !defined(NO_GETOPT_LONG) && !defined(HAVE_GETOPT_LONG)
-#  include "gnu-getopt.h"
+# ifndef HAVE_GETOPT_LONG
+#  include "bsd-getopt_long.h"
 # else
-#  ifdef HAVE_GETOPT_H
-#    include <getopt.h>
-#  endif
+#  include <getopt.h>
 # endif
+
 # ifdef HAVE_SYS_WAIT_H
 #  include <sys/wait.h>
 # endif
-
-#ifndef WHOMAXLEN
-# define WHOMAXLEN 127
-#endif
 
 static const char *GETOPT_OPTIONS =
     "Bg:"

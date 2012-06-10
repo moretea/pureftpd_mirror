@@ -1069,7 +1069,9 @@ void douser(const char *username)
             pw_.pw_uid = geteuid();
             pw_.pw_gid = getegid();
 # if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__)
-	    pw_.pw_dir = WIN32_ANON_DIR;
+            if ((pw_.pw_dir = getenv("WIN32_ANON_DIR")) == NULL) {
+                pw_.pw_dir = WIN32_ANON_DIR;
+            }
 # else
             pw_.pw_dir = strdup(s);    /* checked for == NULL later */
 # endif
@@ -1401,8 +1403,8 @@ static int create_home_and_chdir(const char * const home)
     if (chdir(home) != 0) {
 	return -1;
     }
-    if (chown(home, authresult.uid, authresult.gid) < 0 ||
-	chmod(home, (mode_t) 0755 & ~u_mask_d) < 0) {
+    if (chmod(home, (mode_t) 0755 & ~u_mask_d) < 0 ||
+        chown(home, authresult.uid, authresult.gid) < 0) {
 	return -1;
     }
     
@@ -2223,7 +2225,8 @@ void opendata(void)
             /* I suppose it would be better to listen for ABRT too... */
 
             if (select(datafd + 1, &rs, NULL, NULL, &tv) <= 0) {
-                die(421, LOG_INFO, MSG_TIMEOUT_DATA , (unsigned long) idletime);
+                die(421, LOG_INFO, MSG_TIMEOUT_DATA , 
+                    (unsigned long) idletime);
             }
             socksize = (socklen_t) sizeof(dataconn);
             memset(&dataconn, 0, sizeof dataconn);
@@ -2291,12 +2294,26 @@ void opendata(void)
         fodder = IPTOS_THROUGHPUT;
         setsockopt(fd, SOL_IP, IP_TOS, (char *) &fodder, sizeof fodder);
 #endif
-#ifdef TCP_NOPUSH
+#ifndef NO_TCP_NOPUSH
+# ifdef TCP_NOPUSH
         fodder = 1;
         setsockopt(fd, SOL_TCP, TCP_NOPUSH, (char *) &fodder, sizeof fodder);
+# endif
+#endif
+#ifndef NO_TCP_LARGE_WINDOW
+#if defined(SO_SNDBUF) || defined(SO_RCVBUF)
+        fodder = 65536;
+#endif
+#ifdef SO_SNDBUF
+        setsockopt(fd, SOL_SOCKET, SO_SNDBUF, (char *) &fodder, sizeof fodder);
 #endif        
-        keepalive(fd, 1);        
-    
+#ifdef SO_RCVBUF
+        setsockopt(fd, SOL_SOCKET, SO_RCVBUF, (char *) &fodder, sizeof fodder);
+#endif        
+#endif
+#ifndef NO_KEEPALIVE
+        keepalive(fd, 1);
+#endif
     }
     xferfd = fd;
 }
@@ -2863,9 +2880,9 @@ void doretr(char *name)
                         FD_SET(0, &rs);
                         FD_SET(xferfd, &ws);
                         tv.tv_sec = idletime;
-                        tv.tv_usec = 0;
-                        select(xferfd + 1, &rs, &ws, NULL, &tv);
-                        if (FD_ISSET(0, &rs)) {
+                        tv.tv_usec = 0;                        
+                        if (select(xferfd + 1, &rs, &ws, NULL, &tv) <= 0 ||
+                            FD_ISSET(0, &rs)) {
                             /* we assume it is ABRT since nothing else is legal */
                             (void) close(f);
 			    closedata();
@@ -2957,9 +2974,9 @@ void doretr(char *name)
                         FD_SET(0, &rs);
                         FD_SET(xferfd, &ws);
                         tv.tv_sec = idletime;
-                        tv.tv_usec = 0;
-                        select(xferfd + 1, &rs, &ws, NULL, &tv);
-                        if (FD_ISSET(0, &rs)) {
+                        tv.tv_usec = 0;                        
+                        if (select(xferfd + 1, &rs, &ws, NULL, &tv) <= 0 ||
+                            FD_ISSET(0, &rs)) {
                             /* we assume is is ABRT since nothing else is legal */
                             (void) munmap(buf, s);
                             (void) close(f);
@@ -3054,9 +3071,9 @@ void doretr(char *name)
                         FD_SET(0, &rs);
                         FD_SET(xferfd, &ws);
                         tv.tv_sec = idletime;
-                        tv.tv_usec = 0;
-                        select(xferfd + 1, &rs, &ws, NULL, &tv);
-                        if (FD_ISSET(0, &rs)) {
+                        tv.tv_usec = 0;                        
+                        if (select(xferfd + 1, &rs, &ws, NULL, &tv) <= 0 ||
+                            FD_ISSET(0, &rs)) {
                             /* we assume is is ABRT since nothing else is legal */
                             (void) munmap(buf, s);
 			    closedata();
@@ -3549,9 +3566,9 @@ void dostor(char *name, const int append, const int autorename)
         FD_SET(0, &rs);
         FD_SET(xferfd, &rs);
         tv.tv_sec = idletime;
-        tv.tv_usec = 0;
-        select(xferfd + 1, &rs, NULL, NULL, &tv);
-        if (FD_ISSET(0, &rs) || !(safe_fd_isset(xferfd, &rs))) {
+        tv.tv_usec = 0;        
+        if (select(xferfd + 1, &rs, NULL, NULL, &tv) <= 0 ||
+            FD_ISSET(0, &rs) || !(safe_fd_isset(xferfd, &rs))) {
             databroken:
 #ifdef QUOTAS
             (void) dostor_quota_update_close_f(overwrite, filesize,
@@ -4072,7 +4089,6 @@ static void dns_sanitize(char *z)
 static void doit(void)
 {
     socklen_t socksize;
-    struct rusage ru;
 
     session_start_time = time(NULL);
     fixlimits();
@@ -4126,7 +4142,7 @@ static void doit(void)
     addreply_noformat(0, MSG_WELCOME_TO " Pure-FTPd.");
 # else
     addreply_noformat(0, "--------- " MSG_WELCOME_TO 
-                      " Pure-FTPd " VERSION VERSION_PRIVSEP " ----------");
+                      " Pure-FTPd" VERSION_PRIVSEP " ----------");
 # endif
 #else
     addreply_noformat(220, "FTP server ready.");
@@ -4249,8 +4265,7 @@ static void doit(void)
         
         if ((t = localtime(&session_start_time)) != NULL) {
             addreply(220, MSG_WELCOME_TIME,
-                     t->tm_hour, t->tm_min, load > 0.0 ? load : 0.0,
-                     (unsigned int) serverport);
+                     t->tm_hour, t->tm_min, (unsigned int) serverport);
         }
     }
 #endif
@@ -4309,25 +4324,8 @@ static void doit(void)
     
     parser();
     
-#ifdef BORING_MODE
     addreply(0, MSG_LOGOUT);
     logfile(LOG_INFO, MSG_LOGOUT);    
-#else
-    if (getrusage(RUSAGE_SELF, &ru) == 0) {
-        unsigned long s, u;
-
-        u = (ru.ru_utime.tv_usec + ru.ru_stime.tv_usec + 500UL) / 1000UL;
-        s = ru.ru_utime.tv_sec + ru.ru_stime.tv_sec;
-        if (u > 999UL) {
-            u -= 1000UL;
-            s++;
-        }
-        addreply(0, MSG_INFO_CPU_TIME, s, u);
-        logfile(LOG_INFO, MSG_INFO_CPU_TIME, s, u);
-    } else {
-        logfile(LOG_INFO, MSG_LOGOUT);
-    }
-#endif
     doreply();
 }
 
@@ -4367,9 +4365,36 @@ static void updatepidfile(void)
 }
 
 #ifndef NO_STANDALONE
+static int closedesc_all(const int closestdin)
+{
+    int fodder;
+    
+    if (closestdin != 0) {
+        (void) close(0);
+        if ((fodder = open("/dev/null", O_RDONLY)) == -1) {
+            return -1;
+        }
+        (void) dup2(fodder, 0);
+        if (fodder > 0) {
+            (void) close(fodder);
+        }
+    }
+    if ((fodder = open("/dev/null", O_WRONLY)) == -1) {
+        return -1;
+    }
+    (void) dup2(fodder, 1);
+    (void) dup2(1, 2);
+    if (fodder > 2) {
+        (void) close(fodder);
+    }
+    
+    return 0;
+}
+
 static void dodaemonize(void)
 {
     pid_t child;
+    unsigned int i;
 
     /* Contributed by Jason Lunz - also based on APUI code, see open_max() */
     if (daemonize != 0) {
@@ -4379,21 +4404,24 @@ static void dodaemonize(void)
             return;
         } else if (child != (pid_t) 0) {
             _EXIT(EXIT_SUCCESS);       /* parent exits */
-        } else {
-            unsigned int i = open_max();
-
-            if (setsid() == (pid_t) -1) {
-                perror(MSG_STANDALONE_FAILED " - setsid");   /* continue anyway */
-            }
+        } 
+        i = open_max();
+        
+        if (setsid() == (pid_t) -1) {
+            perror(MSG_STANDALONE_FAILED " - setsid");   /* continue anyway */
+        }
 # ifndef NON_ROOT_FTP
-            chdir("/");
+        chdir("/");
 # endif
-            do {
-                if (isatty((int) i)) {
-                    (void) close((int) i);
-                }
-                i--;
-            } while (i != 0U);
+        do {
+            if (isatty((int) i)) {
+                (void) close((int) i);
+            }
+            i--;
+        } while (i != 0U);
+        if (closedesc_all(1) != 0) {
+            perror(MSG_STANDALONE_FAILED " - /dev/null duplication");
+            _EXIT(EXIT_FAILURE);
         }
     }
 }
@@ -4408,9 +4436,6 @@ static void standalone_server(void)
     socklen_t dummy;
     pid_t child;
 
-    if (isatty(0)) {
-        (void) close(0);
-    }
 # ifndef NO_INETD
     standalone = 1;
 # endif
@@ -4669,8 +4694,8 @@ int main(int argc, char *argv[])
         case 't':
         case 'T': {
             char *struck;
-            char *tr_bw_ul = NULL;
-            char *tr_bw_dl = NULL;
+            const char *tr_bw_ul = NULL;
+            const char *tr_bw_dl = NULL;
 
             if ((struck = strchr(optarg, ':')) != NULL) {
                 *struck = 0;
@@ -4719,7 +4744,8 @@ int main(int argc, char *argv[])
         }
 #endif
         case 'a': {
-            char *nptr, *endptr;
+            const char *nptr;
+            char *endptr;
 
             nptr = optarg;
             endptr = NULL;
@@ -4769,7 +4795,8 @@ int main(int argc, char *argv[])
             break;
         }
         case 'c': {
-            char *nptr, *endptr;
+            const char *nptr;
+            char *endptr;
 
             nptr = optarg;
             endptr = NULL;
@@ -4785,7 +4812,8 @@ int main(int argc, char *argv[])
             break;
         }
         case 'C': {
-            char *nptr, *endptr;
+            const char *nptr;
+            char *endptr;
 
             nptr = optarg;
             endptr = NULL;
@@ -4846,7 +4874,7 @@ int main(int argc, char *argv[])
         }
         case 'l': {
             const Authentication *auth_list_pnt = auth_list;
-            char *opt = optarg;
+            const char *opt = optarg;
             Authentications *new_auth;
             size_t auth_name_len;
 
@@ -4892,7 +4920,8 @@ int main(int argc, char *argv[])
             break;
         }
         case 'm': {
-            char *nptr, *endptr;
+            const char *nptr;
+            char *endptr;
 
             nptr = optarg;
             endptr = NULL;
@@ -4919,17 +4948,22 @@ int main(int argc, char *argv[])
 #endif
 #ifdef WITH_ALTLOG
         case 'O': {
+            char *optarg_copy;
             char *delpoint;
 
-            if ((delpoint = strchr(optarg, ALTLOG_DELIMITER)) == NULL) {
+            if ((optarg_copy = strdup(optarg)) == NULL) {
+                die_mem();
+            }
+            if ((delpoint = strchr(optarg_copy, ALTLOG_DELIMITER)) == NULL) {
                 altlog_format = ALTLOG_DEFAULT;
-                delpoint = optarg;
+                delpoint = optarg_copy;
             } else {
                 const AltLogPrefixes *altlogprefixes_pnt = altlogprefixes;
 
                 *delpoint++ = 0;
                 do {
-                    if (strcasecmp(optarg, altlogprefixes_pnt->prefix) == 0) {
+                    if (strcasecmp(optarg_copy,
+                                   altlogprefixes_pnt->prefix) == 0) {
                         altlog_format = altlogprefixes_pnt->format;
                         break;
                     }
@@ -4937,7 +4971,8 @@ int main(int argc, char *argv[])
                 } while (altlogprefixes_pnt->prefix != NULL);
                 if (altlog_format == ALTLOG_NONE) {
                     die(421, LOG_ERR,
-                        MSG_CONF_ERR ": " MSG_UNKNOWN_ALTLOG ": %s" , optarg);
+                        MSG_CONF_ERR ": " MSG_UNKNOWN_ALTLOG ": %s",
+                        optarg_copy);
                 }
             }
             if (*delpoint != '/') {
@@ -4948,6 +4983,7 @@ int main(int argc, char *argv[])
             if ((altlog_filename = strdup(delpoint)) == NULL) {
                 die_mem();
             }
+            (void) free(optarg_copy);
             break;
         }
 #endif
@@ -5036,7 +5072,8 @@ int main(int argc, char *argv[])
             break;
         }
         case 'I': {
-            char *nptr, *endptr;
+            const char *nptr;
+            char *endptr;
 
             nptr = optarg;
             endptr = NULL;
@@ -5055,7 +5092,8 @@ int main(int argc, char *argv[])
             break;
         }
         case 'k': {
-            char *nptr, *endptr;
+            const char *nptr;
+            char *endptr;
 
             nptr = optarg;
             endptr = NULL;
@@ -5066,7 +5104,8 @@ int main(int argc, char *argv[])
             break;
         }
         case 'u': {
-            char *nptr, *endptr;
+            const char *nptr;
+            char *endptr;
             long tmp;
 
             nptr = optarg;
@@ -5079,25 +5118,30 @@ int main(int argc, char *argv[])
             break;
         }
         case 'U': {
+            char *optarg_copy;
             char *struck;
-            char *tr_umask = NULL;
-            char *tr_umask_d = NULL;
+            const char *tr_umask = NULL;
+            const char *tr_umask_d = NULL;
 
-            if ((struck = strchr(optarg, ':')) != NULL) {
+            if ((optarg_copy = strdup(optarg)) == NULL) {
+                die_mem();
+            }
+            if ((struck = strchr(optarg_copy, ':')) != NULL) {
                 *struck = 0;
-                if (*optarg != 0) {
-                    tr_umask = optarg;
+                if (*optarg_copy != 0) {
+                    tr_umask = optarg_copy;
                 }
                 if (struck[1] != 0) {
                     tr_umask_d = &struck[1];
                 }
             } else {
-                tr_umask = tr_umask_d = optarg;
+                tr_umask = tr_umask_d = optarg_copy;
             }
             if ((tr_umask == NULL || *tr_umask == 0) &&
                 (tr_umask_d == NULL || *tr_umask_d == 0)) {
                 bad_umask:
-                die(421, LOG_ERR, MSG_CONF_ERR ": " MSG_ILLEGAL_UMASK ": %s" , optarg);
+                die(421, LOG_ERR, MSG_CONF_ERR ": " MSG_ILLEGAL_UMASK ": %s",
+                    optarg_copy);
             }
             if (tr_umask != NULL) {
                 if ((u_mask =
@@ -5111,6 +5155,7 @@ int main(int argc, char *argv[])
                     goto bad_umask;
                 }
             }
+            (void) free(optarg_copy);
             break;
         }
 #ifdef WITH_VIRTUAL_HOSTS
@@ -5156,14 +5201,14 @@ int main(int argc, char *argv[])
         first_authentications->conf_file = NULL;
         first_authentications->next = NULL;
     }
+#ifndef NO_STANDALONE
+    dodaemonize();
+#endif
 #ifndef SAVE_DESCRIPTORS
     if (no_syslog == 0 && (log_pid || syslog_facility != DEFAULT_FACILITY)) {
         closelog();
         openlog("pure-ftpd", LOG_NDELAY | log_pid, syslog_facility);
     }
-#endif
-#ifndef NO_STANDALONE
-    dodaemonize();
 #endif
     (void) umask((mode_t) 0);
     clearargs(argc, argv);

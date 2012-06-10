@@ -1,12 +1,12 @@
 #!/bin/bash
 #
-# Startup script for the pure-ftpd FTP Server  $Revision: 1.2 $
+# Startup script for the pure-ftpd FTP Server  $Revision: 1.3 $
 #
 # chkconfig: 2345 85 15
 # description: Pure-FTPd is an FTP server daemon based upon Troll-FTPd
 # processname: pure-ftpd
 # pidfile: /var/run/pure-ftpd.pid
-# config: /etc/sysconfig/pure-ftpd
+# config: /etc/pure-ftpd.conf
 
 # Source function library.
 . /etc/rc.d/init.d/functions

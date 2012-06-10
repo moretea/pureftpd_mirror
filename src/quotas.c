@@ -62,7 +62,7 @@ int quota_update(Quota * const quota,
             goto bye;        
         }
         bufpnt += readen;
-        left =- readen;
+        left -= readen;
     } while (left > (ssize_t) 0 && readen != (ssize_t) 0);    
     *bufpnt = 0;
     if ((bufpnt = strchr(buf, ' ')) == NULL) {

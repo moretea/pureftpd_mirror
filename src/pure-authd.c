@@ -61,14 +61,12 @@ static void dodaemonize(void)
             return;
         } else if (child != (pid_t) 0) {
             _exit(EXIT_SUCCESS);
-        } else {
-            if (setsid() == (pid_t) -1) {
+        } else if (setsid() == (pid_t) -1) {
                perror("Daemonization failed : setsid");
-            }
-            (void) chdir("/");
-            (void) closedesc_all(1);
         }
-    }    
+        (void) chdir("/");
+        (void) closedesc_all(1);
+    }
 }
 
 static int init(void)
@@ -119,7 +117,8 @@ static int parseoptions(int argc, char *argv[])
             break;
         }
         case 'g': {
-            char *nptr, *endptr;
+            const char *nptr;
+            char *endptr;
             
             nptr = optarg;
             endptr = NULL;
@@ -147,7 +146,8 @@ static int parseoptions(int argc, char *argv[])
             break;            
         }
         case 'u': {
-            char *nptr, *endptr;
+            const char *nptr;
+            char *endptr;
             
             nptr = optarg;
             endptr = NULL;

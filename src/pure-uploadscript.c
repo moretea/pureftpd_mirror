@@ -33,7 +33,7 @@ static int upload_pipe_ropen(void)
         
     again:
     if ((upload_pipe_fd =
-         open(UPLOAD_PIPE_FILE, O_RDWR | O_NOFOLLOW)) == -1) {
+         open(UPLOAD_PIPE_FILE, O_RDONLY | O_NOFOLLOW)) == -1) {
 	if (tries > 0) {
 	    tries--;
 	    (void) sleep(OPEN_DELAY);
@@ -73,7 +73,7 @@ static int readchar(const int upload_file_fd)
 static int readpipe(const int upload_file_fd,
                     char ** const r_who, char ** const r_file)
 {
-    static char who[WHOMAXLEN + 1U];
+    static char who[MAX_USER_LENGTH + 1U];
     static char file[MAXPATHLEN + 1U];    
     const char * const whoend = &who[sizeof who];
     const char * const fileend = &file[sizeof file];
@@ -178,14 +178,12 @@ static void dodaemonize(void)
             return;
         } else if (child != (pid_t) 0) {
             _exit(EXIT_SUCCESS);
-        } else {
-            if (setsid() == (pid_t) -1) {
+        } else if (setsid() == (pid_t) -1) {
                perror("Daemonization failed : setsid");
-            }
-            (void) chdir("/");
-            (void) closedesc_all(0);
         }
-    }    
+        (void) chdir("/");
+        (void) closedesc_all(0);
+    }
 }
 
 static int init(void)
@@ -235,7 +233,8 @@ static int parseoptions(int argc, char *argv[])
             break;
         }
         case 'g': {
-            char *nptr, *endptr;
+            const char *nptr;
+            char *endptr;
             
             nptr = optarg;
             endptr = NULL;
@@ -257,7 +256,8 @@ static int parseoptions(int argc, char *argv[])
             break;            
         }
         case 'u': {
-            char *nptr, *endptr;
+            const char *nptr;
+            char *endptr;
             
             nptr = optarg;
             endptr = NULL;
@@ -395,7 +395,12 @@ static int run(const char * const who, const char * const file,
 #ifdef HAVE_WAITPID
         (void) waitpid(pid, NULL, 0);
 #else
-        while (wait3(NULL, 0, NULL) != pid);
+        {
+            pid_t foundpid;
+            
+            while ((foundpid = wait3(NULL, 0, NULL)) != (pid_t) -1 &&
+                   foundpid != pid);
+        }
 #endif
     }
     
@@ -427,8 +432,8 @@ int safe_write(const int fd, const void *buf_, size_t count)
 
 static void updatepidfile(void)
 {
+    char buf[42];    
     int fd;
-    char buf[42];
     
     if (SNCHECK(snprintf(buf, sizeof buf, "%lu\n", 
                          (unsigned long) getpid()), sizeof buf)) {
@@ -495,6 +500,7 @@ int main(int argc, char *argv[])
 #endif
     for (;;) {
         if (readpipe(upload_pipe_fd, &who, &file) != 0) {
+            (void) sleep(1);
             continue;
         }        
         file = checkvirtual(file);
