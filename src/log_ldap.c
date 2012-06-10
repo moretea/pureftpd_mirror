@@ -88,41 +88,23 @@ void pw_ldap_parse(const char * const file)
 
 void pw_ldap_exit(void)
 {
-    if (ldap_host != NULL) {
-        free((void *) ldap_host);
-        ldap_host = NULL;
-    }
-    if (port_s != NULL) {
-        free((void *) port_s);
-        port_s = NULL;
-    }        
+    free((void *) ldap_host);
+    ldap_host = NULL;
+    free((void *) port_s);
+    port_s = NULL;
     port = -1;
-    if (root != NULL) {
-        free((void *) root);
-        root = NULL;
-    }
-    if (pwd != NULL) {
-        free((void *) pwd);
-        pwd = NULL;
-    }
-    if (base != NULL) {
-        free((void *) base);
-        base = NULL;
-    }
-    if (ldap_filter != NULL) {
-	free((void *) ldap_filter);
-    }
-    if (ldap_homedirectory != NULL) {
-	free((void *) ldap_homedirectory);
-    }    
-    if (default_uid_s != NULL) {
-        free((void *) default_uid_s);
-        default_uid_s = NULL;
-    }
-    if (default_gid_s != NULL) {
-        free((void *) default_gid_s);
-        default_gid_s = NULL;
-    }
+    free((void *) root);
+    root = NULL;
+    free((void *) pwd);
+    pwd = NULL;
+    free((void *) base);
+    base = NULL;
+    free((void *) ldap_filter);
+    free((void *) ldap_homedirectory);
+    free((void *) default_uid_s);
+    default_uid_s = NULL;
+    free((void *) default_gid_s);
+    default_gid_s = NULL;
 }
 
 static LDAP *pw_ldap_connect(void)
@@ -205,18 +187,12 @@ static char *pw_ldap_getvalue(LDAP * const ld,
 
 static void pw_ldap_getpwnam_freefields(struct passwd * const p) 
 {
-    if (p->pw_passwd != NULL) {
-        free(p->pw_passwd);
-        p->pw_passwd = NULL;
-    }
-    if (p->pw_dir != NULL) {
-        free(p->pw_dir);
-        p->pw_dir = NULL;
-    }
-    if (p->pw_shell != NULL) {
-        free(p->pw_shell);
-        p->pw_shell = NULL;
-    }
+    free(p->pw_passwd);
+    p->pw_passwd = NULL;
+    free(p->pw_dir);
+    p->pw_dir = NULL;
+    free(p->pw_shell);
+    p->pw_shell = NULL;
 }
 
 static int pw_ldap_validate_name(const char *name)
@@ -369,37 +345,29 @@ static struct passwd *pw_ldap_getpwnam(const char *name,
     if ((pw_uid_s = pw_ldap_getvalue(ld, res, LDAP_FTPUID)) == NULL ||
         *pw_uid_s == 0 || 
         (pwret.pw_uid = (uid_t) strtoul(pw_uid_s, NULL, 10)) <= (uid_t) 0) {
-        if (pw_uid_s != NULL) {
-            free((void *) pw_uid_s);
-            pw_uid_s = NULL;
-        }
+        free((void *) pw_uid_s);
+        pw_uid_s = NULL;
         if ((pw_uid_s = pw_ldap_getvalue(ld, res, LDAP_UIDNUMBER)) == NULL ||
             *pw_uid_s == 0 || 
             (pwret.pw_uid = (uid_t) strtoul(pw_uid_s, NULL, 10)) <= (uid_t) 0) {
             pwret.pw_uid = default_uid;
         }                 
     }     
-    if (pw_uid_s != NULL) {
-        free((void *) pw_uid_s);
-        pw_uid_s = NULL;
-    }
+    free((void *) pw_uid_s);
+    pw_uid_s = NULL;
     if ((pw_gid_s = pw_ldap_getvalue(ld, res, LDAP_FTPGID)) == NULL ||
         *pw_gid_s == 0 ||
         (pwret.pw_gid = (gid_t) strtoul(pw_gid_s, NULL, 10)) <= (gid_t) 0) {
-        if (pw_gid_s != NULL) {
-            free((void *) pw_gid_s);
-            pw_gid_s = NULL;
-        }
+        free((void *) pw_gid_s);
+        pw_gid_s = NULL;
         if ((pw_gid_s = pw_ldap_getvalue(ld, res, LDAP_GIDNUMBER)) == NULL ||
             *pw_gid_s == 0 ||
             (pwret.pw_gid = (gid_t) strtoul(pw_gid_s, NULL, 10)) <= (gid_t) 0) {
             pwret.pw_gid = default_gid;
         }                        
     } 
-    if (pw_gid_s != NULL) {
-        free((void *) pw_gid_s);
-        pw_gid_s = NULL;
-    }
+    free((void *) pw_gid_s);
+    pw_gid_s = NULL;
     if ((pwret.pw_dir = 
          pw_ldap_getvalue(ld, res, ldap_homedirectory)) == NULL ||
         *pwret.pw_dir == 0) {
@@ -421,41 +389,21 @@ static struct passwd *pw_ldap_getpwnam(const char *name,
     }
     ldap_unbind(ld);
     pw_ldap_getpwnam_freefields(&pwret);
-    if (pw_uid_s != NULL) {
-        free((void *) pw_uid_s);
-    }
-    if (pw_gid_s != NULL) {
-        free((void *) pw_gid_s);
-    }    
-    if (pw_passwd_ldap != NULL) {
-        free((void *) pw_passwd_ldap);
-    }    
-    if (pw_enabled != NULL) {
-	free((void *) pw_enabled);
-    }
+    free((void *) pw_uid_s);
+    free((void *) pw_gid_s);
+    free((void *) pw_passwd_ldap);
+    free((void *) pw_enabled);
 #ifdef QUOTAS
-    if (quota_files != NULL) {
-	free((void *) quota_files);
-    }
-    if (quota_mbytes != NULL) {
-	free((void *) quota_mbytes);
-    }
+    free((void *) quota_files);
+    free((void *) quota_mbytes);
 #endif
 #ifdef RATIOS
-    if (ratio_ul != NULL) {
-	free((void *) ratio_ul);
-    }
-    if (ratio_dl != NULL) {
-	free((void *) ratio_dl);
-    }
+    free((void *) ratio_ul);
+    free((void *) ratio_dl);
 #endif
 #ifdef THROTTLING
-    if (bandwidth_ul != NULL) {
-	free((void *) bandwidth_ul);
-    }
-    if (bandwidth_dl != NULL) {
-	free((void *) bandwidth_dl);
-    }
+    free((void *) bandwidth_ul);
+    free((void *) bandwidth_dl);
 #endif
     return NULL;
 }

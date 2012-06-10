@@ -377,14 +377,11 @@ int main(int argc, char *argv[])
     if (traversal(isroot != 0 ? "/" : "./") < 0) {
         fprintf(stderr, "Unable to traverse [%s]: [%s]\n",
                 startpath, strerror(errno));
-        if (nodes != NULL) {
-            free(nodes);
-        }
+        free(nodes);
+        
         return -4;
     }
-    if (nodes != NULL) {
-        free(nodes);
-    }
+    free(nodes);
     if (isroot != 0) {
         if (writequota("/" QUOTA_FILE) < 0) {
             err_writequota:

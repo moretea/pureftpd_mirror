@@ -1,6 +1,6 @@
 
                               .:. PURE-FTPD .:.
-                       Documentation for version 1.0.17
+                      Documentation for version 1.0.16b
 
 
 
@@ -619,8 +619,8 @@ Here are the recognised switches:
 - '-1': log the PID of each session in syslog output.
 
 - '-4': only listen to IPv4 connections. YOU HAVE TO ENABLE THIS ON OPENBSD,
-NETBSD, ISOS, EKKOBSD, MACOS X AND FREEBSD 5.X IF YOUR NETWORK IS NOT 100%
-IPV6! Even if you are starting the server through a superserver like inetd.
+ISOS, EKKOBSD AND MACOS X IF YOUR NETWORK IS NOT 100% IPV6! Even if you are
+starting the server through a superserver like inetd.
 
 - '-a <gid>': Authenticated users will be granted access to their home
 directory and nothing else (chroot) . This is especially useful for users
@@ -1244,8 +1244,8 @@ ftp://ftp.c9x.org/ should show different content than ftp://ftp.rtchat.com/
 .
 
 The FTP protocol doesn't allow name-based selection. So, if you want to host
-<N> different virtual FTP servers on the same host, you need <N> different IP
-addresses. Yes, Sir. Or use HTTP.
+<N> different virtual FTP servers on the same host and keep the standard port,
+you need <N> different IP addresses. Yes, Sir. Or use HTTP.
 
 Assign the needed IP adresses to your network adapter (with "ifconfig eth0:x
 ..." or "ip addr add dev eth0 a.b.c.d").

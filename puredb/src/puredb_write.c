@@ -250,10 +250,8 @@ static int freestructs(PureDBW * const dbw)
     int hash0_cnt = (int) (sizeof dbw->hash_table0 / sizeof dbw->hash_table0[0]);
 
     do {
-        if (hash0->hash1_list != NULL) {
-            free(hash0->hash1_list);
-            hash0->hash1_list = NULL;
-        }
+        free(hash0->hash1_list);
+        hash0->hash1_list = NULL;
         hash0++;
         hash0_cnt--;
     } while (hash0_cnt > 0);
@@ -307,18 +305,12 @@ static void freeall(PureDBW * const dbw)
         fclose(dbw->fpdata);
         dbw->fpdata = NULL;
     }
-    if (dbw->file_index != NULL) {
-        free(dbw->file_index);
-        dbw->file_index = NULL;
-    }
-    if (dbw->file_data != NULL) {
-        free(dbw->file_data);
-        dbw->file_data = NULL;
-    }
-    if (dbw->file_final != NULL) {
-        free(dbw->file_final);
-        dbw->file_final = NULL;
-    }
+    free(dbw->file_index);
+    dbw->file_index = NULL;
+    free(dbw->file_data);
+    dbw->file_data = NULL;
+    free(dbw->file_final);
+    dbw->file_final = NULL;
 }
 
 void puredbw_free(PureDBW * const dbw)

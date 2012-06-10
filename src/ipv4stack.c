@@ -150,10 +150,8 @@ void freeaddrinfo(struct addrinfo *res)
     if (res == NULL) {
         return;
     }
-    if (res->ai_addr != NULL) {
-        free(res->ai_addr);
-        res->ai_addr = NULL;
-    }
+    free(res->ai_addr);
+    res->ai_addr = NULL;
     free(res);
 }
 #endif

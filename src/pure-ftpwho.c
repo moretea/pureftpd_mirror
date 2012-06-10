@@ -206,7 +206,65 @@ static void text_output_footer(void)
     puts("");
 }
 
+static char *xml_escaped(const char *const s_) {
+    static char buf[MAXPATHLEN + 32U];
+    const unsigned char *s = (const unsigned char *) s_;
+    char *bufpnt = buf;
+    size_t left = sizeof buf - (size_t) 1U;
+    
+    while (left > 0 && *s != 0U) {
+        if (ISCTRLCODE(*s)) {
+            if (left <= (size_t) 0U) {
+                *bufpnt = 0;
+                return buf;
+            }
+            *bufpnt++ = '?';
+            left--;
+            goto next;
+        }
+        switch (*s) {
+        case '<':
+            if (left < sizeof "&lt;" - (size_t) 1U) {
+                *bufpnt = 0;
+                return buf;
+            }
+            *bufpnt++ = '&'; *bufpnt++ = 'l'; *bufpnt++ = 't'; *bufpnt++ = ';';
+            left -= sizeof "&lt;" - (size_t) 1U;
+            break;
+        case '>':
+            if (left < sizeof "&gt;" - (size_t) 1U) {
+                *bufpnt = 0;
+                return buf;
+            }
+            *bufpnt++ = '&'; *bufpnt++ = 'g'; *bufpnt++ = 't'; *bufpnt++ = ';';
+            left -= sizeof "&gt;" - (size_t) 1U;
+            break;
+        case '&':
+            if (left < sizeof "&amp;" - (size_t) 1U) {
+                *bufpnt = 0;
+                return buf;
+            }
+            *bufpnt++ = '&'; *bufpnt++ = 'a'; *bufpnt++ = 'm'; *bufpnt++ = 'p';
+            *bufpnt++ = ';';
+            left -= sizeof "&amp;" - (size_t) 1U;
+            break;
+        default:
+            *bufpnt++ = (char) *s;
+            left--;
+        }
+        next:
+        s++;
+    }
+    *bufpnt = 0;
+    
+    return buf;    
+}
+
 /* HTML output */
+
+static char *html_escaped(const char *const s_) {
+    return xml_escaped(s_);
+}
 
 static void html_output_header(void)
 {
@@ -214,16 +272,67 @@ static void html_output_header(void)
         puts("Content-Type: text/html\n");
     }
     if (html_raw == 0) {
-        puts("<!DOCTYPE html PUBLIC \"-//W3C/DTD XHTML 1.0 Transitional//EN\" "
-             "\"DTD/xhtml1-transitional.dtd\">\n"
-             "<html>\n"
-             "<title>Pure-FTPd server status</title>\n"
-             "<body bgcolor=\"#ffffff\" text=\"#000000\">\n");
-        puts("<div align=\"center\">\n");
+        puts("<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.1//EN\"\n"
+             "          \"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd\">\n"
+             "<html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"en\">\n"
+             "<head>\n"             
+             " <meta http-equiv=\"Content-Type\"\n" 
+             "       content=\"text/html; charset=ISO-8859-15\" />\n"
+             " <title>Pure-FTPd server status</title>\n"
+             " <style type=\"text/css\">\n"
+             "html {\n"
+             " background-color: #369;\n"
+             "}\n"
+             "body {\n"
+             " background-color: #fff;\n"
+             " color: #000;\n"
+             " margin: 12px;\n"
+             " padding: 8px;\n"
+             " border: 2px solid #000;\n"
+             " font-family: \"Trebuchet MS\",Verdana,Geneva,Arial,Helvetica,sans-serif;\n"
+             " font-size: 0.8em;\n"
+             "}\n"
+             "h1 {\n"
+             " text-align: center;\n"
+             " border-bottom: 1px solid #666;\n"
+             " margin: 0.5em 1em;\n"
+             "}\n"
+             "#ftp-status {\n"
+             " text-align: center;\n"
+             "}\n"
+             "table {\n"
+             " margin: 0 auto;\n"
+             "}\n"
+             "thead th {\n"
+             " background-color: #369;\n"
+             " color: #fff;\n"
+             "}\n"
+             "th,td {\n"
+             " padding: 0.1em 0.5em;\n"
+             "}\n"
+             "tr:hover {\n"
+             " background-color: #def;\n"
+             "}\n"
+             " </style>\n"
+             "</head>\n"
+             "<body>\n"
+             "<h1>Pure-FTPd server status</h1>");
     }
-    puts("<table width=\"100%\" cellspacing=\"4\" border=\"2\" cellpadding=\"4\">");
-    puts("<th>PID</th><th>Account</th><th>Time</th><th>State</th>"
-         "<th>File name</th><th>Remote host</th><th>Kbytes</th><th>Local host</th>");
+    puts("<div id=\"ftp-status\">\n"
+         " <table summary=\"Pure-FTPd server status\">\n"
+         "  <thead>\n"
+         "   <tr>\n"
+         "    <th scope=\"col\">PID</th>\n"
+         "    <th scope=\"col\">Account</th>\n"
+         "    <th scope=\"col\">Time</th>\n"
+         "    <th scope=\"col\">State</th>\n"
+         "    <th scope=\"col\" abbr=\"File\">File name</th>\n"
+         "    <th scope=\"col\" abbr=\"Peer\">Remote host</th>\n"
+         "    <th scope=\"col\" abbr=\"Kb\">Kbytes</th>\n"
+         "    <th scope=\"col\" abbr=\"Local\">Local host</th>\n"
+         "   </tr>\n"
+         "  </thead>\n"
+         "  <tbody>");
 }
 
 static void html_output_line(const pid_t pid, const char * const account,
@@ -238,18 +347,16 @@ static void html_output_line(const pid_t pid, const char * const account,
                              const off_t total_size,
                              const off_t current_size)
 {    
-    puts("<tr valign=\"middle\">");
-    printf("<td>%lu</td>"
-           "<td>%s</td>"
-           "<td>%02lu:%02lu</td>"
-           "<td>%s</td>"
-           "<td>%s</td>"
-           "<td>%s</td>\n",
-           (unsigned long) pid, 
-           *account == 0 ? "&nbsp;" : account,
-           (since / 60UL) / 60UL, (since / 60UL) % 60UL, state, 
-           *filename == 0 ? "&nbsp;" : filename, 
-           hbuf);
+    puts("   <tr>");
+    printf("    <th scope=\"row\">%lu</th>\n", (unsigned long) pid);
+    printf("    <td>%s</td>\n",
+           *account == 0 ? "&nbsp;" : html_escaped(account));           
+    printf("    <td>%02lu:%02lu</td>\n",
+           (since / 60UL) / 60UL, (since / 60UL) % 60UL);
+    printf("    <td>%s</td>\n", html_escaped(state));
+    printf("    <td>%s</td>\n",
+           *filename == 0 ? "&nbsp;" : html_escaped(filename));
+    printf("    <td>%s</td>\n", html_escaped(hbuf));
     if (current_size > (off_t) 0) {
         unsigned long bandwidth;
         
@@ -268,59 +375,39 @@ static void html_output_line(const pid_t pid, const char * const account,
             if (pcti > 100) {
                 pcti = 100;           /* should never happen */
             }
-            printf("<td>%llu/%llu (%d%% - %lu KB/s)</td>\n",
+            printf("    <td>%llu/%llu (%d%% - %lu KB/s)</td>\n",
                    (unsigned long long) (current_size / 1024),
                    (unsigned long long) (total_size / 1024), 
                    pcti, bandwidth);
         } else {
-            printf("<td>%llu (%lu KB/s)</td>\n",
+            printf("    <td>%llu (%lu KB/s)</td>\n",
                    (unsigned long long) (current_size / 1024),
                    bandwidth);
         }
     } else {
-        puts("<td>&nbsp;</td>");
+        puts("    <td>&nbsp;</td>");
     }
-    printf("<td>%s:%s</td>\n", local_hbuf, local_port);
-    puts("</tr>");
+    printf("    <td>%s:", html_escaped(local_hbuf));
+    printf("%s</td>\n", html_escaped(local_port));
+    puts("   </tr>");
 }
 
 static void html_output_footer(void)
 {
-    puts("</table>");
+    puts("  </tbody>\n"
+         " </table>\n"
+         "</div>");
     if (html_raw == 0) {
-        puts("\n</div>\n");
-        puts("\n</body>\n</html>");
+        puts("</body>\n"
+             "</html>");
     }
 }
 
 /* XML output */
 
-static const char *xml_escaped(const char * const s_)
-{
-    register const unsigned char *s = (const unsigned char *) s_;        
-    static char buf[1024];
-    register char *bufpnt = buf;    
-    
-    if (strlen(s_) >= sizeof buf) {
-        return "*";
-    }
-    while (*s != 0U) {
-        if (*s < 32U || *s > 126U || *s == '"') {
-            *bufpnt = '?';
-        } else {
-            *bufpnt = (char) *s;
-        }
-        bufpnt++;
-        s++;
-    }
-    *bufpnt = 0;
-    
-    return buf;
-}
-
 static void xml_output_header(void)
 {
-    puts("<?xml version=\"1.0\" ?>\n\n"
+    puts("<?xml version=\"1.0\" encoding=\"ISO-8859-15\"?>\n"
          "<status>");
 }
 
@@ -385,29 +472,30 @@ static void xml_output_footer(void)
 static const char *shell_escaped(const char * const s_)
 {
     register const unsigned char *s = (const unsigned char *) s_;        
-    static char buf[2048];
-    const char * const bufend = &buf[sizeof buf];
+    static char buf[MAXPATHLEN + 32U];
+    const char * const bufend = &buf[sizeof buf - (size_t) 1U];
     register char *bufpnt = buf;    
     
-    if (strlen(s_) >= sizeof buf) {
-        return "-";
-    }
     while (*s != 0U) {
         if (ISCTRLCODE(*s)) {
             *bufpnt = '_';
-        } else if (*s == '|') {
+        } else if (*s == '|' || *s == '\\') {
+            if (bufpnt == bufend) {
+                break;
+            }
             *bufpnt++ = '\\';
             if (bufpnt == bufend) {
-                return "-";
+                bufpnt--;
+                break;
             }
-            *bufpnt = '|';
+            *bufpnt = (char) *s;
         } else {
             *bufpnt = (char) *s;
         }
-        bufpnt++;
         if (bufpnt == bufend) {
-            return "-";
+            break;
         }
+        bufpnt++;
         s++;
     }
     *bufpnt = 0;
@@ -427,7 +515,7 @@ static void shell_output_line(const pid_t pid, const char * const account,
                               const char * const hbuf,
                               const char * const local_hbuf,
                               const char * const local_port,
-                              const off_t restartat,                              
+                              const off_t restartat,
                               const off_t total_size,
                               const off_t current_size)
 {
@@ -717,6 +805,11 @@ int main(int argc, char *argv[])
                     break;
                 }                
 #endif
+                goto nextone;
+            }
+            for (;;) {
+                int eai;
+                
                 if ((eai = getnameinfo
                      ((struct sockaddr *) &scanned_entry->local_addr,
                       STORAGE_LEN(scanned_entry->addr),

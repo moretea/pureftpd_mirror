@@ -550,57 +550,27 @@ void pw_mysql_check(AuthResult * const result,
     if (id_sql_server != NULL) {
         mysql_close(id_sql_server);
     }
-    if (spwd != NULL) {
-        free((void *) spwd);
-    }
-    if (uid != NULL) {
-        free((void *) uid);
-    }
-    if (gid != NULL) {
-        free((void *) gid);
-    }
-    if (dir != NULL) {
-        free((void *) dir);
-    }
+    free((void *) spwd);
+    free((void *) uid);
+    free((void *) gid); 
+    free((void *) dir);
 #ifdef QUOTAS
-    if (sqta_fs != NULL) {
-        free((void *) sqta_fs);
-    }
-    if (sqta_sz != NULL) {
-        free((void *) sqta_sz);
-    }
+    free((void *) sqta_fs);
+    free((void *) sqta_sz);
 #endif    
 #ifdef RATIOS
-    if (ratio_ul != NULL) {
-        free((void *) ratio_ul);
-    }
-    if (ratio_dl != NULL) {
-        free((void *) ratio_dl);
-    }
+    free((void *) ratio_ul);
+    free((void *) ratio_dl);
 #endif    
 #ifdef THROTTLING
-    if (bandwidth_ul != NULL) {
-        free((void *) bandwidth_ul);
-    }
-    if (bandwidth_dl != NULL) {
-        free((void *) bandwidth_dl);
-    }
+    free((void *) bandwidth_ul);
+    free((void *) bandwidth_dl);
 #endif    
-    if (escaped_account != NULL) {
-        free((void *) escaped_account);
-    }
-    if (escaped_ip != NULL) {
-        free((void *) escaped_ip);
-    }
-    if (escaped_port != NULL) {
-        free((void *) escaped_port);
-    }
-    if (escaped_peer_ip != NULL) {
-        free((void *) escaped_peer_ip);
-    }
-    if (escaped_decimal_ip != NULL) {
-        free((void *) escaped_decimal_ip);
-    }    
+    free((void *) escaped_account);
+    free((void *) escaped_ip);
+    free((void *) escaped_port);
+    free((void *) escaped_peer_ip);
+    free((void *) escaped_decimal_ip);
 }
 
 void pw_mysql_parse(const char * const file)
@@ -633,7 +603,7 @@ void pw_mysql_parse(const char * const file)
     }        
 }
 
-#define ZFREE(X) if ((X) != NULL) { free(X); (X) = NULL; }
+#define ZFREE(X) do { free(X); (X) = NULL; } while (0)
 
 void pw_mysql_exit(void)
 {

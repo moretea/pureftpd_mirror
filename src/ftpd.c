@@ -3724,9 +3724,7 @@ void dostor(char *name, const int append, const int autorename)
     }
     end:
 #ifndef WITHOUT_ASCII
-    if (cpy != NULL) {
-        free(cpy);
-    }
+    free(cpy);
 #endif
     ALLOCA_FREE(buf);
     restartat = (off_t) 0;
@@ -3903,10 +3901,8 @@ void dornto(char *name)
                 renamefrom, name);
     }
     bye:
-    if (renamefrom != NULL) {
-        (void) free(renamefrom);
-        renamefrom = NULL;
-    }
+    (void) free(renamefrom);
+    renamefrom = NULL;
 }
 
 void error(int n, const char *msg)
@@ -4497,16 +4493,27 @@ static void standalone_server(void)
         fprintf(stderr, MSG_STANDALONE_FAILED " - " MSG_SYNTAX_ERROR_IP ": %d\n", on);
         return;
     }
-    on = 1;
+    on = 1;            
     if ((listenfd = socket(res->ai_family, SOCK_STREAM, IPPROTO_TCP)) == -1 ||
         setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR,
-                   (char *) &on, sizeof on) != 0 ||
-        bind(listenfd, res->ai_addr, (socklen_t) res->ai_addrlen) != 0 ||
-        listen(listenfd, maxusers > 0U ? 3U + maxusers / 8U : DEFAULT_BACKLOG) != 0) {
+                   (char *) &on, sizeof on) != 0) {
+        cant_bind:
         perror(MSG_STANDALONE_FAILED);
         logfile(LOG_ERR, MSG_STANDALONE_FAILED ": [%s]", strerror(errno));
         freeaddrinfo(res);
-        return;
+        return;        
+    }
+#if defined(IPPROTO_IPV6) && defined(IPV6_V6ONLY)
+    {
+        int off = 0;
+        (void) setsockopt(listenfd, IPPROTO_IPV6, IPV6_V6ONLY,
+                          (char *) &off, sizeof off);
+    }
+#endif    
+    if (bind(listenfd, res->ai_addr, (socklen_t) res->ai_addrlen) != 0 ||
+        listen(listenfd, maxusers > 0U ? 
+               3U + maxusers / 8U : DEFAULT_BACKLOG) != 0) {
+        goto cant_bind;
     }
     freeaddrinfo(res);
     set_cloexec_flag(listenfd);
@@ -4901,9 +4908,7 @@ int main(int argc, char *argv[])
 #ifdef COOKIE
         case 'F': {
 # ifdef BANNER_ENVIRON	    
-	    if (fortunes_file != NULL) {
-		free(fortunes_file);
-	    }
+            free(fortunes_file);
 # endif
             fortunes_file = strdup(optarg);
             break;
@@ -5319,17 +5324,13 @@ int main(int argc, char *argv[])
             if (auth_scan->auth->exit != NULL) {
                 auth_scan->auth->exit();
             }
-            if (auth_scan->conf_file != NULL) {
-                free(auth_scan->conf_file);
-            }
+            free(auth_scan->conf_file);
             previous = auth_scan;
             auth_scan = auth_scan->next;
             free(previous);
         }
     }
-    if (trustedip != NULL) {
-        free(trustedip);
-    }
+    free(trustedip);
 #ifndef NO_STANDALONE
     iptrack_free();    
     unlink(pid_file);

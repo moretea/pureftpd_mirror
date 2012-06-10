@@ -1,4 +1,14 @@
 
+* Version 1.0.16b:
+ - The server now properly compiles with SSL/TLS on RedHat 9 systems.
+ - pure-ftpwho now outputs nice-looking XHTML 1.1 conformant code, an XSS
+issue has been fixed and the local host name is now properly displayed in
+verbose mode.
+ - The path to SSL certificates now follows the --sysconfdir prefix.
+ - Minor optimizations have been made.
+ - IPv4 and IPv6 addresses will now listen for connections even
+without the -4 switch on NetBSD and FreeBSD.
+
 * Version 1.0.16a:
  - pure-uploadscript was broken in 1.0.16 due to a typo and sometimes it
 wouldn't work on some systems.

@@ -396,7 +396,7 @@ extern int opt_a, opt_C, opt_d, opt_F, opt_l, opt_R;
 
 #ifdef WITH_TLS
 # ifndef TLS_CERTIFICATE_PATH
-#  define TLS_CERTIFICATE_PATH "/etc/ssl/private/pure-ftpd.pem"
+#  define TLS_CERTIFICATE_PATH CONFDIR "/ssl/private/pure-ftpd.pem"
 # endif
 #endif
 

@@ -264,15 +264,15 @@ then launch it again:
                          
 
 
-* OpenBSD, NetBSD, ISOS, EkkoBSD, MacOS X and FreeBSD 5.
+* OpenBSD, ISOS, EkkoBSD and MacOS X.
 
 -> I'm trying to run Pure-FTPd on OpenBSD. The daemon is running, but I
 can't connect: nobody answers on port 21.
 
 Intentionally, OpenBSD refuses to listen for IPv4 and IPv6 connections on a
 single socket. By defaut, Pure-FTPd will only listen to IPv6 connections on
-OpenBSD. The same thing applies to recent releases of NetBSD, ISOS,
-EkkoBSD, MacOS X and FreeBSD 5.
+OpenBSD. The same thing applies to recent releases of ISOS, EkkoBSD and
+MacOS X.
 To listen to IPv4 addresses, you must run pure-ftpd with the '-4' switch:
 /usr/local/sbin/pure-ftpd -4 &
 
@@ -842,8 +842,9 @@ it can have nasty side effects with no real win. If you even filter ICMP types
 such troubles with transfers of large files.
 
 Please read these documents about ICMP filtering :
+http://www.phildev.net/mss/index.html
 http://alive.znep.com/~marcs/mtu/
-http://home.earthlink.net/~jaymzh666/mss/
+http://www.freelabs.com/~whitis/isp_mistakes.html
 
 
 
@@ -862,3 +863,18 @@ ports will be used to transfer data, including the firewall. There are some
 proposals to work around this problem, but neither popular clients nor common
 firewalls are aware of these tricks. Therefore, use the passive mode or switch
 to SSH.
+
+
+
+* TLS and error 00000000.
+
+-> My TLS-enabled client doesn't work. It outputs something like :
+"SSL connect: error:00000000:lib(0):func(0):reason(0)". What does it mean?
+
+This error is not very explicit. You get it from some Unix clients like LFTP.
+It actually means that there is a firewall or a NAT box between a TLS-enabled
+server and a TLS-enabled client, but that firewall is unable to handle
+encrypted FTP sessions. Unfortunately, there's no simple workaround against
+this. Try to switch your client to active mode and use 1:1 NAT, but SSL/TLS,
+firewalls and FTP don't mix very well.
+

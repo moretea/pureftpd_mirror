@@ -427,9 +427,8 @@ int listencnx(void)
         kindy = -1;
     }
     (void) unlink(socketpath);
-    if (saddr != NULL) {
-        free(saddr);
-    }
+    free(saddr);
+    
     return ret;
 }
 

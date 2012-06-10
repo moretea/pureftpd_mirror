@@ -100,11 +100,11 @@ command-line, using the Cygnus Win32 environment:
 
 env CFLAGS="-O2 -march=pentium -pipe" LDFLAGS="-static -s" \
     ./configure --with-everything --with-brokenrealpath \
-                --without-shadow  --with-nonroot \
+                --without-shadow  --with-nonroot --with-tls \
                 --with-probe-random-dev --without-ascii
                 
-  All these switches (except --with-everything) are highly recommended
-to compile Pure-FTPd on Windows.                
+  All these switches (except --with-everything and --with-tls) are highly
+recommended to compile Pure-FTPd on Windows.                
 
   Needed packages are: base, gcc (+ dependencies), make and the crypt
 library. All of these can be installed with the standard Cygwin32

@@ -39,10 +39,8 @@ void iptrack_delete_pid(const pid_t pid)
 
 void iptrack_free(void)
 {
-    if (iptrack_list != NULL) {
-        free(iptrack_list);
-        iptrack_list = NULL;
-    }
+    free(iptrack_list);
+    iptrack_list = NULL;
 }
 
 static unsigned int iptrack_find_ip_or_shift
