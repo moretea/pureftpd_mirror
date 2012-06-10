@@ -115,6 +115,7 @@ External contributors and people who helped in any way, shape or form:
 * Ned Holdbrook - reported that MLSD should display dot files.
 * Nicklas Uvelöv.
 * Nicolas (for all his questions)
+* Olivier Sannier
 * Oliver Soell <oliver at fusionit.com> - RPM fixes.
 * Olivier Soell.
 * Olivier Tharan <olive at zehc.net> (pointed out that Xinetd needs -USR2 not -HUP) .
@@ -159,7 +160,8 @@ External contributors and people who helped in any way, shape or form:
 * Youssef El Fathi
 * ahodgson at simkin.ca (thanks for your opinion on config files and your help for CVS repositories)
 * bernard.lheureux at bbsoft4.org
-* bkeil at indiana.edu 
+* bkeil at indiana.edu
+* brainvictor at rambler.ru
 * brett at ekit-inc.com 
 * chris at widexs.nl (suggested authenticating users on virtual hosts)
 * claudiuc at kde.org (romanian translator and great tester)

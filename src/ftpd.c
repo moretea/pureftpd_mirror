@@ -3006,31 +3006,32 @@ int dlhandler_throttle(DLHandler * const dlhandler, const off_t downloaded,
     }
     *required_sleep = wanted_ts - elapsed;
     previous_chunk_size = dlhandler->chunk_size;
-    if (dlhandler->total_downloaded > dlhandler->chunk_size) {
-        if (*required_sleep < dlhandler->min_sleep) {
-            dlhandler->chunk_size =
-                (dlhandler->max_chunk_size + dlhandler->chunk_size) / 2;
-        } else if (*required_sleep > dlhandler->max_sleep) {
-            dlhandler->chunk_size =
-                (dlhandler->min_chunk_size + dlhandler->chunk_size) / 2;
-        } else {
-            dlhandler->chunk_size = dlhandler->default_chunk_size;
-        }
-        if (dlhandler->chunk_size <= 0 || dlhandler->chunk_size > INT_MAX) {
-            dlhandler->chunk_size = dlhandler->default_chunk_size;
-        }
-        if (previous_chunk_size != dlhandler->default_chunk_size) {
-            would_be_downloaded =
-                dlhandler->total_downloaded + dlhandler->chunk_size;
-            if (dlhandler->bandwidth > 0UL) {
-                wanted_ts = (double) would_be_downloaded /
-                    (double) dlhandler->bandwidth;
-            } else {
-                wanted_ts = elapsed;
-            }
-            *required_sleep = wanted_ts - elapsed;
-        }        
+    if (dlhandler->total_downloaded <= dlhandler->chunk_size) {
+        return 0;
     }
+    if (*required_sleep < dlhandler->min_sleep) {
+        dlhandler->chunk_size =
+            (dlhandler->max_chunk_size + dlhandler->chunk_size) / 2;
+    } else if (*required_sleep > dlhandler->max_sleep) {
+        dlhandler->chunk_size =
+            (dlhandler->min_chunk_size + dlhandler->chunk_size) / 2;
+    } else {
+        dlhandler->chunk_size = dlhandler->default_chunk_size;
+    }
+    if (dlhandler->chunk_size <= 0 || dlhandler->chunk_size > INT_MAX) {
+        dlhandler->chunk_size = dlhandler->default_chunk_size;
+    }
+    if (previous_chunk_size != dlhandler->default_chunk_size) {
+        would_be_downloaded =
+            dlhandler->total_downloaded + dlhandler->chunk_size;
+        if (dlhandler->bandwidth > 0UL) {
+            wanted_ts = (double) would_be_downloaded /
+                (double) dlhandler->bandwidth;
+        } else {
+            wanted_ts = elapsed;
+        }
+        *required_sleep = wanted_ts - elapsed;
+    }        
     return 0;
 }
 
@@ -3146,17 +3147,13 @@ static int _dlmap_read(DLHandler * const dlhandler)
     }
     if (dlhandler->dlmap_pos != dlhandler->dlmap_fdpos) {
         do {
-#ifdef HAVE_PREAD
-            readnb = pread(dlhandler->f, dlhandler->map, dlhandler->dlmap_size,
-                           dlhandler->dlmap_pos);
-#else
             if (lseek(dlhandler->f, dlhandler->dlmap_pos,
                       SEEK_SET) == (off_t) -1) {
                 dlhandler->dlmap_fdpos = (off_t) -1;
                 return -1;
             }
+            dlhandler->dlmap_fdpos = dlhandler->dlmap_pos;
             readnb = read(dlhandler->f, dlhandler->map, dlhandler->dlmap_size);
-#endif
         } while (readnb == (ssize_t) -1 && errno == EINTR);
     } else {
         do {
@@ -3178,7 +3175,7 @@ static int _dlmap_read(DLHandler * const dlhandler)
 static int _dlmap_remap(DLHandler * const dlhandler)
 {
     size_t min_dlmap_size;
-    size_t max_dlmap_size;
+    off_t remaining;
     
     if (dlhandler->map_data != NULL) {
         if (dlhandler->cur_pos >= dlhandler->dlmap_pos &&
@@ -3211,9 +3208,9 @@ static int _dlmap_remap(DLHandler * const dlhandler)
     if (dlhandler->dlmap_size < page_size) {
         dlhandler->dlmap_size = page_size;
     }
-    max_dlmap_size = dlhandler->file_size - dlhandler->dlmap_pos;
-    if (dlhandler->dlmap_size > max_dlmap_size) {
-        dlhandler->dlmap_size = max_dlmap_size;
+    remaining = dlhandler->file_size - dlhandler->dlmap_pos;
+    if ((off_t) dlhandler->dlmap_size > remaining) {
+        dlhandler->dlmap_size = (off_t) remaining;
     }
     if (_dlmap_read(dlhandler) != 0) {
         error(451, MSG_DATA_READ_FAILED);
@@ -4715,11 +4712,11 @@ void doopts(char *args)
         
     if ((cmdopts = strchr(args, ' ')) != NULL) {
         cmdopts++;
+        (void) cmdopts;
     }
-
-#ifdef WITH_RFC2640
+# ifdef WITH_RFC2640
     if (strncasecmp("utf8 ", args, 5) == 0) {
-        if (cmdopts == NULL) {
+        if (cmdopts == NULL || *cmdopts == 0) {
             addreply_noformat(501, "OPTS UTF8: " MSG_MISSING_ARG);          
         } else if (strncasecmp(cmdopts, "on", sizeof "on" - 1U) == 0) {
             utf8 = 1;       
@@ -4733,7 +4730,7 @@ void doopts(char *args)
         }
         return; 
     }
-#endif
+# endif
     if (strncasecmp("mlst ", args, 5) == 0) {
         addreply_noformat(200, " MLST OPTS "
                           "type;size;sizd;modify;UNIX.mode;UNIX.uid;"

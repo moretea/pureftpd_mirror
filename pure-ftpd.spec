@@ -1,5 +1,5 @@
 %define name       pure-ftpd
-%define version    1.0.28
+%define version    1.0.29
 %define builddir   $RPM_BUILD_DIR/%{name}-%{version}
 %define no_install_post_compress_docs    1
 %define con_pam    0
