@@ -107,7 +107,8 @@ option_tuple = (
     ["CreateHomeDir\s+yes",                "-j"                  ],
     ["NoRename\s+yes",                     "-G"                  ],
     ["CustomerProof\s+yes",                "-Z"                  ],
-    ["PIDFile\s+(\S+)",                    "-g", None            ])
+    ["PIDFile\s+(\S+)",                    "-g", None            ],
+    ["PerUserLimits\s+([:0-9]+)",          "-t", None            ])
 
 for option in option_tuple:
     option[0] = re.compile(option[0], re.IGNORECASE)

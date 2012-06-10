@@ -281,6 +281,11 @@ static int pw_puredb_parseline(char *line, const char * const pwd,
     if ((line = my_strtok2(NULL, *PW_LINE_SEP)) == NULL) {   /* max cnx */
         return 0;
     }
+#ifdef PER_USER_LIMITS    
+    if (*line != 0) {
+	result->per_user_max = (unsigned int) strtoull(line, NULL, 10);
+    }
+#endif
     if ((line = my_strtok2(NULL, *PW_LINE_SEP)) == NULL) {   /* files quota */
         return 0;
     }

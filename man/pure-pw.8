@@ -1,4 +1,4 @@
-.TH "pure-pw" "8" "1.0.0" "Pure-FTPd team" "Pure-FTPd"
+.TH "pure-pw" "8" "1.0.12" "Pure-FTPd team" "Pure-FTPd"
 .SH "NAME"
 .LP 
 pure\-pw \- Manage virtual users files for Pure\-FTPd
@@ -11,6 +11,7 @@ pure\-pw useradd login [\-f passwd_file] \-u uid [\-g gid]
                 [\-q upload_ratio] [\-Q download_ratio]
                 [\-r <allow client host>/<mask>[,<ip>/<mask>]...] [\-R <deny client host>/<mask>[,<ip>/<mask>]...]
                 [\-i <allow local host>/<mask>[,<ip>/<mask>]...] [\-I <deny local host>/<mask>[,<ip>/<mask>]...]
+                [\-y <max number of concurrent sessions>]
                 [\-z <hhmm>\-<hhmm>] [\-m]
 .br 
 pure\-pw usermod login \-f passwd_file \-u uid [\-g gid]
@@ -20,6 +21,7 @@ pure\-pw usermod login \-f passwd_file \-u uid [\-g gid]
                 [\-q upload_ratio] [\-Q download_ratio]
                 [\-r <allow client host>/<mask>[,<ip>/<mask>]...] [\-R <deny client host>/<mask>[,<ip>/<mask>]...]
                 [\-i <allow local host>/<mask>[,<ip>/<mask>]...] [\-I <deny local host>/<mask>[,<ip>/<mask>]...]
+                [\-y <max number of concurrent sessions>]
                 [\-z <hhmm>\-<hhmm>] [\-m]
 .br 
 pure\-pw userdel login [\-f passwd_file] [\-m]

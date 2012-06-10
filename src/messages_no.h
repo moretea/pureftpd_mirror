@@ -213,3 +213,5 @@
 #define MSG_ALIASES_UNKNOWN "Ukjent alias %s."
 #define MSG_ALIASES_BROKEN_FILE "Ødelagt alias fil"
 #define MSG_ALIASES_LIST "Følgende alias er tilgjengelige :"
+#define MSG_PERUSER_MAX "Kan ikke tillate mer enn %lu tilkoplinger fra samme bruker"
+#define MSG_IPV6_OK "IPv6 forbindelser er også velkommen på denne serveren"

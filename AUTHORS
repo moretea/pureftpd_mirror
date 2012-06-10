@@ -55,7 +55,7 @@ Credits for Pure-FTPd are going to the following ones.
 
     German translation.
 
-* Claudiu Costin <claudiuc@work.ro>
+* Claudiu Costin <claudiuc@kde.org>
 
     Romanian translation.
     KcmPureftpd author.
@@ -102,7 +102,7 @@ Credits for Pure-FTPd are going to the following ones.
 
     Web design of pureftpd.org .
 
-* Isak Lyberth
+* Isak Lyberth <lyberth@users.sf.net>
 
     Danish translation.
 
@@ -123,7 +123,7 @@ Credits for Pure-FTPd are going to the following ones.
 
     MD5/SHA1 LDAP authentication.
 
-* Sami Farin <safari@iki.fr>
+* Sami Farin <safari@iki.fi>
 
     A lot of code cleanups.
 
@@ -150,7 +150,7 @@ Credits for Pure-FTPd are going to the following ones.
 
     "Powered by Pure-FTPd" web button.
 
-* Robert Varga :
+* Robert Varga <nite@hq.alert.sk> :
 
     Slovak translation.
 
@@ -170,6 +170,8 @@ Credits for Pure-FTPd are going to the following ones.
 
     Support for load average checks on Solaris.
     Directory aliases.
+    HPUX support.
+    sendfile() support on HPUX and Solaris.
 
 * Brad Smith <brad@openbsd.org> :
 
@@ -224,6 +226,14 @@ ratios.
 * Gabriele Vinci <gabriele@pronto.it>
 
     Official logo artwork.
+
+* Andrey Ulanov <drey@rt.mipt.ru>
+
+    Russian translation.
+
+* Fygul Hether <fygul@fgs.org.tw>
+
+    Traditional and simplified Chinese translations.
 
 * Frank DENIS aka Jedi/Sector One <j@pureftpd.org> :
 

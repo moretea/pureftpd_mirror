@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
         if (instamp >= 0) {
             if (isdigit(c)) {
                 if (instamp < (int) (sizeof timestamp - 1U)) {
-                    timestamp[instamp] = c;
+                    timestamp[instamp] = (char) c;
                     instamp++;
                 }
             } else {

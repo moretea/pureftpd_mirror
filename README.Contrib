@@ -92,3 +92,15 @@ notes.
 
   URL: http://www.mildewhall.demon.co.uk
 
+
+* PureFTPd User Manager (author: Solariz)
+
+This is a PHP/MySQL user management script for Pure-FTPd. You cann
+add, edit remove and manage your FTP users via a web interface.
+
+Screenshot :
+http://www.solariz.de/site_gfx/pureftp_um_shot1.jpg
+
+Download :
+http://www.solariz.de/download.php?file=pureftp_user_manager.zip&f.htm
+

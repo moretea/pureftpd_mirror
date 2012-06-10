@@ -1,5 +1,5 @@
 %define name       pure-ftpd
-%define version    1.0.11
+%define version    1.0.12
 %define release    1
 %define builddir   $RPM_BUILD_DIR/%{name}-%{version}
 %define no_install_post_compress_docs    1
@@ -31,7 +31,7 @@ Release:           %{release}
 Vendor:            Generic
 Packager:          Frank DENIS <j@pureftpd.org>
 URL:               http://www.pureftpd.org
-Source:            ftp://download.sourceforge.net/pub/sourceforge/pureftpd/%{name}-%{version}.tar.gz
+Source:            ftp://ftp.pureftpd.org/pub/pure-ftpd/releases/%{name}-%{version}.tar.gz
 Group:             System Environment/Daemons
 License:           GPL
 Provides:     	   ftp-server

@@ -1,4 +1,4 @@
-# /etc/sysconfig/pure-ftpd  $Revision: 1.12 $
+# /etc/sysconfig/pure-ftpd  $Revision: 1.13 $
 #
 # This file accompanies the pure-ftpd initscript for redhat based systems.
 # It will be used by /etc/rc.d/init.d/pure-ftpd only. It has no effect
@@ -152,6 +152,17 @@
 # knowledge, this feature is useless. If you're a hosting service, enable it.
 
 --customerproof
+
+
+
+# Per-user concurrency limits. It will only work if the FTP server has
+# been compiled with --with-peruserlimits (and this is the case on
+# most binary distributions) .
+# The format is : <max sessions per user>:<max anonymous sessions>
+# For instance, 3:20 means that the same authenticated user can have 3 active
+# sessions max. And there are 20 anonymous sessions max.
+
+# --peruserlimits=3:20
 
 
 

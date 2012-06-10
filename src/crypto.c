@@ -4,8 +4,16 @@
 
 #include "ftpd.h"
 #include "crypto.h"
-#include "crypto-sha1.h"
-#include "crypto-md5.h"
+#if !defined(HAVE_SHA1_H) || !defined(HAVE_SHA1TRANSFORM)
+# include "crypto-sha1.h"
+#else
+# include <sha1.h>
+#endif
+#if !defined(HAVE_MD5_H) || !defined(HAVE_MD5TRANSFORM)
+# include "crypto-md5.h"
+#else
+# include <md5.h>
+#endif
 
 #ifdef WITH_DMALLOC
 # include <dmalloc.h>
@@ -96,7 +104,7 @@ static char *debase64ify(char * const result, const unsigned char *encoded,
         0U, 1U, 2U, 3U, 4U, 5U, 6U, 7U, 8U, 9U, 10U, 11U, 12U, 13U, 14U, 15U,
         16U, 17U, 18U, 19U, 20U, 21U, 22U, 23U, 24U, 25U, 0U, 0U, 0U, 0U, 0U,
         0U, 26U, 27U, 28U, 29U, 30U, 31U, 32U, 33U, 34U, 35U, 36U, 37U, 38U,
-        39U, 40U, 41U, 42U, 43U, 44U, 45U, 46U, 47U, 48U, 49U, 50U, 51U                        
+        39U, 40U, 41U, 42U, 43U, 44U, 45U, 46U, 47U, 48U, 49U, 50U, 51U
     };
     size_t ch = size_encoded;
     char *result_pnt = result;
@@ -118,9 +126,9 @@ static char *debase64ify(char * const result, const unsigned char *encoded,
          * I'm very proud : bit shifts and masks were done without writing
          * down anything on a piece of paper, and the first try worked :)
          */
-        *result_pnt++ = (rev64chars[encoded[0]] << 2) | ((t1 & 48) >> 4);
-        *result_pnt++ = ((t1 & 15) << 4) | ((t2 & 60) >> 2);
-        *result_pnt++ = ((t2 & 3) << 6) | t3;
+        *result_pnt++ = (char) ((rev64chars[encoded[0]] << 2) | ((t1 & 48) >> 4));
+        *result_pnt++ = (char) (((t1 & 15) << 4) | ((t2 & 60) >> 2));
+        *result_pnt++ = (char) (((t2 & 3) << 6) | t3);
         if (t3 == 255U) {
             if (t2 == 255U) {
                 extra = 2;
@@ -209,7 +217,7 @@ char *crypto_hash_ssha1(const char *string, const char *stored)
                    (unsigned int) strlen(string));
     }
     if (decoded_len > (size_t) 0U) {
-        SHA1Update(&ctx, salt, decoded_len);
+        SHA1Update(&ctx, (const unsigned char *) salt, decoded_len);
     }
     SHA1Final(digest, &ctx);    
     sizeof_hash_and_salt = sizeof digest + decoded_len;
@@ -218,7 +226,7 @@ char *crypto_hash_ssha1(const char *string, const char *stored)
     }
     memcpy(hash_and_salt, digest, sizeof digest);   /* no possible overflow */
     memcpy(hash_and_salt + sizeof digest, salt, decoded_len);   /* no possible overflow */
-    if (base64ify(decoded, hash_and_salt, 
+    if (base64ify(decoded, (const unsigned char *) hash_and_salt, 
                   sizeof decoded, sizeof_hash_and_salt) == NULL) {
         ALLOCA_FREE(hash_and_salt);        
         return NULL;
@@ -255,7 +263,7 @@ char *crypto_hash_smd5(const char *string, const char *stored)
                   (unsigned int) strlen(string));
     }
     if (decoded_len > (size_t) 0U) {
-        MD5Update(&ctx, salt, decoded_len);
+        MD5Update(&ctx, (const unsigned char *) salt, decoded_len);
     }
     MD5Final(digest, &ctx);    
     sizeof_hash_and_salt = sizeof digest + decoded_len;
@@ -264,7 +272,7 @@ char *crypto_hash_smd5(const char *string, const char *stored)
     }
     memcpy(hash_and_salt, digest, sizeof digest);   /* no possible overflow */
     memcpy(hash_and_salt + sizeof digest, salt, decoded_len);   /* no possible overflow */
-    if (base64ify(decoded, hash_and_salt, 
+    if (base64ify(decoded, (const unsigned char *) hash_and_salt, 
                   sizeof decoded, sizeof_hash_and_salt) == NULL) {
         ALLOCA_FREE(hash_and_salt);        
         return NULL;

@@ -202,8 +202,8 @@ static struct passwd *pw_ldap_getpwnam(const char *name,
     LDAP *ld;
     LDAPMessage *res;
     char *attrs[] = {                  /* OpenLDAP forgot a 'const' ... */
-        LDAP_UIDNUMBER, LDAP_GIDNUMBER, LDAP_HOMEDIRECTORY,
-	LDAP_USERPASSWORD, LDAP_LOGINSHELL, LDAP_FTPSTATUS,
+        LDAP_UIDNUMBER, LDAP_FTPUID, LDAP_GIDNUMBER, LDAP_FTPGID,
+        LDAP_HOMEDIRECTORY, LDAP_USERPASSWORD, LDAP_LOGINSHELL, LDAP_FTPSTATUS,
 #ifdef QUOTAS
 	LDAP_QUOTAFILES, LDAP_QUOTAMBYTES,
 #endif

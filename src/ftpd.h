@@ -27,7 +27,7 @@
 #ifdef HAVE_LOCALE_H
 # include <locale.h>
 #endif
-#if HAVE_STRING_H
+#ifdef HAVE_STRING_H
 # if !STDC_HEADERS && HAVE_MEMORY_H
 #  include <memory.h>
 # endif
@@ -44,7 +44,7 @@
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
 #endif
-#if TIME_WITH_SYS_TIME
+#ifdef TIME_WITH_SYS_TIME
 # include <sys/time.h>
 # include <time.h>
 #else
@@ -116,14 +116,19 @@
 
 #include "ipv4stack.h"
 
-/* We can't have both implementations, so if both were
+/* We can't have more than one implementation, so if more than one were
  * found, the configure test failed - Use none */
-#if defined(DISABLE_SENDFILE) || (defined(SENDFILE_FREEBSD) && defined(SENDFILE_LINUX))
+#if defined(DISABLE_SENDFILE) || \
+  (defined(SENDFILE_FREEBSD) && (defined(SENDFILE_LINUX) || defined(SENDFILEV_SOLARIS) || defined(SENDFILE_HPUX))) || \
+  (defined(SENDFILE_LINUX) && (defined(SENDFILEV_SOLARIS) || defined(SENDFILE_HPUX))) || \
+  (defined(SENDFILEV_SOLARIS) && defined(SENDFILE_HPUX))
 # undef SENDFILE_FREEBSD
 # undef SENDFILE_LINUX
+# undef SENDFILE_HPUX
+# undef SENDFILEV_SOLARIS
 #endif
-#ifdef SENDFILE_FREEBSD
-/* FreeBSD sendfile() handles large files */
+#if defined(SENDFILE_FREEBSD) || defined(SENDFILEV_SOLARIS) || defined(SENDFILE_HPUX)
+/* FreeBSD, Solaris and HP-UX sendfile() handles large files */
 #elif defined(SENDFILE_LINUX)
 # ifdef WITH_LARGE_FILES
 #  undef SENDFILE_LINUX
@@ -136,7 +141,14 @@
 #ifdef HAVE_SYS_UIO_H
 # include <sys/uio.h>
 #endif
-#if defined(SENDFILE_LINUX) && defined(HAVE_SYS_SENDFILE_H)
+
+/*
+ * sendfile() is very kernel dependant. It's probable that you have platforms
+ * that require specific #include before sys/sendfile.h . So to enhance
+ * portability, we only include sys/sendfile.h on operating systems known
+ * to be supported
+ */
+#if (defined(SENDFILE_LINUX) || defined(SENDFILEV_SOLARIS)) && defined(HAVE_SYS_SENDFILE_H)
 # include <sys/sendfile.h>
 #endif
 
@@ -264,7 +276,10 @@ typedef struct AuthResult_ {
     unsigned int ratio_upload;
     unsigned int ratio_download;
     int ratio_ul_changed;
-    int ratio_dl_changed;    
+    int ratio_dl_changed;
+#endif
+#ifdef PER_USER_LIMITS
+    unsigned int per_user_max;
 #endif
 } AuthResult;
 
@@ -309,6 +324,10 @@ void dosize(const char *name);
 void doeprt(char *p);
 void doport(const char *arg);
 void doport2(struct sockaddr_storage a, unsigned int p);
+#ifndef MINIMAL
+void doesta(void);
+void doestp(void);
+#endif
 void dopasv(int);
 void dochmod(char *name, mode_t mode);
 void error(int n, const char *msg);
@@ -326,8 +345,10 @@ void mappedtov4(struct sockaddr_storage *ss);
 void disablesignals(void);
 #endif
 void getnames(void);
-void donlist(char *arg, int on_ctrlconn);
-int opendata(void);
+void donlist(char *arg, const int on_ctrlconn, const int opt_l_,
+             const int split_args);
+void opendata(void);
+void closedata(void);
 void addreply(const int code, const char * const line, ...)
 	__attribute__ ((format(printf, 2, 3)));
 void addreply_noformat(const int code, const char * const line);

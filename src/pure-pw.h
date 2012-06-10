@@ -71,12 +71,13 @@ typedef struct PWInfo_ {
     unsigned int time_begin;
     unsigned int time_end;
     int has_time;
+    unsigned int per_user_max;
 } PWInfo;
 
 char *newpasswd_filename(const char * const file);
 
 #ifndef SHOW_STATE
-# define SHOW_STATE(X) (((X) != 0) ? "enabled" : "disabled")
+# define SHOW_STATE(X) (((X) != 0) ? "enabled" : "unlimited")
 #endif
 
 #ifndef SHOW_IFEN

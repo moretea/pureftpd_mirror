@@ -2,6 +2,7 @@
  * snprintf() / vsnprintf() re-implementation by Frank Denis <j@pureftpd.org>
  *
  * These functions understand :
+ * - characters ("%c") .
  * - space padding ("%3d", "%-3s") .
  * - zero padding ("%04d") .
  * - explicit '+' ("%+d", "%+3.2f") .
@@ -128,6 +129,14 @@ int fakesnprintf_vsnprintf(char * const str_, const size_t size_,
                 *str++ = '%';
                 size--;
                 goto breakpoint_nextspecial_inc;
+	    case 'c': {
+		int val;
+		
+		val = va_arg(va, int);
+		*str++ = (char) val;
+		size--;
+                goto breakpoint_nextspecial_inc;		
+	    }
             case 'l': case 'L':
                 longs++;
                 goto breakpoint_nextspecial_inc;

@@ -53,10 +53,6 @@ Passwords are compatible with the hashing function used in /etc/passwd or
 /etc/master.passwd . They are crypto hashed with blowfish, md5, multiple-des
 and simple des, in this order, according to what your system has support fort.
 
-*
-* Warning: max number of connections aren't implemented yet.
-*
-
 
     ------------------------ CREATING A NEW USER ------------------------
 
@@ -72,6 +68,7 @@ To add a new user, use the following syntax :
                          [-R <deny client host>[/<mask>][,<deny client host>[/<mask>]]...]
                          [-i <allow local host>[/<mask>][,<allow client host>[/<mask>]]...]
                          [-I <deny local host>[/<mask>][,<deny local host>[/<mask>]]...]
+			 [-y <max number of concurrent sessions>]
                          [-z <hhmm>-<hhmm>] [-m]
 
 Let's create "joe", whoose home directory will be /home/ftpusers/joe . The
@@ -98,6 +95,10 @@ followed by a simple IP/mask pair (-r 192.168.1.0/24), multiple pairs
 separated by a coma (-r 192.168.1.0/24,10.1.0.0/16,127.0.0.1/32), single IPs
 (-r 192.168.1.4,10.1.1.5), host names (-r bla.bla.net,yopcitron.com), or any
 combination of those.
+
+-y is to restrict the number of concurrent sessions an user can have
+at the same time. 0 means unlimited. Avoid this feature on very loaded
+servers. Use per-ip limits instead.
 
 Ok, "joe" has been created. By default, the list of virtual users is stored
 in the /etc/pureftpd.passwd file (you can of course change this with -f
@@ -143,6 +144,7 @@ To disable download bandwidth throttling, use pure-pw usermod <user> -t ''
 To disable upload bandwidth throttling, use pure-pw usermod <user> -T ''
 To disable IP filtering, use pure-pw usermod <user> <-i,-I,-r or -R> ''
 To disable time restrictions, use pure-pw usermod <user> -z ''
+To disable the number of concurrent sessions, use pure-pw usermod <user> -y ''
 
 
       ------------------------ DELETING USERS ------------------------
@@ -189,16 +191,17 @@ UID                : 500 (ftpuser)
 GID                : 101 (ftpgroup)
 Directory          : /home/ftpusers/joe/./
 Full name          : 
-Download bandwidth : 0 Kb (disabled)
-Upload   bandwidth : 0 Kb (disabled)
+Download bandwidth : 0 Kb (unlimited)
+Upload   bandwidth : 0 Kb (unlimited)
 Max files          : 1000 (enabled)
 Max size           : 10 Mb (enabled)
-Ratio              : 0:0 (disabled:disabled)
+Ratio              : 0:0 (unlimited:unlimited)
 Allowed local  IPs : 
 Denied  local  IPs : 
 Allowed client IPs : 192.168.0.0/16
 Denied  client IPs : 192.168.1.1,blah.verybadhost.com
 Time restrictions  : 0900-1800 (enabled)
+Max sim sessions   : 0 (unlimited)
 
 
   "/./" at the end of a home directory means that this user will be chrooted.

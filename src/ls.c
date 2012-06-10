@@ -90,7 +90,11 @@ const char *getname(const uid_t uid)
             return p->name;
         }
     }
-    if (chrooted == 0 && authresult.slow_tilde_expansion == 0) {
+    if (
+# ifndef ALWAYS_RESOLVE_IDS
+        chrooted == 0 && 
+# endif
+        authresult.slow_tilde_expansion == 0) {
         pwd = getpwuid(uid);
     }
     if ((p = malloc(sizeof *p)) == NULL) {
@@ -126,8 +130,11 @@ const char *getgroup(const gid_t gid)
         if (p->gid == gid) {
             return p->name;
         }
-    }    
-    if (chrooted == 0) {
+    } 
+# ifndef ALWAYS_RESOLVE_IDS   
+    if (chrooted == 0) 
+# endif
+    {
         pwd = getgrgid(gid);
     }
     if ((p = malloc(sizeof *p)) == NULL) {
@@ -278,7 +285,7 @@ static int listfile(const FileInfo * const fi,  const char *name)
                 m[2] = 'w';
             }
             if (st.st_mode & 0100) {
-                m[3] = st.st_mode & 04000 ? 's' : 'x';
+                m[3] = (char) (st.st_mode & 04000 ? 's' : 'x');
             } else if (st.st_mode & 04000) {
                 m[3] = 'S';
             }
@@ -289,7 +296,7 @@ static int listfile(const FileInfo * const fi,  const char *name)
                 m[5] = 'w';
             }
             if (st.st_mode & 010) {
-                m[6] = st.st_mode & 02000 ? 's' : 'x';
+                m[6] = (char) (st.st_mode & 02000 ? 's' : 'x');
             } else if (st.st_mode & 02000) {
                 m[6] = 'S';
             }
@@ -300,7 +307,7 @@ static int listfile(const FileInfo * const fi,  const char *name)
                 m[8] = 'w';
             }
             if (st.st_mode & 01) {
-                m[9] = st.st_mode & 01000 ? 't' : 'x';
+                m[9] = (char) (st.st_mode & 01000 ? 't' : 'x');
             } else if (st.st_mode & 01000) {
                 m[9] = 'T';
             }            
@@ -700,67 +707,71 @@ static void listdir(unsigned int depth, int f, const char *name)
     names = NULL;
 }
 
-void donlist(char *arg, int on_ctrl_conn)
+void donlist(char *arg, const int on_ctrl_conn, const int opt_l_,
+             const int split_args)
 {
     int c;
 
     matches = 0U;
 
     opt_C = opt_d = opt_F = opt_R = opt_r = opt_t = opt_S = 0;
+    opt_l = opt_l_;
     if (force_ls_a != 0) {
         opt_a = 1;
     } else {
         opt_a = 0;
     }
-    while (isspace((unsigned char)*arg)) {
-        arg++;
-    }
-    while (arg && *arg == '-') {
-        while (arg++ && isalnum((unsigned char)*arg)) {
-            switch (*arg) {
-            case 'a':
-                opt_a = 1;
-                break;
-            case 'l':
-                opt_l = 1;
-                opt_C = 0;
-                break;
-            case '1':
-                opt_l = opt_C = 0;
-                break;
-            case 'C':
-                opt_l = 0;
-                opt_C = 1;
-                break;
-            case 'F':
-                opt_F = 1;
-                break;
-            case 'R':
-                opt_R = 1;
-                break;
-            case 'd':
-                opt_d = 1;
-                break;
-            case 'r':
-                opt_r = 1;
-                break;
-            case 't':
-                opt_t = 1;
-                opt_S = 0;
-                break;
-            case 'S':
-                opt_S = 1;
-                opt_t = 0;
-                break;
-            }
-        }
-        while (isspace((unsigned char)*arg)) {
+    if (split_args != 0) {
+        while (isspace((unsigned char) *arg)) {
             arg++;
         }
+        while (arg && *arg == '-') {
+            while (arg++ && isalnum((unsigned char)*arg)) {
+                switch (*arg) {
+                case 'a':
+                    opt_a = 1;
+                    break;
+                case 'l':
+                    opt_l = 1;
+                    opt_C = 0;
+                    break;
+                case '1':
+                    opt_l = opt_C = 0;
+                    break;
+                case 'C':
+                    opt_l = 0;
+                    opt_C = 1;
+                    break;
+                case 'F':
+                    opt_F = 1;
+                    break;
+                case 'R':
+                    opt_R = 1;
+                    break;
+                case 'd':
+                    opt_d = 1;
+                    break;
+                case 'r':
+                    opt_r = 1;
+                    break;
+                case 't':
+                    opt_t = 1;
+                    opt_S = 0;
+                    break;
+                case 'S':
+                    opt_S = 1;
+                    opt_t = 0;
+                    break;
+                }
+            }
+            while (isspace((unsigned char)*arg)) {
+                arg++;
+            }
+        }
     }
-
     if (on_ctrl_conn == 0) {
-        if ((c = opendata()) == -1) {
+	opendata();
+        if ((c = xferfd) == -1) {
             return;
         }
         doreply();
@@ -771,17 +782,19 @@ void donlist(char *arg, int on_ctrl_conn)
         c = 1;
         safe_write(c, "213-STAT" CRLF, sizeof "213-STAT" CRLF - 1U);
     }        
-    if (arg && *arg) {
+    if (arg != NULL && *arg != 0) {
         int justone;
 
         justone = 1;            /* just one argument, so don't print dir name */
 
-        while (arg) {
+        do {
             glob_t g;
             int a;
-            char *endarg = strchr(arg, ' ');
+            char *endarg;
 
-            if (endarg) {
+            if (split_args == 0) {
+                endarg = NULL;
+            } else if ((endarg = strchr(arg, ' ')) != NULL) {
                 *endarg++ = 0;
                 justone = 0;
             }
@@ -833,7 +846,7 @@ void donlist(char *arg, int on_ctrl_conn)
 #else
                             wrstr(c, "\r\n\r\n");
                             wrstr(c, *path);
-                            wrstr(c, ":\r\n\r\n");                                            
+                            wrstr(c, ":\r\n\r\n");
 #endif
                         }
                         if (!chdir(*path)) {
@@ -851,12 +864,12 @@ void donlist(char *arg, int on_ctrl_conn)
                     addreply(226, MSG_GLOB_READ_ERROR, arg);
                 } else if (a != GLOB_NOMATCH) {
                     addreply(226, MSG_GLOB_READ_ERROR, arg);
-                    addreply_noformat(0, MSG_PROBABLY_DENIED);                    
+                    addreply_noformat(0, MSG_PROBABLY_DENIED);
                 }
             }
             globfree(&g);
             arg = endarg;
-        }
+        } while (arg != NULL);
     } else {
         if (opt_d) {
             listfile(NULL, ".");

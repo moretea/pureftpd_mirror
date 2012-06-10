@@ -213,3 +213,5 @@
 #define MSG_ALIASES_UNKNOWN "Alias desconocido %s."
 #define MSG_ALIASES_BROKEN_FILE "Fichero de alias dañado"
 #define MSG_ALIASES_LIST "Los siguientes alias están disponibles :"
+#define MSG_PERUSER_MAX "No puedo aceptar más de %lu conexiones del mismo usuario"
+#define MSG_IPV6_OK "Las conexiones IPv6 también son bienvenidas en este servidor"

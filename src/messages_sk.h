@@ -213,3 +213,5 @@
 #define MSG_ALIASES_UNKNOWN "Neznamy alias %s."
 #define MSG_ALIASES_BROKEN_FILE "Poskodeny subor aliasov"
 #define MSG_ALIASES_LIST "Nasledovne aliasy su dostupne :"
+#define MSG_PERUSER_MAX "Nemozem akceptovat viac ako %lu pripojeni od toho isteho pouzivatela"
+#define MSG_IPV6_OK "Pripojenia pomocou IPv6 su tiez vitane na tomto serveri"

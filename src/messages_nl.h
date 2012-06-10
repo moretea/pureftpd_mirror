@@ -213,3 +213,5 @@
 #define MSG_ALIASES_UNKNOWN "Onbekende alias %s."
 #define MSG_ALIASES_BROKEN_FILE "Beschadigd aliassen bestand"
 #define MSG_ALIASES_LIST "De volgende aliassen zijn beschikbaar :"
+#define MSG_PERUSER_MAX "Ik kan niet meer dan %lu verbindingen van dezelfde gebruiker accepteren"
+#define MSG_IPV6_OK "IPv6 verbindingen zijn ook welkom op deze server"

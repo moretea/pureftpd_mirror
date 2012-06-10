@@ -25,7 +25,7 @@ documentation and/or software.
 
 #include <config.h>
 
-#if defined(WITH_LDAP) || defined(WITH_MYSQL) || defined(WITH_PGSQL)
+#if defined(WITH_LDAP) || defined(WITH_MYSQL) || defined(WITH_PGSQL) && !(defined(HAVE_MD5_H) && defined(HAVE_MD5TRANSFORM))
 
 #include "ftpd.h"
 #include "crypto.h"
