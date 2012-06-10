@@ -1,0 +1,5 @@
+'pure-ftpd' is a sample PAM configuration file, to be copied in your
+'/etc/pam.d/' directory.
+'ftplockout' is a list of users that aren't allowed to log in. Copy that
+file to '/etc/ftplockout'.
+To enable PAM, don't forget to configure with --with-pam.

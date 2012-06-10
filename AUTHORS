@@ -1,0 +1,242 @@
+Credits for Troll-FTPd are going to the following dudes.
+
+* Original Troll-FTPd authors :
+
+    Arnt Gulbrandsen <agulbra@troll.no>
+    Troll Tech AS    <http://www.troll.no>
+    
+* Original Troll-FTPd contributors :
+
+    Janos Farkas
+    <cmj@localnet.com>
+    August Fullford
+    Ximenes Zalteca
+    Patrick Michael Kane <modus@asimov.net>
+
+
+Credits for Pure-FTPd are going to the following ones.
+
+* Michal Moskal <malekith@pld.org.pl>
+* Arkadiusz Miskiewicz <misiek@pld.org.pl> :
+
+    IPv6 support.
+    Polish translation.
+    
+* Michael K. Johnson <johnsonm@redhat.com>
+* Kelley Lingerfelt <redhat@cococo.net> :
+  
+    PAM support.
+    
+* Sebastian Andersson <bofh@diegeekdie.com> :
+
+    ASCII transfers.
+    sendfile() usage.
+    Capability drop.
+
+* Andreas Westin <forsaken@users.sourceforge.net> :
+
+    FXP support.
+    ftpwho design and reference implementation.
+
+* The OpenBSD team <http://www.openbsd.org>
+  The Regents of the University of California :
+
+    Most of the glob() function, and realpath() replacement.
+
+* Jason Lunz <j@falooley.org> :
+
+    Daemonization (-B).
+    Get rid of -D in favor of <config.h> (thanks to Arkadiusz, too).
+    Fix XML output.
+    Official ninja warrior.
+    Debian package maintainer.  
+    
+* Mathias Gumz <gumz@cs.uni-magdeburg.de>
+
+    German translation.
+
+* Claudiu Costin <claudiuc@work.ro>
+
+    Romanian translation.
+    KcmPureftpd author.
+
+* Ping <ping@root42.net>
+
+    French translation.
+    
+* Paul Lasarev <paul@itk.ru>
+
+    Initial Debian packages.
+    
+* Jean-Mathieux Schaffhauser <oscar@supinfo.com>
+
+    Web page logo.
+    GTK configuration interface.
+
+* Emmanuel Hocdet <man@t-online.fr>
+
+    Nice bug fixes (config file parsers, replycmd) and suggestions.
+
+* Peter Pentchev <roam@orbitel.bg>
+
+    Integration to the FreeBSD port collection and FreeBSD improvements.
+    build.sh improvements.
+    
+* Luis Llorente Campo <luisllorente@luisllorente.com>
+
+    Spanish translation.
+
+* Sami Koskinen <tossu@cc.hut.fi>
+
+    Open a session when using PAM.
+
+* Matthias Andree <matthias.andree@stud.uni-dortmund.de>
+
+    -1 option.
+    A lot of code cleanups and robustness fixes.
+    Documentation cleanups.
+    Solaris < 8 portI
+    Fixed Solaris large file support.
+
+* Trilucid ( http://www.trilucid.com )
+
+    Web design of pureftpd.org .
+
+* Isak Lyberth
+
+    Danish translation.
+
+* Bernhard Weisshuhn <bernie@weisshuhn.de>
+
+    Spec file fixes.
+    Fixes to the german translation.
+
+* Steve Reid <steve@edmweb.com>
+
+    Original SHA1 implementation.
+
+* RSA Data Security, Inc. ( http://www.rsa.com )
+
+    Original MD5 implementation.
+
+* Dmitry Lebkov
+
+    MD5/SHA1 LDAP authentication.
+
+* Sami Farin <safari@iki.fr>
+
+    A lot of code cleanups.
+
+* Johan Huisman <sietze.jan.huisman@12move.nl>
+* Jan van Veen <jveen@triple-p.nl>
+
+    Dutch translation.
+
+* Thorsten Kukuk <kukuk@suse.de>
+
+    LFS fixes.
+    RPM fixes.
+
+* Stefano F. <fs@sp.unipi.it> :
+* Alex Dupre <sysadmin@alexdupre.com> :
+
+    Italian translation.
+
+* Roger Constantin Demetrescu <roger@mrw.com.br>
+
+    Brazilian Portugese translation.
+
+* Freeman <freeman@ozac.org> :
+
+    "Powered by Pure-FTPd" web button.
+
+* Robert Varga :
+
+    Slovak translation.
+
+* James Metcalf <james@asset-ict.com> :
+
+    Complete review of the english doc.
+
+* Im Eunjea <eunjea.kldp.org> :
+
+    Korean translation.
+
+* Philip Gladstone <philip@okena.com> :
+
+    PureDB speedups.
+
+* Kenneth Stailey <kstailey@yahoo.com> :
+
+    Support for load average checks on Solaris.
+    Directory aliases.
+
+* Brad Smith <brad@openbsd.org> :
+
+    Maintainer of the OpenBSD port.
+
+* Cindy Marasco <cindy@getaclue.org> :
+
+    PostgreSQL support.
+
+* Ulrik Sartipy <ulrik@raj-raj.net> :
+
+    Swedish translation.
+
+* Nicolas Doye :
+
+    Support for MD5 hashed passwords in MySQL.
+
+* Thomas Briggs <tom@sane.com> :
+
+    Implementation of the W3C logfile format.    
+
+* Stanton Gallegos
+
+    MacOS X maintainer (see http://fink.sourceforge.net) .
+
+* Florin Andrei <florin@sgi.com> 
+  Chan Wilson <cwilson@sgi.com>
+  
+    Implemented load average check on Irix systems.
+
+* Bjoern Metzdorf <bm@turtle-entertainment.de>
+
+    Merged MD5/any hash functions for passwords in the PgSQL backend.
+
+* Ben Gertzfield <che@debian.org>
+
+    Implemented the extended LDAP schema to support quotas, throttling and
+ratios.
+
+* Akhilesch Mritunjai <mritun@me.iitb.ac.in>
+
+    Maintainer of the QNX port.
+
+* Dawid Szymanski <dawszy@arhea.net>
+
+    Maintainer of the NetBSD port.
+
+* Kurt Inge Smådal / EasyISP.org <kurt@easyisp.org>
+
+    Norwegian translation.
+
+* Gabriele Vinci <gabriele@pronto.it>
+
+    Official logo artwork.
+
+* Frank DENIS aka Jedi/Sector One <j@pureftpd.org> :
+
+    Pure-FTPd project initiator and maintainer.
+    Almost everything else :)
+    
+    
+
+Original licence :
+
+Written by Arnt Gulbrandsen <agulbra@troll.no> and copyright 1995-1999
+Troll Tech AS, Waldemar Thranes gate 98B, N-0175 Oslo, Norway, fax +47
+22806380.
+
+Use, modification and distribution is allowed without limitation,
+warranty, or liability of any kind.

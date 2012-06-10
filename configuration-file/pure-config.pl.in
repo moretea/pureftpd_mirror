@@ -1,0 +1,81 @@
+#! @PERL@
+
+# (C) 2001-2002 Frank Denis
+# modifications (C) 2001-2002 by Matthias Andree
+
+use strict;
+
+my $PUREFTPD = '@sbindir@/pure-ftpd';
+$PUREFTPD = '/usr/local/pure-ftpd/sbin/pure-ftpd' if -x '/usr/local/pure-ftpd/sbin/pure-ftpd';
+$PUREFTPD = '/usr/local/pureftpd/sbin/pure-ftpd' if -x '/usr/local/pureftpd/sbin/pure-ftpd';
+$PUREFTPD = '/usr/local/sbin/pure-ftpd' if -x '/usr/local/sbin/pure-ftpd';
+$PUREFTPD = '/usr/sbin/pure-ftpd' if -x '/usr/sbin/pure-ftpd';
+
+my $conffile = shift or die "Usage: pure-config.pl <configuration file> [extra options]\n";
+open CONF, "< $conffile" or die "Can't open $conffile: $!\n";
+my @flg = @ARGV;
+
+while (<CONF>) {
+	chop;
+	next if /^\s*#/o;
+	/IPV4Only\s+yes/io && (push @flg, "-4") && next;	
+	/ChrootEveryone\s+yes/io && (push @flg, "-A") && next;
+	/TrustedGID\s+(\d+)/io && (push @flg, "-a", $1) && next;
+	/BrokenClientsCompatibility\s+yes/io && (push @flg, "-b") && next;
+	/MaxClientsNumber\s+(\d+)/io && (push @flg, "-c", $1) && next;
+	/Daemonize\s+yes/io && (push @flg, "-B") && next;
+	/MaxClientsPerIP\s+(\d+)/io && (push @flg, "-C", $1) && next;
+	/VerboseLog\s+yes/io && (push @flg, "-d") && next;
+	/DisplayDotFiles\s+yes/io && (push @flg, "-D") && next;
+	/AnonymousOnly\s+yes/io && (push @flg, "-e") && next;
+	/NoAnonymous\s+yes/io && (push @flg, "-E") && next;
+	/SyslogFacility\s+(\S+)/io && (push @flg, "-f", $1) && next;
+	/FortunesFile\s+(\S+)/io && (push @flg, "-F", $1) && next;
+	/DontResolve\s+yes/io && (push @flg, "-H") && next;
+	/MaxIdleTime\s+(\d+)/io && (push @flg, "-I", $1) && next;
+	/MaxDiskUsage\s+(\d+)/io && (push @flg, "-k", $1) && next;
+	/UnixAuthentication\s+yes/io && (push @flg, "-l", "unix") && next;
+	/PAMAuthentication\s+yes/io && (push @flg, "-l", "pam") && next;
+	/LDAPConfigFile\s+(\S+)/io && (push @flg, "-l", "ldap:$1") && next;
+	/MySQLConfigFile\s+(\S+)/io && (push @flg, "-l", "mysql:$1") && next;
+	/PGSQLConfigFile\s+(\S+)/io && (push @flg, "-l", "pgsql:$1") && next;
+	/PureDB\s+(\S+)/io && (push @flg, "-l", "puredb:$1") && next;
+	/ExtAuth\s+(\S+)/io && (push @flg, "-l", "extauth:$1") && next;        
+	/LimitRecursion\s+(\d+)\s+(\d+)/io && (push @flg, "-L", "$1:$2") && next;
+	/AnonymousCanCreateDirs\s+yes/io && (push @flg, "-M") && next;
+	/MaxLoad\s+(\d+)/io && (push @flg, "-m", $1) && next;
+	/NATmode\s+yes/io && (push @flg, "-N") && next;
+	/CallUploadScript\s+yes/io && (push @flg, "-o") && next;
+	/PassivePortRange\s+(\d+)\s+(\d+)/io && (push @flg, "-p", "$1:$2") 
+	  && next;
+	/ForcePassiveIP\s+(\S+)/io && (push @flg, "-P", $1) && next;
+	/AnonymousRatio\s+(\d+)\s+(\d+)/io && (push @flg, "-q", "$1:$2") && next;
+	/UserRatio\s+(\d+)\s+(\d+)/io && (push @flg, "-Q", "$1:$2") && next;
+	/AntiWarez\s+yes/io && (push @flg, "-s") && next;
+	/Bind\s+(\S+)/io && (push @flg, "-S", $1) && next;
+	/AnonymousBandwidth\s+(\S+)/ && (push @flg, "-t", $1) && next;
+	/UserBandwidth\s+(\S+)/ && (push @flg, "-T", $1) && next;
+	/Quota\s+(\S+)/ && (push @flg, "-n", $1) && next;
+	/Umask\s+(\d+):(\d+)/ && (push @flg, "-U", "$1:$2") && next;
+	/MinUID\s+(\d+)/ && (push @flg, "-u", $1) && next;
+	/AllowUserFXP\s+yes/ && (push @flg, "-w") && next;
+	/AllowAnonymousFXP\s+yes/ && (push @flg, "-W") && next;
+	/ProhibitDotFilesWrite\s+yes/io && (push @flg, "-x") && next;
+	/ProhibitDotFilesRead\s+yes/io && (push @flg, "-X") && next;
+	/AllowDotFiles\s+yes/io && (push @flg, "-z") && next;
+	/AutoRename\s+yes/io && (push @flg, "-r") && next;
+	/AnonymousCantUpload\s+yes/io && (push @flg, "-i") && next;
+	/TrustedIP\s+(\S+)/io && (push @flg, "-V", $1) && next;
+	/LogPID\s+yes/io && (push @flg, "-1") && next;
+	/AltLog\s+(\S+)/io && (push @flg, "-O", $1) && next;
+	/NoChmod\s+yes/io && (push @flg, "-R") && next;
+	/KeepAllFiles\s+yes/io && (push @flg, "-K") && next;
+	/CreateHomeDir\s+yes/io && (push @flg, "-j") && next;
+	/NoRename\s+yes/io && (push @flg, "-G") && next;
+	/CustomerProof\s+yes/io && (push @flg, "-Z") && next;    
+	/PIDFile\s+(\S+)/ && (push @flg, "-g", $1) && next;
+}
+close CONF;
+
+print "Running: $PUREFTPD ", join(" ", @flg), "\n";
+exec { $PUREFTPD } ($PUREFTPD, @flg) or die "cannot exec $PUREFTPD: $!";

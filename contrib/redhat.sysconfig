@@ -1,0 +1,164 @@
+# /etc/sysconfig/pure-ftpd  $Revision: 1.12 $
+#
+# This file accompanies the pure-ftpd initscript for redhat based systems.
+# It will be used by /etc/rc.d/init.d/pure-ftpd only. It has no effect
+# whatsoever on servers started from (x)inetd, the commandline or anywhere
+# else. 
+#
+# Currently this file and pure-config.pl don't know about each other
+# existance but this may change in future releases.
+#
+# Copy this file to /etc/sysconfig/pure-ftpd and edit it according to your
+# needs. Please see the documentation at http://pureftpd.org/ or 
+# pureftpd.sourceforge.net for a complete list of options. There are many
+# more, and probably the one you are looking for actually exists, only was I
+# to lazy to list it here. Also, there are security implications associated
+# with most the options, so if in doubt, read the fine manual.
+# No warranty for anything, you're out on your own, and have been warned!
+
+
+# probably a good idea, put everybody but root in a chroot()-jail
+--chrooteveryone
+
+# Ignore parts of RFC standards in order to deal with some totally
+# broken FTP clients, or broken firewalls/NAT boxes
+--brokenclientscompatibility
+
+# upper limit on numer of incoming connections
+--maxclientsnumber=50
+
+# unrestricted access for this group id:
+# --trustedgid=11
+
+# Do not allow anonymous access:
+#--noanonymous
+
+# Opposite of the above: Allow anonymous access only:
+#--anonymousonly
+
+# To enforce users having a uid equal or greater than this:
+--minuid=100
+
+# disallow uploads if partition is filled to this percentage:
+--maxdiskusagepct=90
+
+# disallow uploads for anonymous users
+--anonymouscantupload
+
+# disallow anonymous downloads if server load is above this number:
+--maxload=5
+
+# Don't allow anonymous users to download files owned by "ftp" (generally,
+# files uploaded by other anonymous users) . So that uploads have to be
+# validated by a system administrator (chown to another user) before being
+# available for download.
+# --antiwarez
+
+
+# log the pid of the server handling the request in syslog messages
+--logpid
+
+# Uncomment this, to disable IPv6-Support
+# --ipv4only
+
+# Only alow this much simultaneus connections from one IP-Adress:
+--maxclientsperip=3
+
+# Syslog facility, defaults to 'ftp', or 'local2' for older libcs.
+# Use 'none' to disable syslogging (not recommended)
+# --syslogfacility=ftp
+
+# if pure-ftpd has been compiled --with-cookie, you can supply a
+# fortune file with witty quotes or just a MOTD here:
+# --fortunesfile /usr/share/games/fortune/zippy
+
+# Do not reverse map client IP-Adresses to FQDNs, it eats performance.
+--dontresolve
+
+# Clients are allowed to stay idle for this long (default: 1 min)
+--maxidletime=15
+
+# uncomment this if you want to allow anonymous users to create
+# directories (use --antiwarez is strongly recomended then!)
+# --anonymouscancreatedirs
+
+# Force ACTIVE mode to work around certain network addrress translation
+# effects. See documentation for details.
+# --natmode
+
+
+# use pure-uploadscript (see documentation)
+# --uploadscript
+
+
+# use apache-style logging:
+# --altlog=clf:/var/log/ftp/transfer_log
+
+
+# use ftpstats-style logging:
+# --altlog=stats:/var/log/ftp/transfer_log
+
+
+# to only listen on a specific local address and port:
+# --bind=127.0.0.1,2121
+
+
+# to disable the CHMOD command
+# --nochmod
+
+
+# to disable the DELE command . Users can't delete files.
+# --keepallfiles
+
+
+# to automatically create home directories when they are missing
+# --createhomedir
+
+
+# if you want to use PAM authentication, uncomment this and make sure
+# that your server is compiled with PAM support
+# --login=pam
+
+
+# if you want to use MySQL authentication, uncomment this and make sure
+# that your server is compiled with MySQL support
+# --login=mysql:/etc/pureftpd-mysql.conf
+
+
+# if you want to use LDAP authentication, uncomment this and make sure
+# that your server is compiled with LDAP support
+# --login=ldap:/etc/pureftpd-ldap.conf
+
+
+# if you want to try Unix authentication after PAM/MySQL/LDAP/PGSQL/Extauth,
+# uncomment the following line (Unix authentication is just /etc/passwd)
+# --login=unix
+
+
+# if quotas are compiled in, you can enforce a maximal number of files and
+# a maximal size for each user. Use <max files>:<max size> . Size is in Mb.
+# --quota=1000:10
+
+
+# Refuse renaming of files
+# --norename
+
+
+
+# Be 'customer proof' : workaround against common customer mistakes like
+# 'chmod 0 public_html', that are valid, but that could cause ignorant
+# customers to lock their files, and then keep your technical support busy
+# with silly issues. If you're sure all your users have some basic Unix
+# knowledge, this feature is useless. If you're a hosting service, enable it.
+
+--customerproof
+
+
+
+# Please don't forget to have a look at documentation at
+# http://www.pureftpd.org/documentation.html for a complete list of
+# options. There are many more, and probably the one you are looking for
+# actually exists, only was I to lazy to list it here. Also, there are
+# security implications associated with most the options, so if in doubt,
+# read the fine manual or ask the mailing-list.
+
