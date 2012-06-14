@@ -6,6 +6,7 @@
 #include "ipv4stack.h"
 #include "dynamic.h"
 #include "ftpwho-update.h"
+#include "ftpwho-read.h"
 #include "globals.h"
 #include "caps.h"
 #if defined(WITH_UPLOAD_SCRIPT)
@@ -169,8 +170,7 @@ static RETSIGTYPE sigurg(int sig)
         return;
     }
     olderrno = errno;
-    close(xferfd);
-    xferfd = -1;
+    closedata();
 #ifndef HAVE_SYS_FSUID_H
     disablesignals();
 #endif
@@ -300,10 +300,8 @@ void setprogname(const char * const title)
 # ifdef HAVE_SETPROCTITLE
     setproctitle("-%s", title);
 # elif defined(__linux__)
-    int i;
 
     if (argv0 != NULL) {
-        i = strlen(title);
         memset(argv0[0], 0, argv_lth);
         strncpy(argv0[0], title, argv_lth - 2);
         argv0[1] = NULL;
@@ -662,6 +660,70 @@ static void do_ipv6_port(char *p, char delim)
     doport2(a, (unsigned int) atoi(p));
 }
 
+#ifndef MINIMAL
+void doesta(void)
+{
+    socklen_t socksize;    
+    struct sockaddr_storage dataconn;
+    char hbuf[NI_MAXHOST];
+    char pbuf[NI_MAXSERV];
+    
+    if (passive != 0 || datafd == -1) {
+	addreply_noformat(520, MSG_ACTIVE_DISABLED);
+	return;
+    }
+    if (xferfd == -1) {
+	opendata();
+	if (xferfd == -1) {
+	    addreply_noformat(425, MSG_CANT_CREATE_DATA_SOCKET);
+	    return;
+	}
+    }
+    socksize = (socklen_t) sizeof dataconn;
+    if (getsockname(xferfd, (struct sockaddr *) &dataconn, &socksize) < 0 ||
+	getnameinfo((struct sockaddr *) &dataconn, STORAGE_LEN(dataconn),
+		    hbuf, sizeof hbuf, pbuf, sizeof pbuf,
+		    NI_NUMERICHOST | NI_NUMERICSERV) != 0) {
+	addreply_noformat(425, MSG_GETSOCKNAME_DATA);
+	closedata();
+	return;
+    }
+    addreply(225, "Connected from (|%c|%s|%s|)",
+	     STORAGE_FAMILY(dataconn) == AF_INET6 ? '2' : '1', hbuf, pbuf);
+}
+
+void doestp(void)
+{
+    socklen_t socksize;    
+    struct sockaddr_storage dataconn;
+    char hbuf[NI_MAXHOST];
+    char pbuf[NI_MAXSERV];
+    
+    if (passive == 0 || datafd == -1) {
+	addreply_noformat(520, MSG_CANT_PASSIVE);
+	return;
+    }
+    if (xferfd == -1) {
+	opendata();
+	if (xferfd == -1) {
+	    addreply_noformat(425, MSG_CANT_CREATE_DATA_SOCKET);
+	    return;
+	}
+    }
+    socksize = (socklen_t) sizeof dataconn;
+    if (getpeername(xferfd, (struct sockaddr *) &dataconn, &socksize) < 0 ||
+	getnameinfo((struct sockaddr *) &dataconn, STORAGE_LEN(dataconn),
+		    hbuf, sizeof hbuf, pbuf, sizeof pbuf,
+		    NI_NUMERICHOST | NI_NUMERICSERV) != 0) {
+	addreply_noformat(425, MSG_GETSOCKNAME_DATA);
+	closedata();
+	return;
+    }
+    addreply(225, "Connected to (|%c|%s|%s|)",
+	     STORAGE_FAMILY(dataconn) == AF_INET6 ? '2' : '1', hbuf, pbuf);
+}
+#endif
+
 void doeprt(char *p)
 {
     char delim;
@@ -931,6 +993,14 @@ void douser(const char *username)
         if (chrooted != 0) {
             die(421, LOG_DEBUG, MSG_CANT_DO_TWICE);
         }
+	
+#ifdef PER_USER_LIMITS
+    if (per_anon_max > 0U && ftpwho_read_count("ftp") >= per_anon_max) {
+        addreply(421, MSG_PERUSER_MAX, (unsigned long) per_anon_max);
+        doreply();
+        _EXIT(1);
+    }
+#endif	
         
 #ifdef NON_ROOT_FTP
         {
@@ -943,7 +1013,11 @@ void douser(const char *username)
             }
             pw_.pw_uid = geteuid();
             pw_.pw_gid = getegid();
+# if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__)
+	    pw_.pw_dir = WIN32_ANON_DIR;
+# else
             pw_.pw_dir = strdup(s);    /* checked for == NULL later */
+# endif
             pw = &pw_;
         }
 #else
@@ -1075,26 +1149,31 @@ static AuthResult pw_check(const char *account, const char *password,
     Authentications *auth_scan = first_authentications;
     AuthResult result;
 
-# ifdef THROTTLING
-    result.throttling_bandwidth_ul = throttling_bandwidth_ul;
-    result.throttling_bandwidth_dl = throttling_bandwidth_dl;
-    result.throttling_ul_changed = result.throttling_dl_changed = 0;
-# endif
-# ifdef QUOTAS
-    result.user_quota_size = user_quota_size;
-    result.user_quota_files = user_quota_files;
-    result.quota_size_changed = result.quota_files_changed = 0;
-# endif
-# ifdef RATIOS
-    result.ratio_upload = ratio_upload;
-    result.ratio_download = ratio_download;
-    result.ratio_ul_changed = result.ratio_dl_changed = 0;
-# endif
+    result.auth_ok = -1;
     while (auth_scan != NULL) {
-        result.auth_ok = 0;
+#ifdef THROTTLING
+	result.throttling_bandwidth_ul = throttling_bandwidth_ul;
+	result.throttling_bandwidth_dl = throttling_bandwidth_dl;
+	result.throttling_ul_changed = result.throttling_dl_changed = 0;
+#endif
+#ifdef QUOTAS
+	result.user_quota_size = user_quota_size;
+	result.user_quota_files = user_quota_files;
+	result.quota_size_changed = result.quota_files_changed = 0;
+#endif
+#ifdef RATIOS
+	result.ratio_upload = ratio_upload;
+	result.ratio_download = ratio_download;
+	result.ratio_ul_changed = result.ratio_dl_changed = 0;
+#endif
+#ifdef PER_USER_LIMITS
+	result.per_user_max = per_user_max;
+#endif	
         auth_scan->auth->check(&result, account, password, sa, peer);
-        if (result.auth_ok != 0) {
-# ifdef THROTTLING
+        if (result.auth_ok < 0) {
+	    break;
+	} else if (result.auth_ok > 0) {
+#ifdef THROTTLING
             if ((result.throttling_ul_changed |
                  result.throttling_dl_changed) != 0) {
                 if (result.throttling_ul_changed != 0 &&
@@ -1117,16 +1196,16 @@ static AuthResult pw_check(const char *account, const char *password,
                     (throttling_bandwidth_dl | throttling_bandwidth_ul);
                 throttling = 2;
             }
-# endif
-# ifdef QUOTAS
+#endif
+#ifdef QUOTAS
             if (result.quota_size_changed != 0) {
                 user_quota_size = result.user_quota_size;
             }
             if (result.quota_files_changed != 0) {
                 user_quota_files = result.user_quota_files;
             }
-# endif
-# ifdef RATIOS
+#endif
+#ifdef RATIOS
             if (result.ratio_ul_changed != 0) {
                 ratio_upload = result.ratio_upload;
                 ratio_for_non_anon = 1;
@@ -1134,7 +1213,10 @@ static AuthResult pw_check(const char *account, const char *password,
             if (result.ratio_dl_changed != 0) {
                 ratio_download = result.ratio_download;
             }
-# endif
+#endif
+#ifdef PER_USER_LIMITS
+            per_user_max = result.per_user_max;
+#endif
             
 #ifdef NON_ROOT_FTP
             result.uid = geteuid();
@@ -1145,7 +1227,7 @@ static AuthResult pw_check(const char *account, const char *password,
         }
         auth_scan = auth_scan->next;
     }
-
+    
     return result;
 }
 
@@ -1311,6 +1393,14 @@ void dopass(char *password)
         goto randomsleep;
     }
 
+#ifdef PER_USER_LIMITS
+    if (per_user_max > 0U && ftpwho_read_count(account) >= per_user_max) {
+        addreply(421, MSG_PERUSER_MAX, (unsigned long) per_user_max);
+        doreply();
+        _EXIT(1);
+    }
+#endif
+    
     /* Add username to the uid/name cache */
     (void) getname(authresult.uid);
 
@@ -1533,6 +1623,9 @@ void dopass(char *password)
 
 void docwd(const char *dir)
 {
+#ifndef MINIMAL
+    static unsigned long failures = 0UL;
+#endif
     const char *where;
     char buffer[MAXPATHLEN + 256U];
 
@@ -1601,7 +1694,7 @@ void docwd(const char *dir)
             goto chdir_success;
         }
 #endif
-        
+	
         if (SNCHECK(snprintf(buffer, sizeof buffer,
                              MSG_CANT_CHANGE_DIR ": %s",
                              dir, strerror(errno)), sizeof buffer)) {
@@ -1609,6 +1702,17 @@ void docwd(const char *dir)
         }
         logfile(LOG_INFO, "%s", buffer);
         addreply(550, "%s", buffer);
+	
+#ifndef MINIMAL
+# ifndef NO_DIRSCAN_DELAY
+	if (failures >= MAX_DIRSCAN_TRIES) {
+	    _EXIT(EXIT_FAILURE);
+	}
+	usleep2(failures * DIRSCAN_FAILURE_DELAY);	
+	failures++;
+# endif
+#endif
+	
         return;
     }
     
@@ -1617,6 +1721,8 @@ void docwd(const char *dir)
 #endif
     
 #ifndef MINIMAL
+    failures = 0UL;
+    
     {
         FILE *msg;
         char txtbuf[2001U];
@@ -1954,7 +2060,7 @@ void doport2(struct sockaddr_storage a, unsigned int p)
     enablesignals();
 # endif
 #endif
-    peerdataport = (unsigned short int) p;
+    peerdataport = (unsigned short) p;
     if (addrcmp(&a, &peer) != 0) {
         char hbuf[NI_MAXHOST];
         char peerbuf[NI_MAXHOST];
@@ -1984,19 +2090,29 @@ void doport2(struct sockaddr_storage a, unsigned int p)
     return;
 }
 
-int opendata(void)
+void closedata(void)
+{
+    volatile int tmp_xferfd = xferfd;   /* do not simplify this... */
+    
+    xferfd = -1;	       /* ...it avoids a race */
+    close(tmp_xferfd);
+}
+
+void opendata(void)
 {
     struct sockaddr_storage dataconn;    /* his data connection endpoint */
     int fd;
     socklen_t socksize;
 
+    if (xferfd != -1) {
+	closedata();
+    }
     if (datafd == -1) {
-        addreply_noformat(425, MSG_NO_DATA_CONN);
-        
-        return -1;
+        addreply_noformat(425, MSG_NO_DATA_CONN);        
+        return;
     }
 
-    if (passive) {
+    if (passive != 0) {
         fd_set rs;
         struct timeval tv;
 
@@ -2020,7 +2136,7 @@ int opendata(void)
                 close(datafd);
                 datafd = -1;
                 error(421, MSG_ACCEPT_FAILED);
-                return -1;
+                return;
             }
             if (STORAGE_FAMILY(dataconn) != AF_INET
                 && STORAGE_FAMILY(dataconn) != AF_INET6) {
@@ -2065,7 +2181,7 @@ int opendata(void)
                      peerdataport, strerror(errno));
             close(datafd);
             datafd = -1;
-            return -1;
+            return;
         }
         fd = datafd;
         datafd = -1;
@@ -2083,8 +2199,9 @@ int opendata(void)
         setsockopt(fd, SOL_TCP, TCP_NOPUSH, (char *) &fodder, sizeof fodder);
 #endif        
         keepalive(fd, 1);        
+    
     }
-    return fd;
+    xferfd = fd;
 }
 
 #ifndef MINIMAL
@@ -2206,7 +2323,11 @@ void dodele(char *name)
         if (lstat(name, &st) != 0) {
             goto denied;
         }
-        if (!S_ISREG(st.st_mode)) {
+        if (!S_ISREG(st.st_mode)
+# ifndef NEVER_DELETE_SYMLINKS
+	    && !S_ISLNK(st.st_mode)
+# endif
+	    ) {
 # ifdef EINVAL
             errno = EINVAL;
 # endif
@@ -2416,7 +2537,7 @@ static void displayopenfailure(const char * const name)
 
 void doretr(char *name)
 {
-    int c, f, s;
+    int f, s;
     off_t skip;
     off_t o;
     struct stat st;
@@ -2487,29 +2608,27 @@ void doretr(char *name)
         }
     }
 #endif
-    if ((c = opendata()) == -1) {
+    opendata();
+    if (xferfd == -1) {
         close(f);
         goto end;
     }
-    xferfd = c;
     if (restartat > st.st_size) {
         /* some clients insist on doing this.  I can't imagine why. */
         addreply_noformat(226, MSG_NO_MORE_TO_DOWNLOAD);
         close(f);
-        xferfd = -1;
-        close(c);
+	closedata();
         goto end;
     }
 #ifdef NON_BLOCKING_DATA_SOCKET
-    if ((s = fcntl(c, F_GETFL, 0)) < 0) {
+    if ((s = fcntl(xferfd, F_GETFL, 0)) < 0) {
         close(f);
-        xferfd = -1;
-        close(c);
+	closedata();
         error(451, "fcntl");
         goto end;
     }
     s |= FNDELAY;
-    fcntl(c, F_SETFL, s);
+    fcntl(xferfd, F_SETFL, s);
 #endif
 
 #ifndef DISABLE_HUMOR
@@ -2577,7 +2696,7 @@ void doretr(char *name)
                 ssize_t w;
                 
                 do {
-                    w = sendfile(c, f, &o, (size_t) left);
+		    w = sendfile(xferfd, f, &o, (size_t) left);
                 } while (w < 0 && errno == EINTR);
                 if (w == 0) {
                     w--;
@@ -2585,13 +2704,42 @@ void doretr(char *name)
 # elif defined(SENDFILE_FREEBSD)
                 off_t w;
 
-                if (sendfile(f, c, o, (size_t) left, NULL, &w, 0) < 0) {
+                if (sendfile(f, xferfd, o, (size_t) left, NULL, &w, 0) < 0) {
                     if ((errno != EAGAIN && errno != EINTR) || w < (off_t) 0) {
                         w = (off_t) -1;
                     } else {
                         o += w;
                     }
                 } else {
+                    o += w;
+                }
+# elif defined(SENDFILE_HPUX)
+		sbsize_t w; 
+                
+		if ((w = sendfile(xferfd, f, o, (bsize_t) left, NULL, 0)) < 0) {
+		    if ((errno != EAGAIN && errno != EINTR) || w < (off_t) 0) {
+                        w = (off_t) -1;
+                    } else {
+                        o += w;
+                    }
+		} else {
+                    o += w;
+                }
+# elif defined(SENDFILEV_SOLARIS)
+                ssize_t w;
+                struct sendfilevec vec[1];
+                
+		vec[0].sfv_fd   = f;
+		vec[0].sfv_flag = 0;
+		vec[0].sfv_off  = 0;
+		vec[0].sfv_len  = (size_t) left;
+		if (sendfilev(xferfd, vec, 1, &w) < 0) {
+		    if ((errno != EAGAIN && errno != EINTR) || w < (off_t) 0) {
+                        w = (off_t) -1;
+                    } else {
+                        o += w;
+                    }
+		} else {
                     o += w;
                 }
 # endif
@@ -2605,21 +2753,19 @@ void doretr(char *name)
                         FD_ZERO(&rs);
                         FD_ZERO(&ws);
                         FD_SET(0, &rs);
-                        FD_SET(c, &ws);
+                        FD_SET(xferfd, &ws);
                         tv.tv_sec = idletime;
                         tv.tv_usec = 0;
-                        select(c + 1, &rs, &ws, NULL, &tv);
+                        select(xferfd + 1, &rs, &ws, NULL, &tv);
                         if (FD_ISSET(0, &rs)) {
                             /* we assume it is ABRT since nothing else is legal */
                             close(f);
-                            xferfd = -1;
-                            close(c);
+			    closedata();
                             addreply_noformat(426, MSG_ABORTED);
                             goto end;
-                        } else if (!(FD_ISSET(c, &ws))) {
+                        } else if (!(FD_ISSET(xferfd, &ws))) {
                             /* client presumably gone away */
-                            xferfd = -1;
-                            close(c);
+			    closedata();
                             die(421, LOG_INFO, MSG_TIMEOUT_DATA ,
                                 (unsigned long) idletime);
                         }
@@ -2627,8 +2773,7 @@ void doretr(char *name)
                     } else {
                         close(f);
                         if (xferfd != -1) {
-                            xferfd = -1;
-                            close(c);
+			    closedata();
                             error(450, MSG_DATA_WRITE_FAILED);
                         }
                         goto end;
@@ -2678,9 +2823,8 @@ void doretr(char *name)
             }
             buf = mmap(0, left, PROT_READ, MAP_FILE | MAP_SHARED, f, o);
             if (buf == (char *) MAP_FAILED) {
-                close(c);
+		closedata();
                 close(f);
-                xferfd = -1;
                 error(451, MSG_MMAP_FAILED);
                 goto end;
             }
@@ -2690,7 +2834,7 @@ void doretr(char *name)
             while (left > skip) {
                 ssize_t w;
 
-                while ((w = write(c, p + skip, (size_t) (left - skip))) <
+                while ((w = write(xferfd, p + skip, (size_t) (left - skip))) <
                        (ssize_t) 0 && errno == EINTR);
                 if (w < (ssize_t) 0) {
                     if (errno == EAGAIN) {
@@ -2702,19 +2846,18 @@ void doretr(char *name)
                         FD_ZERO(&rs);
                         FD_ZERO(&ws);
                         FD_SET(0, &rs);
-                        FD_SET(c, &ws);
+                        FD_SET(xferfd, &ws);
                         tv.tv_sec = idletime;
                         tv.tv_usec = 0;
-                        select(c + 1, &rs, &ws, NULL, &tv);
-                        if (FD_ISSET( 0, &rs )) {
+                        select(xferfd + 1, &rs, &ws, NULL, &tv);
+                        if (FD_ISSET(0, &rs)) {
                             /* we assume is is ABRT since nothing else is legal */
                             (void) munmap(buf, s);
                             close(f);
-                            xferfd = -1;
-                            close(c);
+			    closedata();
                             addreply_noformat(426, MSG_ABORTED);
                             goto end;
-                        } else if (!(FD_ISSET(c, &ws))) {
+                        } else if (!(FD_ISSET(xferfd, &ws))) {
                             /* client presumably gone away */
                             die(421, LOG_INFO, MSG_TIMEOUT_DATA ,
                                 (unsigned long) idletime);
@@ -2723,8 +2866,7 @@ void doretr(char *name)
                     } else {
                         close(f);
                         if (xferfd != -1) {
-                            xferfd = -1;
-                            close(c);
+			    closedata();
                             error(450, MSG_DATA_WRITE_FAILED);
                         }
                         goto end;
@@ -2777,9 +2919,8 @@ void doretr(char *name)
             }                
             buf = mmap(0, left, PROT_READ, MAP_FILE | MAP_SHARED, f, o);
             if (buf == (char *) MAP_FAILED) {
-                close(c);
+		closedata();
                 close(f);
-                xferfd = -1;
                 error(451, MSG_MMAP_FAILED);
                 goto end;
             }
@@ -2788,7 +2929,7 @@ void doretr(char *name)
             s = left;
             while ((off_t)left > skip) {
                 ssize_t w;
-                w = doasciiwrite(c, (const char *) p + skip, 
+                w = doasciiwrite(xferfd, (const char *) p + skip,
                                  (size_t) (left - skip));
                 if (w < (ssize_t) 0) {
                     if (errno == EAGAIN || errno == EINTR) {
@@ -2800,19 +2941,18 @@ void doretr(char *name)
                         FD_ZERO(&rs);
                         FD_ZERO(&ws);
                         FD_SET(0, &rs);
-                        FD_SET(c, &ws);
+                        FD_SET(xferfd, &ws);
                         tv.tv_sec = idletime;
                         tv.tv_usec = 0;
-                        select(c + 1, &rs, &ws, NULL, &tv);
+                        select(xferfd + 1, &rs, &ws, NULL, &tv);
                         if (FD_ISSET(0, &rs)) {
                             /* we assume is is ABRT since nothing else is legal */
                             (void) munmap(buf, s);
-                            close(c);
+			    closedata();
                             close(f);
-                            xferfd = -1;
                             addreply_noformat(426, MSG_ABORTED);
                             goto end;
-                        } else if (!(FD_ISSET(c, &ws))) {
+                        } else if (!(FD_ISSET(xferfd, &ws))) {
                             /* client presumably gone away */
                             die(421, LOG_INFO, MSG_TIMEOUT_DATA ,
                                    (unsigned long) idletime);
@@ -2821,8 +2961,7 @@ void doretr(char *name)
                     } else {
                         close(f);
                         if (xferfd != -1) {
-                            xferfd = -1;
-                            close(c);
+			    closedata();
                             error(450, MSG_DATA_WRITE_FAILED);
                         }
                         goto end;
@@ -2856,8 +2995,7 @@ void doretr(char *name)
     }
 #endif
     close(f);
-    xferfd = -1;
-    close(c);
+    closedata();
     displayrate(MSG_DOWNLOADED, st.st_size - restartat, started, name, 0);
     end:
     restartat = (off_t) 0;
@@ -2867,7 +3005,7 @@ void dorest(const char *name)
 {
     char *endptr;
 
-    restartat = strtoull(name, &endptr, 10);
+    restartat = (off_t) strtoull(name, &endptr, 10);
     if (*endptr) {
         restartat = 0;
         addreply_noformat(501, MSG_REST_NOT_NUMERIC "\r\n" MSG_REST_RESET);
@@ -2957,7 +3095,7 @@ void dofeat(void)
 {
 # define FEAT  "Extensions supported:" CRLF \
     " EPRT" CRLF " IDLE" CRLF " MDTM" CRLF " SIZE" CRLF \
-    " REST STREAM" CRLF \
+    " ESTA" CRLF " ESTP" CRLF " REST STREAM" CRLF \
     " MLST type*;size*;sizd*;modify*;UNIX.mode*;UNIX.uid*;UNIX.gid*;unique*;" CRLF \
     " MLSD"
 # ifdef DEBUG
@@ -3085,7 +3223,7 @@ static int dostor_quota_update_close_f(const int overwrite,
 
 void dostor(char *name, const int append, const int autorename)
 {
-    int c, f;
+    int f;
     char *p;
     const size_t sizeof_buf = ul_chunk_size;
     char *buf;
@@ -3236,11 +3374,11 @@ void dostor(char *name, const int append, const int autorename)
 #endif
         }
     }
-    if ((c = opendata()) == -1) {
+    opendata();
+    if (xferfd == -1) {
         close(f);
         goto end;
     }
-    xferfd = c;
     doreply();
     state_needs_update = 1;
     setprogname("pure-ftpd (UPLOAD)");
@@ -3283,11 +3421,11 @@ void dostor(char *name, const int append, const int autorename)
 
         FD_ZERO(&rs);
         FD_SET(0, &rs);
-        FD_SET(c, &rs);
+        FD_SET(xferfd, &rs);
         tv.tv_sec = idletime;
         tv.tv_usec = 0;
-        select(c + 1, &rs, NULL, NULL, &tv);
-        if (FD_ISSET(0, &rs) || !(FD_ISSET(c, &rs))) {
+        select(xferfd + 1, &rs, NULL, NULL, &tv);
+        if (FD_ISSET(0, &rs) || !(FD_ISSET(xferfd, &rs))) {
             databroken:
 #ifdef QUOTAS
             (void) dostor_quota_update_close_f(overwrite, filesize,
@@ -3295,14 +3433,13 @@ void dostor(char *name, const int append, const int autorename)
 #else                        
             close(f);
 #endif
-            xferfd = -1;
-            close(c);
+	    closedata();
             addreply_noformat(0, MSG_ABRT_ONLY);
             addreply_noformat(426, MSG_ABORTED);
             if (guest != 0) {
                 unlinkret = unlink(name);
             }            
-            if (!(FD_ISSET(c, &rs))) { /* client presumably gone away */
+            if (!(FD_ISSET(xferfd, &rs))) { /* client presumably gone away */
                 die(421, LOG_INFO, MSG_TIMEOUT_DATA , (unsigned long) idletime);                
             }
             addreply(0, "%s %s", name,
@@ -3314,7 +3451,7 @@ void dostor(char *name, const int append, const int autorename)
             goto quota_exceeded;
         }
 #endif
-        r = read(c, buf, sizeof_buf);
+        r = read(xferfd, buf, sizeof_buf);
         if (r > (ssize_t) 0) {
             p = buf;
 
@@ -3370,8 +3507,7 @@ void dostor(char *name, const int append, const int autorename)
 #else                        
                     close(f);
 #endif
-                    xferfd = -1;
-                    close(c);
+		    closedata();
                     error(-450, MSG_WRITE_FAILED);
                     if (guest != 0) {
                         unlinkret = unlink(name);
@@ -3406,8 +3542,7 @@ void dostor(char *name, const int append, const int autorename)
 #ifdef QUOTAS    
     quota_exceeded:
 #endif
-    xferfd = -1;
-    close(c);
+    closedata();
 #ifdef QUOTAS
     quota_exceeded = 
         dostor_quota_update_close_f(overwrite, filesize, restartat, name, f);
@@ -3885,7 +4020,9 @@ static void doit(void)
             _EXIT(1);
         }
 #ifndef NO_BANNER
-        addreply(0, MSG_NB_USERS, users, maxusers);
+        if (users > 0) {
+            addreply(0, MSG_NB_USERS, users, maxusers);
+        }
 #endif
     }
 
@@ -4068,6 +4205,9 @@ static void doit(void)
     }
 #endif
 #ifndef NO_BANNER
+    if (v6ready != 0 && STORAGE_FAMILY(peer) != AF_INET6) {
+        addreply(0, MSG_IPV6_OK);
+    }    
     if (idletime >= 120UL) {
         addreply(220, MSG_INFO_IDLE_M, idletime / 60UL);
     } else {
@@ -4075,7 +4215,7 @@ static void doit(void)
     }
 #endif
 
-    candownload = ((maxload <= 0.0) || (load < maxload));
+    candownload = (signed char) ((maxload <= 0.0) || (load < maxload));
     parser();
     if (getrusage(RUSAGE_SELF, &ru) == 0) {
         unsigned long s, u;
@@ -4168,7 +4308,7 @@ static void standalone_server(void)
     int on;
     struct addrinfo hints, *res;
     struct sockaddr_storage sa;
-    socklen_t dummy = (socklen_t) sizeof sa;
+    socklen_t dummy;
     pid_t child;
 
     if (isatty(0)) {
@@ -4205,7 +4345,8 @@ static void standalone_server(void)
     setprogname("pure-ftpd (SERVER)");
     while (stop_server == 0) {
         sigset_t set;
-
+	
+	dummy = (socklen_t) sizeof sa;
         memset(&sa, 0, sizeof sa);
         if ((clientfd = accept(listenfd,
                                (struct sockaddr *) &sa, &dummy)) == -1) {
@@ -4545,6 +4686,17 @@ int main(int argc, char *argv[])
             }
             break;
         }
+#endif
+#ifdef PER_USER_LIMITS
+        case 'y': {
+            int ret;
+
+            ret = sscanf(optarg, "%u:%u", &per_user_max, &per_anon_max);
+            if (ret != 2) {
+                die(421, LOG_ERR, MSG_CONF_ERR ": " MSG_ILLEGAL_USER_LIMIT ": %s" , optarg);
+            }
+            break;	    
+        }	    
 #endif
         case 'e': {
             anon_only = 1;
@@ -4937,7 +5089,7 @@ int main(int argc, char *argv[])
 # error Configuration error
 #endif
 
-#if defined(WITH_UPLOAD_SCRIPT)
+#ifdef WITH_UPLOAD_SCRIPT
     upload_pipe_close();
 #endif
     {

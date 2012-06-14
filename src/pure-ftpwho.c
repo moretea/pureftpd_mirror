@@ -100,7 +100,7 @@ void logfile(const int facility, const char *format, ...)
     va_end(va);
 }
 
-static int checkproc(const pid_t proc)
+static inline int checkproc(const pid_t proc)
 {    
     return kill(proc, 0) == 0;
 }
@@ -118,7 +118,7 @@ static void text_output_header(void)
         puts("\n"
 "+------+---------+-------+------+-------------------------------------------+\n"
 "| PID  |  Login  |For/Spd| What |     File/Remote IP/Size(Kb)/Local IP      |\n"
-"+------+---------+-------+------+-------------------------------------------+");            
+"+------+---------+-------+------+-------------------------------------------+");
     }
 }
 
@@ -255,7 +255,8 @@ static void html_output_line(const pid_t pid, const char * const account,
         unsigned long bandwidth;
         
         if (xfer_since > 0UL && current_size > restartat) {
-            bandwidth = (unsigned long) ((current_size - restartat) / (xfer_since * 1024UL));
+            bandwidth = (unsigned long) ((current_size - restartat) /
+                                         (xfer_since * 1024UL));
         } else {
             bandwidth = 0UL;
         }        
@@ -437,7 +438,8 @@ static void shell_output_line(const pid_t pid, const char * const account,
     
     if (current_size > (off_t) 0) {        
         if (xfer_since > 0UL && current_size > restartat) {
-            bandwidth = (unsigned long) ((current_size - restartat) / (xfer_since * 1024UL));
+            bandwidth = (unsigned long) ((current_size - restartat) /
+                                         (xfer_since * 1024UL));
         }         
         if ((long double) total_size > 0.0L) {
             pct = ((long double) current_size * 100.0L) / (long double) total_size;
@@ -659,6 +661,11 @@ int main(int argc, char *argv[])
                                                   MAP_SHARED | MAP_FILE, 
                                                   mmap_fd, (off_t) 0)) == NULL) {
             goto nextone;
+        }
+        if (checkproc(scanned_entry->pid) == 0) {
+            /* still in the scoreboard, but no more process */
+            delete_file++;
+            goto nextone;
         }        
         if (scanned_entry->state != FTPWHO_STATE_FREE) {
             unsigned long since;
@@ -667,11 +674,6 @@ int main(int argc, char *argv[])
             char local_hbuf[NI_MAXHOST];            
             char hbuf[NI_MAXHOST];
 
-            if (checkproc(scanned_entry->pid) == 0) {
-                /* still in the scoreboard, but no more process */
-                delete_file++;
-                goto nextone;
-            }
             switch (scanned_entry->state) {
             case FTPWHO_STATE_IDLE :
                 state = "IDLE";
@@ -712,7 +714,8 @@ int main(int argc, char *argv[])
             output_line(scanned_entry->pid, scanned_entry->account,
                         since, xfer_since, state, scanned_entry->filename, 
                         hbuf, local_hbuf, local_port,
-                        (scanned_entry->restartat <= scanned_entry->download_current_size) ?
+                        (scanned_entry->restartat <= 
+                         scanned_entry->download_current_size) ?
                         scanned_entry->restartat : (off_t) 0,
                         (scanned_entry->state == FTPWHO_STATE_DOWNLOAD) ?
                         scanned_entry->download_total_size : (off_t) 0,

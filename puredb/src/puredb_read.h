@@ -10,7 +10,7 @@
 #define PUREDB_LIB_VERSION 1
 
 #ifndef PUREDB_U32_T
-# if SHORT_MAX >= 2147483647
+# if SHRT_MAX >= 2147483647
 typedef unsigned short puredb_u32_t;
 # elif INT_MAX >= 2147483647
 typedef unsigned int puredb_u32_t;

@@ -1,9 +1,10 @@
 
-                              .:. PURE-FTPD .:.
+			      .:. PURE-FTPD .:.
+		       Documentation for version 1.0.12
 
 
 
-           ------------------------ BLURB ------------------------
+	   ------------------------ BLURB ------------------------
 
 
 Pure-FTPd is a fast, production-quality, standard-conformant FTP server,
@@ -119,7 +120,7 @@ the compilation :
 --without-standalone : the FTP server can normally run in standalone-mode
 (without any super-server) . If you don't need that feature and if you want
 to save few code bytes, add this option. A super-server like g2s, xinetd
-or tcpserver will be mandatory to run the service. The standalone mode is
+or tcpserver will be mandatory to run the service. But the standalone mode is
 the recommended mode of operation.
 
 --without-inetd : if you will always be running Pure-FTPd in standalone-mode,
@@ -177,10 +178,11 @@ the CPU/memory usage by using a special system call (sendfile) . It works
 very well with most filesystems. However, this optimization is not
 implemented for all filesystems in current kernels. Users reported that
 downloading files with Pure-FTPd failed with SMBFS (Samba) on FreeBSD 4.3,
-and TmpFS on Linux (the error reported by the server is "broken pipe" or
-"Error during write to data connection") . If you are planning to serve
-files from these filesystems, you have to use the --without-sendfile switch
-to enable a workaround.
+and TmpFS and NTFS on Linux (the error reported by the server is "broken
+pipe" or "Error during write to data connection") . If you are planning to
+serve files from these filesystems, you have to use the --without-sendfile
+switch to enable a workaround. It was also reported that PA-Risc Linux
+systems need this flag.
 
 --with-paranoidmsg : favor paranoid messages over sysadmin-friendly
 messages. When this option is enabled, login failures will show the same
@@ -213,7 +215,7 @@ in a default installation. You need at least GCC 3.0 to compile with this
 option. Regular expressions are compiled in. If you still want to reduce the
 size, use --without-globbing in conjunction with --with-minimal. If you are
 building an embedded system, use this. In all other cases, to avoid
-complaints from customers (especially with Windoz clients), forget this.
+complaints from customers (especially with Windows clients), forget this.
 
 --with-pam : use pluggable authentification modules. Don't use this option
 if your login/passwd pairs are always refused (but the real fix would be to
@@ -226,25 +228,22 @@ independent of your system accounts. Please read the README.Virtual-Users
 file for more info about virtual users.
 
 --with-ldap : use the native LDAP directory support. When this option is
-enabled, system accounts are bypassed. You need OpenLDAP to use that
+enabled, system accounts can be bypassed. You need OpenLDAP to use that
 feature. If OpenLDAP is installed in a custom location, you can use the
 --with-ldap=<directory> syntax. See the README.LDAP file for more info about
 LDAP and Pure-FTPd.
-*** DON'T ENABLE LDAP SUPPORT IF YOU DON'T KNOW WHAT YOU ARE DOING ***
 
 --with-mysql : use the native MySQL support for users database. When this
-option is enabled, system accounts are bypassed. MySQL client libraries
+option is enabled, system accounts can be bypassed. MySQL client libraries
 should be installed to use that feature. If MySQL is installed in a custom
 location, you can use the --with-mysql=<directory> syntax. See the
 README.MySQL file for more info about MySQL and Pure-FTPd. 
-*** DON'T ENABLE MySQL SUPPORT IF YOU DON'T KNOW WHAT YOU ARE DOING ***
 
 --with-pgsql : use the native Postgres support for users database. When this
-option is enabled, system accounts are bypassed. Postgres client libraries
+option is enabled, system accounts can be bypassed. Postgres client libraries
 should be installed to use that feature. If Postgres is installed in a custom
 location, you can use the --with-pgsql=<directory> syntax. See the
 README.PGSQL file for more info about Postgres and Pure-FTPd. 
-*** DON'T ENABLE POSTGRES SUPPORT IF YOU DON'T KNOW WHAT YOU ARE DOING ***
 
 --with-altlog : in addition to the syslog output, support logging into a
 specific file, in an alternative format. Currently, the CLF, Stats and W3C
@@ -309,13 +308,17 @@ command) . Please read the appropriate section about this (further in this
 manual) .
 
 --with-nonroot : set up a server that doesn't need root privileges to be
-started. Any regular user can run the server (a la FTP4ALL) . It can be
-useful if you have a limited shell access to a non-dedicated hosting server.
-But passwords won't be checked and some features will be disabled. When
-virtual chroot is enabled, people will be restricted to the directory the
-server was started in. This is an insecure mode, designed for setting up very
-temporary servers by regular (non-root) users. Port 2121 will be listened by
-default in standalone mode.
+started. Any regular user can run the server. It can be useful if you have a
+limited shell access to a non-dedicated hosting server. But some features
+will be disabled and passwords can only be checked via LDAP, SQL or PureDB.
+When virtual chroot is enabled, people will be restricted to the directory
+the server was started in. This is an insecure mode, designed for setting up
+very temporary servers by regular (non-root) users. Port 2121 will be
+listened by default in standalone mode. If you want to use the nonroot mode,
+you must compile and *install* the software (./configure --prefix=... &&
+make install-strip) . /sbin, /bin and /man directories will be created in
+that prefix. But you must also add an /etc directory (readable and writeable
+by the user pure-ftpd will run as) .
 
 --with-quotas : enable virtual quotas. With virtual quotas, you can restrict
 the maximal number of files an user can store in his account. You can also
@@ -325,6 +328,9 @@ document.
 --with-extauth : compiles support for external authentication modules. Please
 read README.Authentication-Modules and the pure-authd(8) man page before
 enabling this feature. Most users don't need it.
+
+--with-peruserlimits : enable per-user concurrency limits. Avoid this
+on very loaded servers.
 
 --with-everything : build a big server with almost all features turned on :
 altlog, cookies, throttling, ratios, ftpwho, upload script, virtual users
@@ -342,9 +348,14 @@ altlog, cookies, throttling, ratios, ftpwho, upload script, virtual users
 --with-language=slovak
 --with-language=dutch 
 --with-language=korean
---with-language=swedish : change the language of server messages. Default is
-english. If you want to contribute a translation, please translate the
-'src/messages_en.h' file and send it to <j@pureftpd.org> .
+--with-language=swedish
+--with-language=norwegian
+--with-language=russian
+--with-language=traditional-chinese
+--with-language=simplified-chinese: change the language of server
+messages. Default is english. If you want to contribute a translation,
+please translate the 'src/messages_en.h' file and send it to
+<j@pureftpd.org> .
 
 Other traditional autoconf options are of course recognised, like
 "--prefix=" to change the installation prefix, that defaults to "/usr/local/".
@@ -660,6 +671,8 @@ the login prompt, add the name of any text file here.
 - '-g <pid file>' : Change the location of the pid file when the server is
 run in standalone mode. The default is /var/run/pure-ftpd.pid .
 
+- '-G' : Disallow renaming.
+
 - '-H' : By default, fully-qualified host names are logged. To achieve this,
 DNS lookups are mandatory. The '-H' flag avoids host names resolution.
 ("213.41.14.252" will be logged instead of "www.toolinux.com") . It can
@@ -868,6 +881,23 @@ When used in conjunction with "-a", members of the trusted group can bypass
 
 ****************************************************************************
 
+- '-y <max user logins>:<max anonymous logins>' : This option only
+works if the server has been compiled with --with-peruserlimits. It
+restricts the number of concurrent sessions the same user can have.
+  A null value ('0') means 'unlimited'.
+
+Here's a concrete example :
+
+/usr/local/sbin/pure-ftpd -y 3:20 -c 15 -C 5 -B
+
+Here, we allow :
+  * A max total of 15 sessions.
+  * 5 connections max coming from the same IP address.
+  * 3 connections max with the same user name.
+  * 20 anonymous users max.
+  
+With such a setup, a single user can't easily fill all slots.  
+
 - '-z' : Allow anonymous users to read files and directories starting with a
 dot ('.') .
 
@@ -895,6 +925,7 @@ aliases are available. You can get this list at any time by typing
 -f  --syslogfacility        <facility>
 -F  --fortunesfile          <file>
 -g  --pidfile               <path to pid file>
+-G  --norename
 -h  --help  
 -H  --dontresolve   
 -I  --maxidletime           <time (min)>
@@ -926,6 +957,7 @@ aliases are available. You can get this list at any time by typing
 -W  --allowanonymousfxp
 -x  --prohibitdotfileswrite 
 -X  --prohibitdotfilesread  
+-y  --peruserlimits         <per user max>:<max anonymous sessions>
 -z  --allowdotfiles
 -Z  --customerproof
 
@@ -1401,7 +1433,7 @@ in a directory, and create a ".ftpquota" file with this info.
 
 The syntax is :
 
-pure-quotacheck -u username/gid -d home directory [-g group/gid]
+pure-quotacheck -u username/uid -d home directory [-g group/gid]
 
 For instance, if you want to summarize usage for the /home/ftpusers/john
 directory, whoose files are owned by the "ftpusers" system account, just run :
@@ -1548,7 +1580,7 @@ env CFLAGS="-O2 -fomit-frame-pointer -fgcse -Os" ./configure --with-minimal --wi
 make install-strip
 
 - Run it in standalone mode. Don't use -C, don't enable pure-ftpwho nor
-pure-uploadscript (-o) .
+pure-uploadscript (-o), nor per-user limits (-y) .
 
 - Increase your system max descriptors number and local port range. On a
 Linux kernel, you can try :
@@ -1712,7 +1744,7 @@ Latest releases and regular snapshots are always available from :
   ftp://ftp.dk.pureftpd.org/mirrors/pure-ftpd/  (Sunsite DK mirror, fast)
   ftp://ftp.es.pureftpd.org/mirror/pureftpd/    (RedIris ES mirror, fast)
   ftp://ftp.za.pureftpd.org/pub/pure-ftpd/      (Snot ZA mirror)
-  http://www.cn.pureftpd.org/pure-ftpd/         (Chinese mirror, via HTTP)  
+  http://ftp.cn.pureftpd.org/pure-ftpd/         (Chinese mirror, via HTTP)  
 
 Korean RPM binary files are available from (thanks to Im Eunjea) :
 

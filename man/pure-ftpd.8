@@ -7,12 +7,12 @@
 .\"
 .\" Use, modification and distribution is allowed without limitation, warranty, or liability of any kind.
 .\"
-.TH "pure-ftpd" "8" "1.0.11" "Pure-FTPd Team" "Pure-FTPd"
+.TH "pure-ftpd" "8" "1.0.12" "Pure-FTPd Team" "Pure-FTPd"
 .SH "NAME"
 pure\-ftpd \- simple File Transfer Protocol server
 
 .SH "SYNOPSIS"
-.B pure\-ftpd [\-1] [\-4] [\-A] [\-a gid] [\-b] [\-B] [\-c clients] [\-C cnx/ip] [\-d [\-d]] [\-D] [\-E] [\-e] [\-F fortunes file] [\-f facility] [\-g pidfile] [\-G] [\-H] [\-i] [\-I] [\-j] [\-k percentage] [\-K] [\-L max files:max depth] [\-l authentication[:config file]] [\-M] [\-m maxload] [\-N] [\-n maxfiles:maxsize] [\-o] [\-O format:log file] [\-P ip address] [\-p first:last] [\-q upload:download ratio] [\-Q upload:download ratio] [\-r] [\-R] [\-s] [\-S [address,][port]] [\-t upload bandwidth:download bandwidth] [\-T upload bandwidth:download bandwidth] [\-u uid] [\-U umask files:umask dirs] [\-V ip address] [\-w] [\-W] [\-x] [\-X] [\-z] [\-Z]
+.B pure\-ftpd [\-1] [\-4] [\-A] [\-a gid] [\-b] [\-B] [\-c clients] [\-C cnx/ip] [\-d [\-d]] [\-D] [\-E] [\-e] [\-F fortunes file] [\-f facility] [\-g pidfile] [\-G] [\-H] [\-i] [\-I] [\-j] [\-k percentage] [\-K] [\-L max files:max depth] [\-l authentication[:config file]] [\-M] [\-m maxload] [\-N] [\-n maxfiles:maxsize] [\-o] [\-O format:log file] [\-P ip address] [\-p first:last] [\-q upload:download ratio] [\-Q upload:download ratio] [\-r] [\-R] [\-s] [\-S [address,][port]] [\-t upload bandwidth:download bandwidth] [\-T upload bandwidth:download bandwidth] [\-u uid] [\-U umask files:umask dirs] [\-V ip address] [\-w] [\-W] [\-x] [\-X] [\-y max user sessions:max anon sessions] [\-z] [\-Z]
 
 .br
 Alternative style, unless compiled with
@@ -114,6 +114,8 @@ Alternative style, unless compiled with
 \-x \-\-prohibitdotfileswrite
 .br
 \-X \-\-prohibitdotfilesread
+.br
+\-y \-\-peruserlimits
 .br
 \-z \-\-allowdotfiles
 .br
@@ -507,6 +509,11 @@ This flag is identical to the previous one (writing dot\-files is
 prohibited), but in addition, users can't even *read* files and directories
 beginning with a dot (like "cd .ssh").
 .TP
+.B \-y per user max sessions:max anonymous sessions
+This switch enables per-user concurrency limits. Two values are separated by a
+column. The first one is the max number of concurrent sessions for a single
+login. The second one is the maximum number of anonoymous sessions.
+.TP
 .B \-z
 Allow anonymous users to read files and directories starting with a dot ('.').
 .TP
@@ -857,6 +864,8 @@ Here are the FTP commands supported by this server.
 .B MLST
 .B MLSD
 .B FEAT
+.B ESTA
+.B ESTP
 .B SITE IDLE
 .B SITE CHMOD
 .B SITE HELP
@@ -871,14 +880,13 @@ http://www.pureftpd.org
 See the mailing\-list on \fBhttp://www.pureftpd.org\fR.
 
 .SH "AUTHOR AND LICENCE"
-Troll\-FTPd written by Arnt Gulbrandsen <agulbra@troll.no> and copyright 1995\-1999
+Troll\-FTPd was written by Arnt Gulbrandsen <agulbra@troll.no> and copyright 1995\-1999
 Troll Tech AS, Waldemar Thranes gate 98B, N\-0175 Oslo, Norway, fax +47
 22806380.
 .PP
-Pure\-FTPd (C)opyleft 2001 by Frank DENIS <j@pureftpd.org> and the Pure\-FTPd team.
+Pure\-FTPd is (C)opyleft 2001 by Frank DENIS <j@pureftpd.org> and the Pure\-FTPd team.
 .PP
-Use, modification and distribution is allowed without limitation,
-warranty, or liability of any kind.
+This software is covered by a dual GPL/BSD license.
 .PP
 Contributors:
 .br
@@ -938,7 +946,9 @@ Contributors:
     Dawid Szymanski,
     Kurt Inge Smadal,
     Alex Dupre,
-    Gabriele Vinci.
+    Gabriele Vinci,
+    Andrey Ulanov,
+    Fygul Hether.
 
 .SH "SEE ALSO"
 .BR "ftp(1)" ,

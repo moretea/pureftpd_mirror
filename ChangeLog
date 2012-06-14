@@ -1,5 +1,42 @@
 
-* Version 1.0.11:
+* Version 1.0.12 :
+    Style : opt_l_ is now an argument of donlist() - no more need to set
+up the global variable before calling the function.
+    A (fake for now) ACCT command has been added. Maybe it will solve a
+conflict with some versions of Fetch for Macintosh.
+    NLST and MLSD should be able to handle only one file. Don't split file
+names, don't parse options. Reported by Martin Hedenfalk.
+    Support for sendfile() on HPUX, and sendfilev() on Solaris. Contributed
+by Kenneth Stailey.
+    Don't display "you are user number 0".
+    Check whether we have pread() in configure.ac .
+    Remove dead scoreboard files in pure-ftpwho, even those whoose status
+isn't marked as free.
+    New translation : Russian. Contributed by Andrey Ulanov
+<drey@rt.mipt.ru> .
+    New translations : simplified and traditional Chinese. Contributed
+by Fygul Hether <fygul@fgs.org.tw> .
+    New IPv6_OK message to tell people when a server also accepts IPv6
+connections if DISPLAY_IPV6_OK is defined.
+    In extauth, there's no more need to fill fields except auth_ok
+when authentication is refused (auth_ok = {0,-1}) . uid/gid/dir are only
+checked with auth_ok = 1. It's then easier to chain other authentication
+modules.
+    Linux binaries will now be linked against GlibC 2.2.x .
+    Use the non-root mode for the Windows port.
+    Don't forget to retrieve LDAP_FTPUID and LDAP_FTPGID when fetching
+LDAP info.
+    Introduce closedata() to close the data socket. It avoids
+duplicate code. opendata() now returns void : the result is in the
+xferfd global.
+    fakesnprintf() now supports %c.
+    Implement FTP Data Connection Assurance
+(http://www.ietf.org/internet-drafts/draft-ietf-ftpext-data-connection-assurance-00.txt)
+    Buglets fixed in the PostgreSQL documentation.
+    Pure-FTPd User Manager added to the contribs.
+    Add exponential delay after a 'cd' failure. Suggested by Jim.
+
+* Version 1.0.11 :
     New translation : Norwegian. Contributed by Kurt Inge Smådal /
 EasyISP.org <kurt@easyisp.org> .
     Fix typo (RATIO->RATIOS) in log_extauth.c, and ratios are now working
@@ -26,7 +63,7 @@ HPUX - Kenneth.
 new official logo contributed by Gabriele Vinci <gabriele@pronto.it> .
     We now have plenty of FTP mirrors, see the end the README file.
 
-* Version 1.0.10:
+* Version 1.0.10 :
     GCC updated to 3.0.4.
     Automake updated to 1.0.6. configure.ac has zapped deprecated
 constructions.
@@ -45,7 +82,7 @@ but no security trouble to fear. Reported by Mark Reidel <mr@domainfactory.de>
     Spec file fixes, contributed by Jose Pedro Oliveira <jpo@di.uminho.pt>
     PureDB binary search could fail with -1 as a slot number - fixed.
 
-* Version 1.0.9:
+* Version 1.0.9 :
     Korean translation updated.
     Spanish translation updated.
     Slovak translation updated.
@@ -79,7 +116,7 @@ data.
 lacks mmap().
     Invalid SQL queries are now logged in order to help debugging.
 
-* Version 1.0.8:
+* Version 1.0.8 :
     Set errno in fake functions.
     Get rid of rd_len, rename rd -> root_directory, always ensure that it
 has a trailing '/' to simplify further code.
@@ -138,7 +175,7 @@ Relevant files are man/pure-authd.8, src/log_extauth* src/pure-authd* .
     Undefine fakechroot macros before their definition, it shuts the
 compiler up on Solaris.
 
-* Version 1.0.7:
+* Version 1.0.7 :
     Use /dev/arandom and random() instead of /dev/urandom and rand() when
 possible. Suggested by Brad Smith <brad@openbsd.org>.
     Korean translation updated (Im).
@@ -156,7 +193,7 @@ Stailey <kstailey@yahoo.com> .
 work now.
     Dont count .ftpquota in pure-quotacheck. Reported by Jan Pavlik.
 
-* Version 1.0.6:
+* Version 1.0.6 :
     New fakechroot.{c,h} files. They contain wrappers for most I/O functions
 to emulate chroot, and follow symbolic links.
     PostgreSQL support, based upon log_mysql.
@@ -175,7 +212,7 @@ Paul <paul@chipmunkweb.yi.org> for his help on that issue.
 for enabled quotas in checknamesanity() and refuse everything with
 ".ftpquota" in it => ok because only 'ls' performs globbing.
 
-* Version 1.0.5:
+* Version 1.0.5 :
     Rename and delete operations are now syslogged.
     Strange characters are now stripped from .banner/.message files.
     Unofficial macros to give more power to anon users :
@@ -185,12 +222,12 @@ ANON_CAN_CHANGE_PERMS, ANON_CAN_DELETE, ANON_CAN_RESUME and ANON_CAN_RENAME.
     File deletion and rename are now logged.
     [v]snprintf() replacements have been totally rewritten.
     Accept multiple ip/mask filtering rules in the puredb backend.
-    The load average can now be readen on Solaris < 2.6 (where getloadavg()
+    The load average can now be read on Solaris < 2.6 (where getloadavg()
 isn't implemented) . Contributed by Keneth Stailey.
     Documentation updates (FAQ and pure-ftpd man page), translation updates.
     Autoconf updated to 2.52g, Automake to 1.5b.
 
-* Version 1.0.4:
+* Version 1.0.4 :
     Clean up pure-config.pl and use Perl's exec with an array, circumventing
 the system shell. (Gives less surprises with strange characters in the config
 file, is also more efficient.) (Matthias)
@@ -243,7 +280,7 @@ HAVE_SETFSUID_H in ftpd.h if SYSTEM_QUOTAS if defined.
     Include some more (v)snprintf() implementations, using vfprintf() and
 _doprnt() . Needed for Tru64.
     The upload pipe now receives upload info as follows :
-\002username\001filename\000 . That way, virtual user names can be readen.
+\002username\001filename\000 . That way, virtual user names can be read.
     PureDB is now covered by a BSD license, and it was upgraded to version
 2.0 .
     Don't forget the -k option in Perl/Python parsers.
@@ -788,7 +825,7 @@ can work without root privileges.
     Fixed largefile+throttling compilation.
     Changed 'quota' to 'ratio' everywhere. Quotas will be something else.
     Create /var/run/pure-ftpd.pid . Remove it when a signal is catched.
-    Added romanian translation from Claudiu Costin <claudiuc@work.ro>.
+    Added romanian translation from Claudiu Costin <claudiuc@kde.org>.
     Added german translation from Mathias Gumz <gumz@cs.uni-magdeburg.de>.
     Added french translation from Ping <ping@root42.net>.
     Allow download of 0-byte files (reported by Louis Rouxel).

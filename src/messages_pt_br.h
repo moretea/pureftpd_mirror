@@ -213,3 +213,5 @@
 #define MSG_ALIASES_UNKNOWN "Apelido %s desconhecido."
 #define MSG_ALIASES_BROKEN_FILE "Arquivo de apelidos danificado"
 #define MSG_ALIASES_LIST "Os seguintes apelidos estão disponíveis :"
+#define MSG_PERUSER_MAX "Não posso aceitar mais do que %lu conexões do mesmo usuário"
+#define MSG_IPV6_OK "Conexões IPv6 também são bem-vindas neste servidor"

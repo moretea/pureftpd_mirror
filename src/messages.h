@@ -57,6 +57,18 @@
 # define MESSAGES_LOCALE "no_NO"
 # include "messages_no.h"
 
+#elif defined(MESSAGES_RU)
+# define MESSAGES_LOCALE "ru_RU"
+# include "messages_ru.h"
+
+#elif defined(MESSAGES_ZH_CN)
+# define MESSAGES_LOCALE "zh_CN"
+# include "messages_zh_cn.h"
+
+#elif defined(MESSAGES_ZH_TW)
+# define MESSAGES_LOCALE "zh_TW"
+# include "messages_zh_tw.h"
+
 #else
 # define MESSAGES_LOCALE "en_GB"
 # include "messages_en.h"

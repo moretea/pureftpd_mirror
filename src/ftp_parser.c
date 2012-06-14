@@ -207,7 +207,7 @@ void parser(void)
         n = (size_t) 0U;
         while ((isalpha((unsigned char) cmd[n]) || cmd[n] == '@') &&
                n < cmdsize) {
-            cmd[n] = tolower((unsigned char) cmd[n]);
+            cmd[n] = (char) tolower((unsigned char) cmd[n]);
             n++;
         }
         if (n >= cmdsize) {            /* overparanoid, it should never happen */
@@ -265,6 +265,8 @@ void parser(void)
 #endif
         if (!strcmp(cmd, "user")) {
             douser(arg);
+        } else if (!strcmp(cmd, "acct")) {
+            addreply(202, MSG_WHOAREYOU);
         } else if (!strcmp(cmd, "pass")) {
             if (guest == 0) {
                 randomdelay();
@@ -281,7 +283,7 @@ void parser(void)
             goto wayout;
         } else if (!strcmp(cmd, "auth") || !strcmp(cmd, "adat")) {
             /* RFC 2228 Page 5 Authentication/Security mechanism (AUTH) */
-            addreply_noformat(502, MSG_AUTH_UNIMPLEMENTED);
+            addreply_noformat(500, MSG_AUTH_UNIMPLEMENTED);
         } else if (!strcmp(cmd, "type")) {
             antiidle();
             dotype(arg);
@@ -322,6 +324,10 @@ void parser(void)
 #ifndef MINIMAL
             } else if (!strcmp(cmd, "eprt")) {
                 doeprt(arg);
+	    } else if (!strcmp(cmd, "esta")) {
+		doesta();
+	    } else if (!strcmp(cmd, "estp")) {
+		doestp();
 #endif
             } else if (disallow_passive == 0 && 
                        (!strcmp(cmd, "pasv") || !strcmp(cmd, "p@sw"))) {
@@ -405,32 +411,28 @@ void parser(void)
 #ifndef MINIMAL
             } else if (!strcmp(cmd, "stat")) {
                 if (*arg != 0) {
-                    opt_l = 1;
                     modern_listings = 0;
-                    donlist(arg, 1);
+                    donlist(arg, 1, 1, 1);
                 } else {
                     addreply_noformat(211, "http://www.pureftpd.org");
                 }
 #endif
             } else if (!strcmp(cmd, "list")) {
-                opt_l = 1;
 #ifndef MINIMAL
                 modern_listings = 0;
 #endif
-                donlist(arg, 0);
+                donlist(arg, 0, 1, 1);
             } else if (!strcmp(cmd, "nlst")) {
-                opt_l = 0;
 #ifndef MINIMAL                
                 modern_listings = 0;
 #endif
-                donlist(arg, 0);
+                donlist(arg, 0, 0, broken_client_compat);
 #ifndef MINIMAL
             } else if (!strcmp(cmd, "mlst")) {
                 domlst(*arg != 0 ? arg : ".");
             } else if (!strcmp(cmd, "mlsd")) {
-                opt_l = 1;
                 modern_listings = 1;
-                donlist(arg, 0);
+                donlist(arg, 0, 1, 0);
 #endif
             } else if (!strcmp(cmd, "abor")) {
                 addreply_noformat(226, MSG_ABOR_SUCCESS);

@@ -128,6 +128,16 @@ static void callback_reply_ratio_download(const char *str, AuthResult * const re
 #endif
 }
 
+static void callback_reply_per_user_max(const char *str, AuthResult * const result)
+{
+#ifdef PER_USER_LIMITS
+    result->per_user_max = (unsigned int) strtoul(str, NULL, 10);
+#else
+    (void) str;
+    (void) result;
+#endif
+}
+
 static void callback_reply_end(const char *str, AuthResult * const result)
 {
     (void) str;
@@ -238,10 +248,12 @@ void pw_extauth_check(AuthResult * const result,
             scanned++;
         }
         linepnt = crpoint + 1;        
-    }        
-    if (result->uid <= (uid_t) 0 || result->gid <= (gid_t) 0 ||
-        result->dir == NULL || auth_finalized == 0) {
-        result->auth_ok = -1;
+    }
+    if (auth_finalized == 0 ||
+	(result->auth_ok == 1 && 
+	 (result->uid <= (uid_t) 0 || result->gid <= (gid_t) 0 || 
+	  result->dir == NULL))) {
+	result->auth_ok = -1;
     }
     bye:
     if (kindy != -1) {

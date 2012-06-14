@@ -46,6 +46,8 @@
 #define MAX_GROUPS 256
 #define MAX_PASSWD_TRIES 5        /* Abort after 5 authentication failures */
 #define PASSWD_FAILURE_DELAY (3UL*1000000UL)    /* Delay after each failure */
+#define MAX_DIRSCAN_TRIES 50      /* Abort after 50 chdir failures */
+#define DIRSCAN_FAILURE_DELAY (100000UL)  /* Delay after each chdir failure */
 #define ASCII_CHUNKSIZE 65536U
 
 #ifndef NO_STANDALONE
@@ -94,7 +96,11 @@ static const char *GETOPT_OPTIONS =
 #ifdef THROTTLING
     "t:T:"
 #endif
-    "u:U:V:wWxXzZ";
+    "u:U:V:wWxX"
+#ifdef PER_USER_LIMITS
+    "y:"
+#endif
+    "zZ";
 
 #ifndef NO_GETOPT_LONG    
 static struct option long_options[] = {
@@ -103,11 +109,11 @@ static struct option long_options[] = {
     { "chrooteveryone", 0, NULL, 'A' },
     { "trustedgid", 1, NULL, 'a' },
     { "brokenclientscompatibility", 0, NULL, 'b' },
-    { "maxclientsnumber", 1, NULL, 'c' },
 # ifndef NO_STANDALONE
     { "daemonize", 0, NULL, 'B' },                
     { "maxclientsperip", 1, NULL, 'C' },
 # endif
+    { "maxclientsnumber", 1, NULL, 'c' },    
     { "verboselog", 0, NULL, 'd' },
     { "displaydotfiles", 0, NULL, 'D' },
     { "anonymousonly", 0, NULL, 'e' },
@@ -162,6 +168,9 @@ static struct option long_options[] = {
     { "allowanonymousfxp", 0, NULL, 'W' },
     { "prohibitdotfileswrite", 0, NULL, 'x' },
     { "prohibitdotfilesread", 0, NULL, 'X' },
+# ifdef PER_USER_LIMITS
+    { "peruserlimits", 1, NULL, 'y' },
+# endif
     { "allowdotfiles", 0, NULL, 'z' },
     { "customerproof", 0, NULL, 'Z' },
     { NULL, 0, NULL, 0 }

@@ -91,7 +91,7 @@ static int readpipe(const int upload_file_fd,
             *whopnt = 0;
             break;
         }
-        *whopnt = c;
+        *whopnt = (char) c;
         whopnt++;
     }    
     while (filepnt != fileend) {
@@ -99,7 +99,7 @@ static int readpipe(const int upload_file_fd,
         if (c == EOF || (c < 32 && c != 0)) {
             return -1;
         }
-        *filepnt = c;
+        *filepnt = (char) c;
         if (c == 0) {
             break;
         }
@@ -495,8 +495,11 @@ int main(int argc, char *argv[])
             run(who, file, upload_pipe_fd);
         }
     }
+    /* Unreachable */
+#if 0
     close(upload_pipe_fd);
     (void) unlink(PID_FILE);
+#endif
     
     return 0;
 }

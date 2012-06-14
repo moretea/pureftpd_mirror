@@ -170,6 +170,7 @@ static void help(void)
          "                [-q <upload ratio>] [-Q <download ratio>]\n"
          "                [-r <allow client ip>/<mask>] [-R <deny client ip>/<mask>]\n"
          "                [-i <allow local ip>/<mask>] [-I <deny local ip>/<mask>]\n"
+	 "                [-y <max number of concurrent sessions>]\n"
          "                [-z <hhmm>-<hhmm>] [-m]\n"
          "\n"
          "pure-pw usermod <login> -f <passwd file> -u <uid> [-g <gid>]\n"
@@ -179,6 +180,7 @@ static void help(void)
          "                [-q <upload ratio>] [-Q <download ratio>]\n"
          "                [-r <allow client ip>/<mask>] [-R <deny client ip>/<mask>]\n"
          "                [-i <allow local ip>/<mask>] [-I <deny local ip>/<mask>]\n"
+	 "                [-y <max number of concurrent sessions>]\n"	 
          "                [-z <hhmm>-<hhmm>] [-m]\n"
          "\n"
          "pure-pw userdel <login> [-f <passwd file>] [-m]\n"
@@ -191,6 +193,7 @@ static void help(void)
          "\n"
          "-d <home directory> : chroot user (recommended)\n"
          "-D <home directory> : don't chroot user\n"
+	 "-y 0 : unlimited number of concurrent sessions\n"
          "-m : also update the " DEFAULT_PW_DB " database\n"
          "For a 1:10 ratio, use -q 1 -Q 10\n"
          "To allow access only between 9 am and 6 pm, use -z 0900-1800\n"
@@ -358,7 +361,8 @@ static int parse_pw_line(char *line, PWInfo * const pwinfo)
     pwinfo->has_time = 0;
     pwinfo->time_begin = pwinfo->time_end = 0U;
     pwinfo->uid = (uid_t) 0;
-    pwinfo->gid = (gid_t) 0;    
+    pwinfo->gid = (gid_t) 0;
+    pwinfo->per_user_max = 0U;
     
     if ((line = my_strtok2(line, *PW_LINE_SEP)) == NULL || *line == 0) {   /* account */
         return -1;
@@ -425,7 +429,9 @@ static int parse_pw_line(char *line, PWInfo * const pwinfo)
     if ((line = my_strtok2(NULL, *PW_LINE_SEP)) == NULL) {   /* max cnx */
         return 0;
     }
-    /* Placeholder */
+    if (*line != 0) {
+	pwinfo->per_user_max = (unsigned int) strtoull(line, NULL, 10);
+    }
     if ((line = my_strtok2(NULL, *PW_LINE_SEP)) == NULL) {   /* files quota */
         return 0;
     }
@@ -627,11 +633,14 @@ static int add_new_pw_line(FILE * const fp2, const PWInfo * const pwinfo)
     if (fprintf(fp2, PW_LINE_SEP) < 0) {    
         return -1;
     }
-    if (fprintf(fp2,
-                "" PW_LINE_SEP             /* max cnx */
-                ) < 0) {
-        return -1;
+    if (pwinfo->per_user_max > 0U) {
+	if (fprintf(fp2, "%u", pwinfo->per_user_max) < 0) {
+	    return -1;
+	}
     }
+    if (fprintf(fp2, PW_LINE_SEP) < 0) {    
+        return -1;
+    }    
     if (pwinfo->has_quota_files != 0) {
         if (fprintf(fp2, "%llu",           /* files quota */
                     pwinfo->quota_files) < 0) {
@@ -925,6 +934,9 @@ static void do_usermod(const char * const file,
         fetched_info.time_begin = pwinfo->time_begin;
         fetched_info.time_end = pwinfo->time_end;
     }
+    if (pwinfo->per_user_max > 0U) {
+	fetched_info.per_user_max = pwinfo->per_user_max;
+    }
     if ((file2 = newpasswd_filename(file)) == NULL) {
         no_mem();
     }
@@ -1051,6 +1063,7 @@ static void do_show(const char * const file, const PWInfo * const pwinfo)
            "Allowed client IPs : %s\n"
            "Denied  client IPs : %s\n"           
            "Time restrictions  : %04u-%04u (%s)\n"
+	   "Max sim sessions   : %u (%s)\n"
            "\n",
            fetched_info.login,
            fetched_info.pwd,
@@ -1076,7 +1089,9 @@ static void do_show(const char * const file, const PWInfo * const pwinfo)
            SHOW_STRING(fetched_info.deny_client_ip),
            SHOW_IFEN(fetched_info.has_time, fetched_info.time_begin),
            SHOW_IFEN(fetched_info.has_time, fetched_info.time_end),
-           SHOW_STATE(fetched_info.has_time));
+           SHOW_STATE(fetched_info.has_time),
+	   SHOW_IFEN(fetched_info.per_user_max, fetched_info.per_user_max),
+	   SHOW_STATE(fetched_info.per_user_max));
 }
 
 static void do_passwd(const char * const file,
@@ -1228,6 +1243,7 @@ int main(int argc, char *argv[])
     pwinfo.has_dl_ratio = 0;
     pwinfo.has_time = 0;
     pwinfo.time_begin = pwinfo.time_end = 0U;
+    pwinfo.per_user_max = 0U;
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__)
     pwinfo.uid = (uid_t) 42U;
     pwinfo.gid = (gid_t) 42U;
@@ -1248,7 +1264,7 @@ int main(int argc, char *argv[])
     }
     filter_pw_line_sep(pwinfo.login);
     while ((fodder = getopt(argc, argv, 
-                            "c:d:D:f:g:hi:I:mn:N:q:Q:r:R:t:T:u:z:")) != -1) {
+                            "c:d:D:f:g:hi:I:mn:N:q:Q:r:R:t:T:u:y:z:")) != -1) {
         switch(fodder) {
         case 'c' : {
             if ((pwinfo.gecos = strdup(optarg)) == NULL) {
@@ -1419,6 +1435,10 @@ int main(int argc, char *argv[])
             }
             break;
         }
+	case 'y' : {
+	    pwinfo.per_user_max = (unsigned int) strtoul(optarg, NULL, 10);
+	    break;
+	}
         case 'z' : {
             if (sscanf(optarg, "%u-%u", 
                        &pwinfo.time_begin, &pwinfo.time_end) == 2 &&

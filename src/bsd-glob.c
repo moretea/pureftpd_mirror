@@ -156,10 +156,11 @@ static int glob_(const char *pattern,
 
     bufnext = patbuf;
     bufend = bufnext + MAXPATHLEN;
-    if (flags & GLOB_NOESCAPE)
-        while (bufnext < bufend && (c = *patnext++) != EOS)
-            *bufnext++ = c;
-    else {
+    if (flags & GLOB_NOESCAPE) {
+        while (bufnext < bufend && (c = *patnext++) != EOS) {
+            *bufnext++ = (Char) c;
+	}
+    } else {
         /* Protect the quoted characters. */
         while (bufnext < bufend && (c = *patnext++) != EOS)
             if (c == QUOTE) {
@@ -167,16 +168,17 @@ static int glob_(const char *pattern,
                     c = QUOTE;
                     --patnext;
                 }
-                *bufnext++ = c | M_PROTECT;
-            } else
-                *bufnext++ = c;
+                *bufnext++ = (Char) (c | M_PROTECT);
+            } else {
+                *bufnext++ = (Char) c;
+	    }
     }
     *bufnext = EOS;
 
-    if (flags & GLOB_BRACE)
+    if (flags & GLOB_BRACE) {
         return globexp1(patbuf, pglob, 0);
-    else
-        return glob0(patbuf, pglob);
+    }
+    return glob0(patbuf, pglob);    
 }
 
 int
@@ -789,7 +791,7 @@ static const Char *g_strchr(const Char * str, int ch)
 static int g_Ctoc(register const Char * str, char *buf, unsigned int len)
 {
     while (len--) {
-        if ((*buf++ = *str++) == EOS)
+        if ((*buf++ = (char) *str++) == EOS)
             return 0;
     }
     return 1;

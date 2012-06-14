@@ -74,6 +74,7 @@ while (<CONF>) {
 	/NoRename\s+yes/io && (push @flg, "-G") && next;
 	/CustomerProof\s+yes/io && (push @flg, "-Z") && next;    
 	/PIDFile\s+(\S+)/ && (push @flg, "-g", $1) && next;
+	/PerUserLimits\s+(\S+)/ && (push @flg, "-y", $1) && next;
 }
 close CONF;
 

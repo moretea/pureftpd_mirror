@@ -110,6 +110,10 @@ The maximal number of files for this account.
 
 The user must match a ratio_upload:ratio_download ratio.
 
+* per_user_max:xxx (optional)
+
+The maximal authorized number of concurrent sessions.
+
 
           ------------------------ EXAMPLE ------------------------
           
@@ -135,11 +139,8 @@ Let's say we save this file as /usr/bin/ftp-auth-handler
 Now, we have to run pure-authd and pure-ftpd, to connect them through a
 local socket and to tell pure-ftpd to use our external authentication module :
 
-pure-authd        -s /var/run/ftpd.sock -r /usr/bin/ftp-auth-handler &
+pure-authd -s /var/run/ftpd.sock -r /usr/bin/ftp-auth-handler &
 pure-ftpd  -lextauth:/var/run/ftpd.sock &
 
 That's all. Now, we can only log in as 'john', as all FTP authentication is
 done by the shell script.
-
-
-

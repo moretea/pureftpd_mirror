@@ -47,7 +47,7 @@ struct {
 # ifdef LOG_USER
     { "user", LOG_USER },
 # endif      
-#  ifdef LOG_UUCP
+# ifdef LOG_UUCP
     { "uucp", LOG_UUCP },
 # endif      
 # ifdef LOG_LOCAL0

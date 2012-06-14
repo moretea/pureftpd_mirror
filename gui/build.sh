@@ -54,7 +54,7 @@ trap "rm -f $tmp; exit 1" 1 2 11 15
 $dialog \
 --title 'Compile-time options' \
 --separate-output \
---backtitle 'PureFTPd 1.0.11' \
+--backtitle 'PureFTPd 1.0.12' \
 --checklist 'Defaults should be fine for most users' \
 20 78 10 \
 'without-standalone' "Don't compile the standalone server code" off \
@@ -92,6 +92,7 @@ $dialog \
 'with-virtualhosts' "Allow a distinct content for each IP address" on \
 'with-virtualchroot' "Follow symlinks outside a chroot jail" off \
 'with-diraliases' "Support directory aliases" on \
+'with-peruserlimits' "Support per-user concurrency limits" on \
 2> $tmp
 
 cfgline='';
@@ -102,7 +103,7 @@ done
 $dialog \
 --title 'Compile-time options' \
 --separate-output \
---backtitle 'PureFTPd 1.0.11' \
+--backtitle 'PureFTPd 1.0.12' \
 --radiolist 'Choose a language for server messages' \
 20 78 10 \
 'english' "This is the default" on \
@@ -120,6 +121,9 @@ $dialog \
 'korean' "Contributed by Im Eunjea" off \
 'swedish' "Contributed by Ulrik Sartipy" off \
 'norwegian' "Contributed by Kurt Inge Smadal" off \
+'russian' "Contributed by Andrey Ulanov" off \
+'traditional-chinese' "Contributed by Fygul Hether" off \
+'simplified-chinese' "Contributed by Fygul Hether" off \
 2> $tmp
 
 z=$(cat $tmp)
@@ -127,7 +131,7 @@ cfgline="$cfgline --with-language=$z"
 
 $dialog \
 --title 'Compile-time options' \
---backtitle 'PureFTPd 1.0.11' \
+--backtitle 'PureFTPd 1.0.12' \
 --inputbox 'Installation prefix (/usr/local is not a bad idea)' \
 10 78 \
 '/usr/local' \
@@ -165,7 +169,7 @@ if [ -n "$gauge" ] ; then
   echo 100
 ) | $dialog \
 --title 'Compilation and installation' \
---backtitle 'PureFTPd 1.0.11' \
+--backtitle 'PureFTPd 1.0.12' \
 "$gauge" 'Please wait...' 10 78 10
 else  
   rm -f config.cache

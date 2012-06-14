@@ -1,8 +1,22 @@
 
+* Version 1.0.12 :
+ - New workarounds and conformance fixes were added to improve client
+compatibility.
+ - Zero-copy downloads are now enabled on HPUX and Solaris.
+ - Russian and Chinese (simplified + traditional) translations were
+added.
+ - LDAP_FTPUID and LDAP_FTPGID are now really fetched from the
+directory.
+ - The Windows ports has been stabilized.
+ - A protection against common bruteforce scanners for hidden directories
+has been added.
+ - The FTP data connection assurance draft (ESTA/ESTP) has been implemented.
+ - Per-user (including anonymous) concurrency limits are now available.
+
 * Version 1.0.11 :
  - New translation : norwegian. Contributed by Kurt Inge Smådal /
 EasyISP.org <kurt@easyisp.org> .
- - The server now compiles and runs on OpenBSD/Sparc64 and HPUX.
+ - The server now compiles and runs on OpenBSD/Sparc and HPUX.
  - Minor fixes and cleanups were made.
  - The good'ol poweredby.jpg logo has been replaced by pure-ftpd.png, the
 new official logo contributed by Gabriele Vinci <gabriele@pronto.it> .

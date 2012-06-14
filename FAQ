@@ -388,6 +388,11 @@ that game, you must run pure-ftpd with the -E (non-anonymous server) and -b
 up. But please note that IE (and browsers at large) are usually bad FTP
 clients.
 
+-> Internet Explorer doesn't want to log in. (Matthew Enger)
+
+Check that the max number of connections (either per user or per IP) is at
+least 2. IE needs two connections to connect to an FTP server.
+
 
 
 * Passwords and pure-pw scripting.
@@ -479,6 +484,8 @@ already includes a fair TCP/IP traffic shaper. And because it works at
 kernel-level, you can easily change the bandwidth allowed to IPs or services
 on-the-fly. Have a look at altq.conf(5), altqd(8) and tbrconfig(8) on
 OpenBSD, and at tc (or read the Linux networking HOWTO) on Linux.
+Also see the 'Global bandwidth limitation' section later in this
+document.
 
 
 
@@ -583,4 +590,219 @@ sessions.
 To run an anonymous FTP server you must have a *system* account called
 'ftp'. Don't give it any valid shell, just a home directory. That home
 directory is the anonymous area.
+
+
+
+* A basic setup.
+
+-> I'm trying to set up a ftp server just for me and my family so we can get
+and upload files when on the road. How can I make two users, say Jane and
+Joe, who share the directory /home/ftp and /home/ftp/incoming. In /home/ftp
+they only have read privs. and in /home/ftp/incoming they have read and
+write privs.
+
+Add a group for all FTP users (not mandatory, but more secure) :
+
+groupadd ftpgroup
+
+Add an uid for all FTP users (idem, not mandatory, but better) :
+
+useradd -g ftpgroup -d /dev/null -s /etc ftpuser
+
+Now, let's create /home/ftp and /home/ftp/incoming :
+
+mkdir -p /home/ftp/incoming
+chown -R root:ftpgroup /home/ftp/incoming
+chmod -R 755 /home/ftp
+chmod -R 1775 /home/ftp/incoming
+
+Let's add Jane :
+
+pure-pw useradd jane -m -u ftpuser -d /home/ftp
+
+Let's add Joe :
+
+pure-pw useradd joe -m -u ftpuser -d /home/ftp
+
+Let's start the FTP server :
+
+/usr/local/sbin/pure-ftpd -lpuredb:/etc/pureftpd.pdb -H -B
+
+Everything should be ok now.
+
+For more info about how to create new users, change passwords, etc. :
+http://www.pureftpd.org/README.Virtual-Users
+
+
+
+
+* Slow pure-ftpwho or slow login.
+
+-> Sometimes, pure-ftpwho is slow to show the result. And sometimes, when an
+user logs in, the session stucks a bit before he can get a directory listing.
+
+This is probably caused by a slow DNS resolver. In order to display full
+host names, pure-ftpd has indeed to make DNS queries that can be slow if you
+link is slow, or if the client link is slow.
+
+You can speed up pure-ftpwho and pure-ftpd with the -H switch. Names won't
+be resolved, you will see IP addresses instead.
+
+
+
+* Chrooted users can follow symlinks outside the chroot jail?
+
+-> People can create symbolic links to '/' and escape their home directory!
+
+There are two chroot implementations in pure-ftpd :
+
+  - The traditional one, based upon your kernel chroot() system call. This
+is the default. With that one, symbolic links can only point inside the
+chroot jail, or they won't be followed.
+
+  - The 'virtual chroot' implementation. With that feature, users *can*
+follow all symbolic links, even when they don't point inside the jail. This
+is very handy to set up directories shared by multiple users. Binary
+packages are compiled with virtual chroot by default.
+
+To enable the virtual chroot feature when you are compiling the server, use
+the --with-virtualchroot with ./configure . If you want a restricted chroot,
+don't include --with-virtualchroot.
+
+Please note that the FTP server will never let people create new symbolic
+links. Symbolic links have to be already there to be followed. Or if your
+users can create symbolic links through Perl or PHP scripts, your hosting
+platform is really badly configured. People can install any web file
+browser, they don't need FTP to look at your system files. Recompile PHP
+without POSIX functions, and run all Perl scripts chrooted.
+
+
+
+* How to start Pure-FTPd in background.
+
+-> I start 'pure-ftpd' from an X terminal, and the server properly
+answers. However, as soon as I close the terminal, the server stops.
+
+This is a shell dependent issue. Your shell is configured to close all
+background jobs when leaving. You can change your shell options
+(probably with a 'set' directive) or detach background jobs with the
+'disown' keyword. Alternatively, you can just start pure-ftpd with the
+-B switch in order to have it detach at startup time :
+
+/usr/local/sbin/pure-ftpd -B
+
+
+
+* Windows command-line FTP client and 'ls'.
+
+-> With the command-line Windows FTP client, 'ls -la' doesn't return
+any file.
+
+The 'ls' command of an FTP client has nothing to do with the 'ls' command
+started from an Unix shell.
+
+With the command-line Windows client, typing 'ls' really sends the FTP
+command 'NLST'. So when you type 'ls -la', it doesn't mean 'verbosely
+list all files'. According to RFCs, it means 'list the file called -la' .
+So you get what you asked for. If no file is called '-la', you get nothing.
+
+If you want to play with regular expressions and switches, you should
+type 'dir' (which is translated to 'LIST') instead. 'dir -la' is ok.
+
+This is a bit illogical, and that brain damage is specific to
+Microsoft's command-line FTP client.
+
+If you really want 'ls' to parse options, you can start pure-ftpd with
+the -b (broken) switch.
+
+
+
+* Global bandwidth limitation.
+
+-> How do I limit the *total* bandwidth for FTP?
+
+Pure-FTPd can limit bandwidth usage of every session. But limiting the total
+bandwidth is intentionally not implemented, because most operating systems
+already have very efficient algorithms to handle bandwidth throttling.
+
+Here's an example with Linux.
+
+1) Have a look at /proc/sys/net/ipv4/ip_local_port_range. You will see two
+numbers : this is the interval of local ports your Linux kernel will use for
+regular outgoing connections. The FTP ports you have to reserve for passive
+FTP must *not* be in this range. So if :
+"cat /proc/sys/net/ipv4/ip_local_port_range" returns "32768-61000", you can
+reserve ports 10000 to 20000 for your FTP server, but not 30000 to 40000.
+(alternatively, you can change the local port range) .
+
+2) Change the first lines and save the following script :
+
+  ---------------------------- Cut here ----------------------------
+  
+#! /bin/sh
+# Simple bandwidth limiter - <j@4u.net>
+
+# Change this to your link bandwidth
+# (for cable modem, DSL links, etc. put the maximal bandwidth you can
+# get, not the speed of a local Ethernet link)
+REAL_BW='10Mbit'
+
+# Change this to the bandwidth you want to allocate to FTP.
+# We're talking about megabits, not megabytes, so 80Kbit is
+# 10 Kilobytes/s
+FTP_BW='80Kbit'
+
+# Change this to your physical network device (or 'ppp0')
+NIC='eth0'
+
+# Change this to the ports you assigned for passive FTP
+FTP_PORT_LOW="10000"
+FTP_PORT_HIGH="20000"
+
+tc qdisc add dev "$NIC" root handle 1: cbq \
+bandwidth "$REAL_BW" avpkt 1000
+
+tc class add dev "$NIC" parent 1: classid 1:1 cbq bandwidth "$REAL_BW" \
+rate "$REAL_BW" maxburst 5 avpkt 1000
+
+tc class add dev "$NIC" parent 1:1 classid 1:10 cbq \
+bandwidth "$REAL_BW" rate "$FTP_BW" maxburst 5 avpkt 1000 bounded
+
+tc qdisc add dev "$NIC" parent 1:10 sfq quantum 1514b
+
+tc filter add dev "$NIC" parent 1: protocol ip handle 1 fw flowid 1:10
+
+iptables -t mangle -A OUTPUT -p tcp --sport 20:21 -j MARK --set-mark 1
+
+iptables -t mangle -A OUTPUT -p tcp \
+--sport "$FTP_PORT_LOW":"$FTP_PORT_HIGH" -j MARK --set-mark 1
+
+  ---------------------------- Cut here ----------------------------
+  
+3) Make sure that you have the 'tc' command installed. If your Linux distro
+doesn't ship 'ip' and 'tc' commands, it really sucks, and you must install a
+package called 'iproute2' to get them.
+
+4) Start Pure-FTPd with the passive port range you assigned :
+
+/usr/local/sbin/pure-ftpd -p 10000:20000 -HBA
+
+5) Run the script you created in step 2. It it doesn't work, check that QOS
+support was compiled in your Linux kernel.
+
+6) Enjoy :)
+
+
+
+* Linux, NTFS and Pure-FTPd.
+
+-> On Linux, I can't transfer files from an NTFS partition.
+
+Keep in mind that the NTFS filesystem is still an experimental beast in
+Linux. Some basic operations are not implemented yet. Fortunately, a big
+effort is being made, and Linux 2.5 has a new NTFS implementation that fully
+works with Pure-FTPd (try ./configure --without-sendfile, though) . And it
+is more reliable and really faster than the old one. And even more
+fortunately, the new NTFS implementation has been backported to recent 2.4.x
+kernels. Have a look at http://linux-ntfs.sf.net/ .
 

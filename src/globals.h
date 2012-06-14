@@ -78,6 +78,10 @@ GLOBAL0(struct sockaddr_storage force_passive_ip);
 GLOBAL0(unsigned short int peerdataport);
 GLOBAL0(double maxload);
 GLOBAL(unsigned int maxusers, DEFAULT_MAX_USERS);
+#ifdef PER_USER_LIMITS
+GLOBAL0(unsigned int per_user_max);
+GLOBAL0(unsigned int per_anon_max);
+#endif
 GLOBAL0(int iptropy);
 GLOBAL(volatile int xferfd, -1);
 #ifndef NO_STANDALONE

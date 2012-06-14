@@ -213,3 +213,5 @@
 #define MSG_ALIASES_UNKNOWN "Unbekannter Alias %s."
 #define MSG_ALIASES_BROKEN_FILE "Beschädigte Aliasdatei"
 #define MSG_ALIASES_LIST "Folgende Aliase stehen zur Verfügung:"
+#define MSG_PERUSER_MAX "Mehr als %lu Verbindungen vom selben Benutzer sind nicht erlaubt"
+#define MSG_IPV6_OK "Auf diesem Server sind auch IPv6-Verbindungen willkommen"

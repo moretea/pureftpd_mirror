@@ -32,6 +32,7 @@ void pw_extauth_exit(void);
 #define EXTAUTH_REPLY_USER_QUOTA_FILES "user_quota_files" EXTAUTH_KEYWORD_SEP
 #define EXTAUTH_REPLY_RATIO_UPLOAD "ratio_upload" EXTAUTH_KEYWORD_SEP
 #define EXTAUTH_REPLY_RATIO_DOWNLOAD "ratio_download" EXTAUTH_KEYWORD_SEP
+#define EXTAUTH_REPLY_PER_USER_MAX "per_user_max" EXTAUTH_KEYWORD_SEP
 #define EXTAUTH_REPLY_END "end"
 
 #endif

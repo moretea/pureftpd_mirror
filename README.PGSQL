@@ -52,10 +52,10 @@ PGSQLUser       root
 PGSQLPassword   rootpw
 PGSQLDatabase   pureftpd
 PGSQLCrypt      cleartext
-PGSQLGetPW      SELECT Password FROM users WHERE User="\L"
-PGSQLGetUID     SELECT Uid FROM users WHERE User="\L"
-PGSQLGetGID     SELECT Gid FROM users WHERE User="\L"
-PGSQLGetDir     SELECT Dir FROM users WHERE User="\L"
+PGSQLGetPW      SELECT Password FROM users WHERE User='\L'
+PGSQLGetUID     SELECT Uid FROM users WHERE User='\L'
+PGSQLGetGID     SELECT Gid FROM users WHERE User='\L'
+PGSQLGetDir     SELECT Dir FROM users WHERE User='\L'
 
 Have a look at the sample pureftpd-pgsql.conf configuration file for
 explanations of every keyword.
@@ -113,10 +113,10 @@ templates to fetch the needed info.
 
 Let's take the previous example :
 
-PGSQLGetPW      SELECT Password FROM users WHERE User="\L"
-PGSQLGetUID     SELECT Uid FROM users WHERE User="\L"
-PGSQLGetGID     SELECT Gid FROM users WHERE User="\L"
-PGSQLGetDir     SELECT Dir FROM users WHERE User="\L"
+PGSQLGetPW      SELECT Password FROM users WHERE User='\L'
+PGSQLGetUID     SELECT Uid FROM users WHERE User='\L'
+PGSQLGetGID     SELECT Gid FROM users WHERE User='\L'
+PGSQLGetDir     SELECT Dir FROM users WHERE User='\L'
 
 For each query :
 
@@ -145,25 +145,25 @@ Individual settings can be set for every user, using optional queries.
 directory.
 
 Example :
-PGSQLGetQTAFS  SELECT QuotaFiles FROM users WHERE User="\L"
+PGSQLGetQTAFS  SELECT QuotaFiles FROM users WHERE User='\L'
 
 - PGSQLGetQTASZ is the maximal disk usage, in Megabytes.
 
 Example :
-PGSQLGetQTASZ  SELECT QuotaSize FROM users WHERE User="\L"
+PGSQLGetQTASZ  SELECT QuotaSize FROM users WHERE User='\L'
 
 - PGSQLGetRatioUL and PGSQLGetRatioDL are optional ratios.
 
 Example :
-PGSQLGetRatioUL SELECT ULRatio FROM users WHERE User="\L"
-PGSQLGetRatioDL SELECT DLRatio FROM users WHERE User="\L"
+PGSQLGetRatioUL SELECT ULRatio FROM users WHERE User='\L'
+PGSQLGetRatioDL SELECT DLRatio FROM users WHERE User='\L'
 
 - PGSQLGetBandwidthUL and PGSQLGetBandwidthDL are optional upload and
 download bandwidth restrictions. Returned values should be in Kb/s.
 
 Example :
-PGSQLGetBandwidthUL SELECT ULBandwidth FROM users WHERE User="\L"
-PGSQLGetBandwidthDL SELECT DLBandwidth FROM users WHERE User="\L"
+PGSQLGetBandwidthUL SELECT ULBandwidth FROM users WHERE User='\L'
+PGSQLGetBandwidthDL SELECT DLBandwidth FROM users WHERE User='\L'
 
 
 
@@ -189,6 +189,19 @@ data types (eg. binary blobs instead of plain text) are fetched with SQL
 queries.
 
 
+Hint :
 
+PostgreSQL supports views and it's common practice to define a new DB
+user, e.g., ftpd, and a view of the 'real' user database with just the
+bits that the server needs. E.g., if you have virtual domains you
+could use :
 
-          -Frank DENIS <j@pureftpd.org>.
+create view vftpd as select u.vuser, u.domain, u.passwd, d.uid, d.gid,
+'/virtual/' || u.domain || '/' || u.vuser || '/./' as homedir
+from vusers as u, vdomains as d where u.domain = v.domain;
+
+grant select on vftpd to ftpd;
+
+The definition of homedir shows how views can be used to enforce a
+canonical form for home directories - nothing short of defining this
+view will allow a user to drop the chroot from their home directory.

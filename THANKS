@@ -108,8 +108,12 @@ dependencies.
 * Mark Reidel <mr@domainfactory.de> - Reported that users couldn't revert
 perms on a directory after they removed read/execute access rights.
 * Jose Pedro Oliveira <jpo@di.uminho.pt> - Spec file fixes.
-* dj_oggy - For his valuable help on Sourceforge forums. Thanks a lot, dude.
+* Francis Little aka dj_oggy <oggy@hayesbrook.kent.sch.uk> - For his valuable
+help on Sourceforge forums, his testing of snapshot and his helpful advices.
+Thanks a lot, dude.
 * iTooo <itooo@itooo.com> , for reporting a nasty typo in throttling code.
+* Martin Hedenfalk (mhe) - Reported that MLST shouldn't accept any option
+nor multiple file names.
 
 
 Mailing list-members :
@@ -117,7 +121,7 @@ Mailing list-members :
 * ahodgson@simkin.ca (thanks for your opinion on config files and your help
 for CVS repositories)
 * brett@ekit-inc.com 
-* claudiuc@work.ro (romanian translator and great tester)
+* claudiuc@kde.org (romanian translator and great tester)
 * dan_c@pellin.ro 
 * forsaken@users.sourceforge.net (contributed the ftpwho and FXP code)
 * gumz@cs.uni-magdeburg.de (german translator and very nice guy)

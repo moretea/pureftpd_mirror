@@ -1,6 +1,6 @@
 AC_PREREQ(2.50)
-AC_INIT(pure-ftpd, 1.0.11)
-AM_INIT_AUTOMAKE
+AC_INIT
+AM_INIT_AUTOMAKE(pure-ftpd, 1.0.12)
 AC_CONFIG_SRCDIR(src/ftpd.c)
 AM_CONFIG_HEADER(config.h)
 
@@ -45,7 +45,7 @@ AC_CHECK_HEADERS(sgtty.h termio.h)
 AC_CHECK_HEADERS(locale.h)
 AC_CHECK_HEADERS(stdarg.h varargs.h)
 AC_CHECK_HEADERS(windows.h io.h)
-AC_CHECK_HEADERS(crypt.h)
+AC_CHECK_HEADERS(crypt.h md5.h sha1.h)
 AC_CHECK_HEADERS(utime.h)
 AC_SYS_POSIX_TERMIOS
 
@@ -582,6 +582,62 @@ do {
   AC_MSG_RESULT(no)
 ])
 
+AC_MSG_CHECKING([if a hpuxish sendfile is available])
+AC_TRY_LINK([
+#include <sys/socket.h>
+#include <stdio.h>
+],
+[
+do {
+ int fd = 0;
+ off_t off = (off_t) 0;
+ bsize_t nbytes = (size_t) 0;
+ const struct iovec *hdtrl = NULL;
+ 
+ (void) sendfile(fd, fd, off, nbytes, hdtrl, 42);
+} while(0)
+],
+[
+  AC_MSG_RESULT(yes)
+  AC_DEFINE(SENDFILE_HPUX,,[define if you have a hpuxish sendfile])
+],
+[
+  AC_MSG_RESULT(no)
+])
+
+AC_CHECK_FUNC(sendfilev, , [AC_CHECK_LIB(sendfile, sendfilev)])
+
+AC_MSG_CHECKING([if a solarisish sendfilev is available])
+AC_TRY_LINK([
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
+#include <sys/types.h>
+#include <sys/socket.h>
+#ifdef HAVE_SYS_UIO_H
+# include <sys/uio.h>
+#endif
+#ifdef HAVE_SYS_SENDFILE_H
+# include <sys/sendfile.h>
+#endif
+],
+[
+do {
+ int fd = 0, sfvcnt = 0;
+ const struct sendfilevec vec;
+ size_t xferred;
+ 
+ (void) sendfilev(fd, &vec, sfvcnt, &xferred);
+} while(0)
+],
+[
+  AC_MSG_RESULT(yes)
+  AC_DEFINE(SENDFILEV_SOLARIS,,[define if you have a solarisish sendfilev])
+],
+[
+  AC_MSG_RESULT(no)
+])
+
 
 AC_ARG_WITH(cookie,
 [AC_HELP_STRING([--with-cookie],[Support 'fortune' cookies (-F option)])],
@@ -657,6 +713,13 @@ AC_ARG_WITH(nonroot,
       AC_DEFINE(WITH_VIRTUAL_CHROOT)
   fi ])
 
+AC_ARG_WITH(peruserlimits,
+[AC_HELP_STRING([--with-peruserlimits],[Support per-user concurrency limits (experimental)])],
+[ if test "x$withval" = "xyes" ; then
+      AC_DEFINE(PER_USER_LIMITS,,[with per-user limits])
+      AC_DEFINE(FTPWHO)
+  fi ])
+
 AC_ARG_WITH(debug,
 [AC_HELP_STRING([--with-debug],[For maintainers only - please do not use])],
 [ if test "x$withval" = "xyes" ; then
@@ -677,10 +740,14 @@ AC_ARG_WITH(everything,
     AC_DEFINE(WITH_EXTAUTH)
     AC_DEFINE(FTPWHO)
     AC_DEFINE(WITH_DIRALIASES)
+    AC_DEFINE(PER_USER_LIMITS)
   fi ])
 
 AC_ARG_WITH(language,
-[AC_HELP_STRING([--with-language=],[< english | german | romanian | french | french-funny | polish | spanish | danish | dutch | italian | brazilian-portuguese | slovak | korean | swedish >])],
+[AC_HELP_STRING([--with-language=],[< english | german | romanian | french |
+french-funny | polish | spanish | danish | dutch | italian |
+brazilian-portuguese | slovak | korean | swedish | norwegian | russian |
+traditional-chinese | simplified-chinese >])],
 [ if test "x$withval" = "xenglish" ; then
     AC_DEFINE(MESSAGES_EN,,[english])
   elif test "x$withval" = "xgerman" ; then
@@ -711,6 +778,12 @@ AC_ARG_WITH(language,
     AC_DEFINE(MESSAGES_SV,,[swedish])
   elif test "x$withval" = "xnorwegian" ; then
     AC_DEFINE(MESSAGES_NO,,[norwegian])
+  elif test "x$withval" = "xrussian" ; then
+    AC_DEFINE(MESSAGES_RU,,[russian])
+  elif test "x$withval" = "xtraditional-chinese" ; then
+    AC_DEFINE(MESSAGES_ZH_CN,,[traditional chinese])
+  elif test "x$withval" = "xsimplified-chinese" ; then
+    AC_DEFINE(MESSAGES_ZH_TW,,[simplified chinese])
   else 
     AC_WARN("--with-language=$withval is not recognized") 
   fi ])
@@ -733,15 +806,14 @@ AC_FUNC_GETGROUPS
 
 AC_CHECK_FUNCS(initgroups setrlimit waitpid setproctitle getopt_long)
 AC_CHECK_FUNCS(seteuid setreuid setresuid setegid setregid setresgid)
-AC_CHECK_FUNCS(statvfs statfs putenv getpagesize realpath)
+AC_CHECK_FUNCS(statvfs statfs putenv getpagesize realpath pread)
 AC_CHECK_FUNCS(strtoull strtoq)
 AC_CHECK_FUNCS(memset munmap strdup fileno mapviewoffile)
 AC_CHECK_FUNCS(getaddrinfo getnameinfo inet_ntop inet_pton)
 AC_CHECK_FUNCS(setusershell setgroups snprintf vsnprintf vfprintf gethostname)
 AC_CHECK_FUNCS(setlocale)
 AC_CHECK_FUNCS(utime utimes mknod mkfifo)
-AC_CHECK_FUNCS(random srandomdev)
-AC_CHECK_FUNCS(pstat_getdynamic)
+AC_CHECK_FUNCS(random srandomdev SHA1Transform MD5Transform)
 
 AC_MSG_CHECKING([whether we must link kvm and elf (Solaris)])
 AC_TRY_COMPILE([

@@ -386,3 +386,14 @@ MaxDiskUsage               90
 
 CustomerProof yes
 
+
+
+
+# Per-user concurrency limits. It will only work if the FTP server has
+# been compiled with --with-peruserlimits (and this is the case on
+# most binary distributions) .
+# The format is : <max sessions per user>:<max anonymous sessions>
+# For instance, 3:20 means that the same authenticated user can have 3 active
+# sessions max. And there are 20 anonymous sessions max.
+
+# PerUserLimits 3:20

@@ -6,11 +6,11 @@
 # include <stddef.h>
 # include <stdarg.h>
 #else
-# if HAVE_STDLIB_H
+# ifdef HAVE_STDLIB_H
 #  include <stdlib.h>
 # endif
 #endif
-#if HAVE_INTTYPES_H
+#ifdef HAVE_INTTYPES_H
 # include <inttypes.h>
 #endif
 #ifdef HAVE_UNISTD_H

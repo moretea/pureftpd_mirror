@@ -76,6 +76,9 @@ pure_ftpd_SOURCES = \
 	messages_sk.h \
 	messages_sv.h \
 	messages_no.h \
+	messages_ru.h \
+	messages_zh_cn.h \
+	messages_zh_tw.h \
 	ftpwho-update.c \
 	ftpwho-update.h \
 	ftpwho-update_p.h \
@@ -99,7 +102,9 @@ pure_ftpd_SOURCES = \
 	fakechroot.h \
 	fakechroot.c \
 	diraliases.h \
-	diraliases.c
+	diraliases.c \
+	ftpwho-read.h \
+	ftpwho-read.c
 
 pure_mrtginfo_CFLAGS = -DIN_PURE_MRTGINFO=1
 
