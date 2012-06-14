@@ -1,13 +1,16 @@
-auth       required     /lib/security/pam_listfile.so item=user sense=deny file=/etc/ftpusers onerr=succeed
-auth       required     /lib/security/pam_unix.so
-auth       required     /lib/security/pam_shells.so
-account    required     /lib/security/pam_unix.so
-session    required     /lib/security/pam_unix.so
-password   sufficient   /lib/security/pam_unix.so
+#%PAM-1.0
 
-# If authentication doesn't work for you, try to add 'shadow' (without quotes)
-# after pam_unix.so                                  - suggested by Joe Silva.
-# If it still doesn't work for you, you can also try to add "md5" after
-# "pam_unix.so"
+# Sample PAM configuration file for Pure-FTPd.
+# Install it in /etc/pam.d/pure-ftpd or add to /etc/pam.conf
 
+auth       required     pam_listfile.so item=user sense=deny file=/etc/ftpusers onerr=succeed
+auth       required     pam_stack.so service=system-auth
+auth       required     pam_shells.so
+auth       required     pam_nologin.so
+
+account    required     pam_stack.so service=system-auth
+
+password   required     pam_stack.so service=system-auth
+
+session    required     pam_stack.so service=system-auth
 

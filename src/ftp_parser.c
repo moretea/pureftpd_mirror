@@ -522,6 +522,8 @@ void parser(void)
                             idletime_noop = (double) idletime * 2.0;
                         }
                     }
+                } else if (!strcasecmp(arg, "time")) {
+                    dositetime();
                 } else if (!strcasecmp(arg, "help")) {
                     help_site:
                     
@@ -530,7 +532,7 @@ void parser(void)
                                       " ALIAS" CRLF
 # endif
                                       " CHMOD" CRLF " IDLE");
-                    addreply(214, "Pure-FTPd - http://pureftpd.org/");
+                    addreply_noformat(214, "Pure-FTPd - http://pureftpd.org/");
                 } else if (!strcasecmp(arg, "chmod")) {
                     char *sitearg2;
                     mode_t mode;

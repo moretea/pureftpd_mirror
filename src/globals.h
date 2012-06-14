@@ -127,6 +127,7 @@ GLOBAL(int upload_pipe_lock, -1);
 
 GLOBAL0(signed char create_home);
 GLOBAL0(signed char disallow_rename);
+GLOBAL0(signed char no_truncate);
 
 GLOBAL0(size_t page_size);
 GLOBAL0(size_t map_size);
@@ -161,5 +162,7 @@ GLOBAL0(signed char be_customer_proof);
 #ifdef WITH_TLS
 GLOBAL0(signed char enforce_tls_auth);
 #endif
+
+GLOBAL0(char *atomic_prefix);
 
 #endif

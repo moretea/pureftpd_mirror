@@ -345,6 +345,7 @@ void dornto(char *name);
 void dostou(void);
 void dofeat(void);
 void domlst(const char * const file);
+void dositetime(void);
 void mappedtov4(struct sockaddr_storage *ss);
 #ifndef HAVE_SYS_FSUID_H
 void disablesignals(void);
@@ -375,6 +376,7 @@ const char *getname(const uid_t uid);
 unsigned int zrand(void);
 void simplify(char *subdir);
 int checkprintable(register const char *s);
+void delete_atomic_file(void);
 
 #ifdef HAVE_SYS_FSUID_H
 # define usleep2 usleep
@@ -395,8 +397,8 @@ extern int opt_a, opt_C, opt_d, opt_F, opt_l, opt_R;
 #endif
 
 #ifdef WITH_TLS
-# ifndef TLS_CERTIFICATE_PATH
-#  define TLS_CERTIFICATE_PATH CONFDIR "/ssl/private/pure-ftpd.pem"
+# ifndef TLS_CERTIFICATE_FILE
+#  define TLS_CERTIFICATE_FILE "/etc/ssl/private/pure-ftpd.pem"
 # endif
 #endif
 
@@ -500,6 +502,9 @@ Your platform has a very large MAXPATHLEN, we should not trust it.
 #define MAX_THROTTLING_DELAY 42           /* Maximum throttling compensation */
 
 #define VHOST_PREFIX_MAX_LEN 64    
+
+#define PUREFTPD_TMPFILE_PREFIX ".pureftpd-"    
+#define ATOMIC_PREFIX_PREFIX PUREFTPD_TMPFILE_PREFIX "upload."
     
 /*
  * Some users reported that something was wrong with TCP_CORK.
@@ -688,9 +693,9 @@ Your platform has a very large MAXPATHLEN, we should not trust it.
 #endif
 
 #ifdef FTPWHO
-# define _EXIT(X) ftpwho_exit(X)
+# define _EXIT(X) do { delete_atomic_file(); ftpwho_exit(X); } while(0)
 #else
-# define _EXIT(X) _exit(X)
+# define _EXIT(X) do { delete_atomic_file(); _exit(X); } while(0)
 #endif
 
 #include "bsd-realpath.h"    

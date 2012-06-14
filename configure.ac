@@ -1,7 +1,7 @@
 dnl AM_ACLOCAL_INCLUDE(m4)
 
 AC_PREREQ(2.57)
-AC_INIT(pure-ftpd, 1.0.16c, bugs@pureftpd.org)
+AC_INIT(pure-ftpd, 1.0.17a, bugs@pureftpd.org)
 AC_CONFIG_SRCDIR(src/ftpd.c)
 AM_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE([1.6 dist-bzip2])
@@ -257,7 +257,7 @@ AC_ARG_WITH(shadow,
 if test -z "$no_shadow" && test "x$ac_cv_header_shadow_h" = "xyes" ; then
   AC_CHECK_FUNC(getspnam, AC_DEFINE(USE_SHADOW,,[use shadow passwords]),
     AC_CHECK_LIB(shadow, getspnam, AC_DEFINE(USE_SHADOW),
-      AC_MSG_WARN("shadow.h was found, but getspnam() isn't available")
+      AC_MSG_WARN(shadow.h was found, but getspnam() isn't available)
     )
   )
 fi
@@ -343,8 +343,9 @@ AC_ARG_WITH(minimal,
     AC_DEFINE(DISABLE_HUMOR)
     AC_DEFINE(NO_FTP_USERS)
     AC_DEFINE(WITHOUT_ASCII)    
-    AC_DEFINE(NO_BANNER)        
-    CFLAGS="$CFLAGS -Os -fomit-frame-pointer -fssa -fgcse -falign-functions=2 -falign-jumps=2 -fno-unroll-loops "
+    AC_DEFINE(NO_BANNER)
+    AC_DEFINE(BORING_MODE)
+    CFLAGS="$CFLAGS -Os -ftracer -fomit-frame-pointer -fssa -fgcse -falign-functions=2 -falign-jumps=2 -fno-unroll-loops "
     LDFLAGS="$LDFLAGS -s "
   fi ])
 
@@ -827,7 +828,7 @@ traditional-chinese | simplified-chinese | czech | turkish >])],
   elif test "x$withval" = "xturkish" ; then
     AC_DEFINE(MESSAGES_TR,,[turkish])
   else 
-    AC_MSG_WARN("--with-language=$withval is not recognized") 
+    AC_MSG_WARN(--with-language=$withval is not recognized)
   fi ])
 
 
@@ -850,7 +851,7 @@ AC_CHECK_FUNCS(initgroups setrlimit waitpid setproctitle getopt_long)
 AC_CHECK_FUNCS(seteuid setreuid setresuid setegid setregid setresgid)
 AC_CHECK_FUNCS(statvfs statfs putenv getpagesize realpath pread ptrace)
 AC_CHECK_FUNCS(strtoull strtoq)
-AC_CHECK_FUNCS(memset munmap strdup fileno mapviewoffile)
+AC_CHECK_FUNCS(memset munmap strdup fileno mapviewoffile madvise)
 AC_CHECK_FUNCS(getaddrinfo getnameinfo inet_ntop inet_pton)
 AC_CHECK_FUNCS(setusershell setgroups snprintf vsnprintf vfprintf gethostname)
 AC_CHECK_FUNCS(setlocale)
@@ -1266,6 +1267,17 @@ if test "x$with_tls" = "xyes" ; then
   AC_CHECK_LIB(ssl, SSL_accept)
   AC_DEFINE(WITH_TLS,,[Enable TLS])
 fi
+
+AC_ARG_WITH(certfile,
+[AC_HELP_STRING([--with-certfile=],[certificate file (default: /etc/ssl/private/pure-ftpd.pem)])],
+[ if test "x$withval" != "x" ; then
+    certfile="$withval"
+    AC_SUBST(certfile)
+    CPPFLAGS="$CPPFLAGS -DTLS_CERTIFICATE_FILE='\"$certfile\"'"
+    if test -e "$certfile"; then
+      AC_MSG_WARN(No certificate is installed in $certfile yet)
+    fi
+  fi ])
 
 if test "x$sysconfdir" = 'xNONE' || test "x$sysconfdir" = 'x'; then
   CONFDIR='/etc'

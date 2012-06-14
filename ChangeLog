@@ -1,4 +1,45 @@
 
+* Version 1.0.17a:
+    FD_SET(-1, ...) is invalid, but it could happen on aborted transfers,
+causing Pure-FTPd to exit without removing ftpwho entries nor atomic files.
+    safe_fd_set() has been introduced to solve this, it just works like
+safe_fd_isset() and ignores descriptor -1 and it has been placed on the same
+places.
+
+* Version 1.0.17:
+    Some fixes were made to the traditionnal Chinese translation by Flaw Zero
+<flawzero at eyou.com>.
+    Autoconf was upgraded to 2.58.
+    TLS_CERTIFICATE_PATH has been renamed TLS_CERTIFICATE_FILE.
+    --with-certfile has been added to ./configure to set up a value for
+TLS_CERTIFICATE_FILE. The default value has been reverted to
+/etc/ssl/private/pure-ftpd.pem.
+    Solaris NIS accounts can now be converted using pure-pwconvert.
+    Don't drop capabilities too early, or even chroot will be prohibited.
+Thanks to Arkadiusz Patyk, Li-Ren and Philipp Kern for their report.
+    Negative return codes are not used any more - reported by Andrew Victor
+<andrew@sanpeople.com>
+    System users whose password is '********' are now imported by
+pure-pwconvert (for newer MacOS X).
+    New file : README.MacOS-X.
+    Use SO_REUSEPORT in place of SO_REUSEADDR to bind the ftp-data port on
+FreeBSD. Suggested by Henri Virtanen <hvirtanen@daous.com>.
+    Big change in the way upload are handled. We now maintain a per-process
+unique file name in an "atomic_prefix" global. This is the name of a temporary
+file that is actually used for upload, through the get_atomic_file() function
+that adds the basename if needed. Once the upload is completed or aborted, the
+temporary file is renamed. Or hard links are created when autorename is asked
+for (autorename happens after the upload now, not before). It changes a lot of
+stuff in dostor(), but it makes the whole thing easier and atomic uploads are
+really nice for the end user. --no-truncate (and the global no_truncate) can
+keep the old file when a new version of a file is being uploaded.
+    Redundant calls to get_usec_time() were removed.
+    Julien Andrieux's parser has been added to contribs.
+    Errors when SSL certificates are missing are more explicit.
+    The SITE TIME command was implemented. Suggested by Mark.
+    A new sample of a PAM configuration file has been written. The previous
+one is still available as pure-ftpd.old.
+
 * Version 1.0.16c:
     We should disable the raw mode and send full HTML headers in CGI mode.
 Reported by Bernard Lheureux <bernard.lheureux@bbsoft4.org>
@@ -11,8 +52,10 @@ script. Patch by Brad Smith <brad@openbsd.org>.
     PAM was broken in 1.0.16b due to PAM_SUCCESS not being copied to the right
 slot. It has been fixed.
     Automake has been updated to 1.7.8.
-    configure.ac has been cleaned up a bit regarding the conditonnal inclusion
+    configure.ac has been cleaned up a bit regarding the conditionnal inclusion
 of stdlib.h/unistd.h .
+    RPMs are now built with largefile support, privsep and sysquotas by
+default.
 
 * Version 1.0.16b:
     PAM fixes.

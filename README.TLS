@@ -41,6 +41,9 @@ properly seed the PRNG for your operating system.
   To use SSL/TLS, you must provide a file called /etc/ssl/private/pure-ftpd.pem
 with a private key for your host and the related certificate.
 
+  The location can be changed at compile-time with the --with-certfile option
+passed to ./configure.
+
   A certificate is similar to an identity card. You fill a form with a set of
 personal info, then you have some trusted third-party bash an official stamp
 onto it to confirm its validity.

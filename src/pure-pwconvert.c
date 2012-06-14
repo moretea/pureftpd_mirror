@@ -55,9 +55,12 @@ int main(void)
 #endif
         pw = pwd->pw_passwd;
 #ifdef USE_SHADOW
-        if (pwd->pw_passwd != NULL && pwd->pw_name != NULL &&
-            !strcmp(pwd->pw_passwd, "x") && 
-            (spw = getspnam(pwd->pw_name)) != NULL) {
+        if (pwd->pw_passwd != NULL && pwd->pw_name != NULL &&            
+            (((pwd->pw_passwd)[0] == 'x' && (pwd->pw_passwd)[1] == 0) ||
+             (strcmp(pwd->pw_passwd, "********") == 0) ||             
+             ((pwd->pw_passwd)[0] == '#' && (pwd->pw_passwd)[1] == '#' &&
+              strcmp(pwd->pw_passwd + 2, pwd->pw_name) == 0)) &&
+            (spw = getspnam(pwd->pw_name)) != NULL && spw->sp_pwdp != NULL) {
             pw = spw->sp_pwdp[0] == '@' ? "*" : spw->sp_pwdp;            
         }
 #endif

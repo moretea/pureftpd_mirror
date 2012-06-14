@@ -4,15 +4,17 @@
 .\"
 .\" Use, modification and distribution is allowed without limitation, warranty, or liability of any kind.
 .\"
-.TH "pure-ftpd" "8" "1.0.16" "Pure-FTPd Team" "Pure-FTPd"
+.TH "pure-ftpd" "8" "1.0.17" "Pure-FTPd Team" "Pure-FTPd"
 .SH "NAME"
 pure\-ftpd \- simple File Transfer Protocol server
 
 .SH "SYNOPSIS"
-.B pure\-ftpd [\-1] [\-4] [\-a gid] [\-A] [\-b] [\-B] [\-c clients] [\-C cnx/ip] [\-d [\-d]] [\-D] [\-e] [\-E] [\-f facility] [\-F fortunes file] [\-g pidfile] [\-G] [\-H] [\-i] [\-I] [\-j] [\-k percentage] [\-K] [\-l authentication[:config file]] [\-L max files:max depth] [\-m maxload] [\-M] [\-n maxfiles:maxsize] [\-N] [\-o] [\-O format:log file] [\-p first:last] [\-P ip address or host name] [\-q upload:download ratio] [\-Q upload:download ratio] [\-r] [\-R] [\-s] [\-S [address,][port]] [\-t upload bandwidth:download bandwidth] [\-T upload bandwidth:download bandwidth] [\-u uid] [\-U umask files:umask dirs] [\-V ip address] [\-w] [\-W] [\-x] [\-X] [\-y max user sessions:max anon sessions] [\-Y tls behavior] [\-z] [\-Z]
+.B pure\-ftpd [\-0] [\-1] [\-4] [\-a gid] [\-A] [\-b] [\-B] [\-c clients] [\-C cnx/ip] [\-d [\-d]] [\-D] [\-e] [\-E] [\-f facility] [\-F fortunes file] [\-g pidfile] [\-G] [\-H] [\-i] [\-I] [\-j] [\-k percentage] [\-K] [\-l authentication[:config file]] [\-L max files:max depth] [\-m maxload] [\-M] [\-n maxfiles:maxsize] [\-N] [\-o] [\-O format:log file] [\-p first:last] [\-P ip address or host name] [\-q upload:download ratio] [\-Q upload:download ratio] [\-r] [\-R] [\-s] [\-S [address,][port]] [\-t upload bandwidth:download bandwidth] [\-T upload bandwidth:download bandwidth] [\-u uid] [\-U umask files:umask dirs] [\-V ip address] [\-w] [\-W] [\-x] [\-X] [\-y max user sessions:max anon sessions] [\-Y tls behavior] [\-z] [\-Z]
 
 .br
 Alternative style :
+.br
+\-0 \-\-notruncate
 .br
 \-1 \-\-logpid
 .br
@@ -131,6 +133,13 @@ insecure, or correlates with trouble.
 IPv6 is fully supported.
 
 .SH "OPTIONS"
+.TP
+.B \-0
+When a file is uploaded and there is already a previous version of the
+file with the same name, the old file will neither get removed nor truncated.
+Upload will take place in a temporary file and once the upload is complete,
+the switch to the new version will be atomic. This option should not be used
+together with virtual quotas.
 .TP
 .B \-1
 Add the PID to the syslog output. Ignored if 
@@ -879,6 +888,7 @@ Here are the FTP commands supported by this server.
 .B SITE IDLE
 .B SITE CHMOD
 .B SITE HELP
+.B SITE TIME
 
 .SH "BUGS"
 Please report bugs to the mailing\-list (see below).

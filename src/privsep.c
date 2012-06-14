@@ -166,7 +166,11 @@ int privsep_privpart_bindresport(const int psfd,
                      SOCK_STREAM, IPPROTO_TCP)) == -1) {
         goto bye;
     }
+# ifdef SO_REUSEPORT
+    (void) setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, (char *) &on, sizeof on);
+# else
     (void) setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (char *) &on, sizeof on);
+# endif
     for (;;) {
         if (query->bindresport.protocol == PF_INET6) {
             STORAGE_PORT6(query->bindresport.ss) = htons(*portlistpnt);

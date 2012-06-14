@@ -96,6 +96,7 @@ am__leading_dot = @am__leading_dot@
 am__quote = @am__quote@
 bindir = @bindir@
 build_alias = @build_alias@
+certfile = @certfile@
 datadir = @datadir@
 exec_prefix = @exec_prefix@
 host_alias = @host_alias@
@@ -116,6 +117,7 @@ target_alias = @target_alias@
 EXTRA_DIST = \
 	ftpusers \
 	pure-ftpd \
+	pure-ftpd.old \
 	README
 
 subdir = pam
