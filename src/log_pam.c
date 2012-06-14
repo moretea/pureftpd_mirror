@@ -50,35 +50,49 @@ static int PAM_error;
  * echo off means password.
  */
 
-#define GET_MEM if (reply) { if (realloc(reply, size) == NULL) \
-    return PAM_CONV_ERR; } \
-    else reply = malloc(size); if (!reply) return PAM_CONV_ERR; \
-    size += sizeof(struct pam_response)
-
-#define COPY_STRING(s) (s != NULL) ? strdup(s) : NULL
+#define GET_MEM \
+    size += sizeof(struct pam_response); \
+    if ((reply = realloc(reply, size)) == NULL) { \
+        PAM_error = 1; \
+        return PAM_CONV_ERR; \
+    }
 
 static int PAM_conv(int num_msg,
                     const struct pam_message **msg,
                     struct pam_response **resp, void *appdata_ptr)
 {
     int count = 0;
-    int replies = 0;
+    unsigned int replies = 0U;
     struct pam_response *reply = NULL;
-    size_t size = sizeof(struct pam_response);
-    appdata_ptr = appdata_ptr;
-        
+    size_t size = (size_t) 0U;
+
+    (void) appdata_ptr;
     for (count = 0; count < num_msg; count++) {
         switch (msg[count]->msg_style) {
         case PAM_PROMPT_ECHO_ON:
             GET_MEM;
+            memset(&reply[replies], 0, sizeof reply[replies]);
+            if ((reply[replies++].resp = strdup(PAM_username)) == NULL) {
+#ifdef PAM_BUF_ERR
+                reply[replies].resp_retcode = PAM_BUF_ERR;
+#endif
+                PAM_error = 1;
+                return PAM_CONV_ERR;                
+            }
             reply[replies].resp_retcode = PAM_SUCCESS;
-            reply[replies++].resp = COPY_STRING(PAM_username);
             /* PAM frees resp */
             break;
         case PAM_PROMPT_ECHO_OFF:
             GET_MEM;
-            reply[replies].resp_retcode = PAM_SUCCESS;
-            reply[replies++].resp = COPY_STRING(PAM_password);
+            memset(&reply[replies], 0, sizeof reply[replies]);            
+            if ((reply[replies++].resp = strdup(PAM_password)) == NULL) {
+#ifdef PAM_BUF_ERR
+                reply[replies].resp_retcode = PAM_BUF_ERR;
+#endif                
+                PAM_error = 1;                
+                return PAM_CONV_ERR;
+            }
+            reply[replies].resp_retcode = PAM_SUCCESS;            
             /* PAM frees resp */
             break;
         case PAM_TEXT_INFO:
@@ -92,9 +106,8 @@ static int PAM_conv(int num_msg,
             return PAM_CONV_ERR;
         }
     }
-    if (reply) {
-        *resp = reply;
-    }
+    *resp = reply;
+    
     return PAM_SUCCESS;
 }
 
@@ -105,8 +118,10 @@ static struct pam_conv PAM_conversation = {
     &PAM_conv, NULL
 };
 
-#define PAM_BAIL if (PAM_error || (pam_error != PAM_SUCCESS)) { \
-    goto bye; }
+#define PAM_BAIL \
+    if (PAM_error != 0 || pam_error != PAM_SUCCESS) { \
+        goto bye; \
+    }
 
 /* Pure-FTPd authentication module */
 

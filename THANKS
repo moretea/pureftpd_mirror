@@ -144,8 +144,8 @@ for CVS repositories)
 * lukas@supremedesigns.com (thanks for helping users on the ML)
 * marc.angles1@fnac.net (who asked the rights questions for a FAQ)
 * mark@grapevine2.net 
-* misiek@pld.org.pl (and everyone from the Polish(ed) Linux Distribution :
-                     http://www.pld.org.pl/)
+* misiek@pld-linux.org (and everyone from the PLD Linux Distribution :
+                        http://www.pld-linux.org/)
 * ml@splio.com (who reported that accents were filtered)
 * mstern@mac.com 
 * neogenix@xsinet.co.za
@@ -221,6 +221,7 @@ C++ Ver 6.0 compiler.
 * Marshall Pierce <mpierce@hmc.edu> - For his tests on MacOS X.
 * Shantanu <shantanu@dcpl.co.in> - For his valuable exercices in order to
 hands solid like steel, ready to type billions of source code :)
+* JG <jg@cms.ac> - Reported a breakage of pure-ftpwho in version 1.0.16.
 
 
 In the memory of all people dead on September 11 2001, in Manhattan and in

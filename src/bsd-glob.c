@@ -672,10 +672,8 @@ static int globextend(const Char * path, glob_t * pglob, size_t * limitp)
     pathv = pglob->gl_pathv ? realloc((char *) pglob->gl_pathv, newsize) :
         malloc(newsize);
     if (pathv == NULL) {
-        if (pglob->gl_pathv) {
-            free(pglob->gl_pathv);
-            pglob->gl_pathv = NULL;
-        }
+        free(pglob->gl_pathv);
+        pglob->gl_pathv = NULL;
         return (GLOB_NOSPACE);
     }
 
@@ -770,9 +768,7 @@ void globfree(glob_t * pglob)
     if (pglob->gl_pathv != NULL) {
         pp = pglob->gl_pathv;
         for (i = pglob->gl_pathc; i--; ++pp) {
-            if (*pp) {
-                free(*pp);
-            }
+            free(*pp);
         }
         free(pglob->gl_pathv);
         pglob->gl_pathv = NULL;

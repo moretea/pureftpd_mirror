@@ -24,10 +24,8 @@ int fakechroot(const char *path)
 # endif
         return -1;
     }
-    if (chroot_base != NULL) {
-        free(chroot_base);
-        chroot_base = NULL;
-    }
+    free(chroot_base);
+    chroot_base = NULL;
     if (path[0] == '/' && path[1] == 0) {   /* chroot("/") => no chroot */
         return 0;
     }

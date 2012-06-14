@@ -87,11 +87,5 @@ void globfree(glob_t *);
 #endif
 
 #define GLOB_PERIOD 0
-#ifdef DEBUG
-# include <assert.h>
-# define _DIAGASSERT(X) assert(X)
-#else
-# define _DIAGASSERT(X) (void) 0
-#endif
 
 #endif                          /* !__GLOB_H__ */

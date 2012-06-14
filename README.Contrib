@@ -137,7 +137,8 @@ monitor users sessions. This module is designed to work with Pure-FTPd
 compiled with quotas, puredb, throttling, ftpwho and virtualchroot.
 
   URL : http://webmin.thirdpartymodules.com/?page=Search&action=search&searchval=pure-ftpd
-  
+
+
 * FTP-Config (author: Gritsch Gabriel)
 
   This MacOS X software includes a precompiled Pure-FTPd binary and a
@@ -146,3 +147,43 @@ powerful yet very simple graphical interface to configure the server.
   URL : http://ftp-config.pureftpd.org/ftp-config_web/
         http://www.versiontracker.com/dyn/moreinfo/macosx/19713
 
+
+* TuxBox ISPWorks (author : Martin List-Petersen)
+
+  This is an administration system for a complete Internet Service
+Provider Solution. Data for this is stored in a SQL backend, which most of the
+daemons pull their data of.
+
+  URL : http://ispworks.sf.net/
+
+
+* KPUM (authors : Ole Behrmann and Christoph Thielecke)
+
+  Kpum is a user manager for the pureftpd server. You can add, modify and
+delete users of the pureftpd server. Currently only the pureftpd.pdb database
+is supported. Kpum is a application for the KDE environment.
+
+  URL : http://kpum.sf.net/
+
+
+* PureAdmin (author : Isak Savo), ex- Purify.
+
+  PureAdmin is a graphical tool used to make the management of PureFTPd a
+little easier.
+
+  It uses the GTK+2.x widgets for its GUI and thus are not dependent on a
+specific desktop environment such as GNOME or KDE. It is, however, designed
+with the GNOME Human Interface Guidelines in mind so it should integrate
+nicely with at least GNOME. 
+
+  URL : http://purify.sourceforge.net/
+  
+  
+* PureFTPd Manager (author: Jean-Matthieu Schaffhauser)
+
+  PureFTPd Manager is a small Cocoa frontend to PureFTPd for Mac OS X. It
+includes a wizard to easily set up your server, Rendezvous support to publish
+your server efficiently, and groovy interfaces for virtual users and hosts
+management.
+
+  URL : http://jeanmatthieu.free.fr/pureftpd/

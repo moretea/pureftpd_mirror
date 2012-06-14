@@ -252,21 +252,11 @@ static int pw_pgsql_connect(PGconn ** const id_sql_server)
     ret = 0;
     
     bye:
-    if (conninfo != NULL) {
-        free(conninfo);
-    }
-    if (escaped_server != NULL) {
-        free(escaped_server);
-    }
-    if (escaped_db != NULL) {
-        free(escaped_db);
-    }
-    if (escaped_user != NULL) {
-        free(escaped_user);
-    }
-    if (escaped_pw != NULL) {
-        free(escaped_pw);
-    }
+    free(conninfo);
+    free(escaped_server);
+    free(escaped_db);
+    free(escaped_user);
+    free(escaped_pw);
 
     return ret;
 }

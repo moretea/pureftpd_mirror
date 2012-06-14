@@ -30,9 +30,7 @@ void pw_extauth_parse(const char * const file)
 
 void pw_extauth_exit(void)
 {
-    if (saddr != NULL) {
-        free(saddr);
-    }
+    free(saddr);
 }
 
 static void callback_reply_auth_ok(const char *str, AuthResult * const result)
@@ -53,9 +51,7 @@ static void callback_reply_gid(const char *str, AuthResult * const result)
 static void callback_reply_dir(const char *str, AuthResult * const result)
 {
     if (*str == '/') {
-        if (result->dir != NULL) {
-            free((void *) (result->dir));
-        }
+        free((void *) (result->dir));
         result->dir = strdup(str);
     }
 }

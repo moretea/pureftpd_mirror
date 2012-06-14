@@ -85,8 +85,6 @@ void pw_unix_check(AuthResult * const result,
     return;
     
     bye:
-    if (dir != NULL) {
-        free(dir);
-    }
+    free(dir);
 }
 

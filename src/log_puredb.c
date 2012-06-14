@@ -26,9 +26,7 @@ void pw_puredb_parse(const char * const file)
 
 void pw_puredb_exit(void)
 {
-    if (pdb_filename != NULL) {
-        free(pdb_filename);
-    }
+    free(pdb_filename);
 }
 
 /*

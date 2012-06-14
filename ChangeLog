@@ -1,4 +1,24 @@
 
+* Version 1.0.16b:
+    PAM fixes.
+    TLS should now compile on RedHat 9 that moved Kerberos headers to
+a specific directory.
+    free(NULL) is ok => all code like "if (<value> != NULL) free(<value>);" 
+has been simplified.
+    Automake has been upgraded to 1.7.7, Autoconf to 2.57a.
+    The sysconf prefix is now used for SSL certificates as well.
+    We break'ed too early when trying to resolve host names in
+pure-ftpwho and the local host name couldn't even be resolved. The problem was
+introduced in 1.0.16 when the MacOS X Panther workarounds were implemented.
+    Thanks to JG <jg@cms.ac> for his bug report.
+    /usr/local/include, /usr/kerberos/include and /usr/local/lib are only
+added to CPPFLAGS/LDFLAGS if they actually exist.
+    pure-ftpwho now outputs XHTML 1.1 conformant code in CGI mode.
+    pure-ftpwho now properly escapes XHTML special characters.
+    pure-ftpwho now announces the ISO-8859-15 character set in XML mode.
+    Disable IPV6_V6ONLY by popular request by people lost with the need of the
+-4 switch on some operating systems.
+
 * Version 1.0.16a:
     Fix typo (sizeof_resolved instead of sizeof resolved) in
 src/bsd-realpath.c . Not a vulnerability because it happens in the good way,

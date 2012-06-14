@@ -131,6 +131,9 @@ to be valid, but if you absolutely need this feature and you know what you are
 doing, define the REQUIRE_VALID_CLIENT_CERTIFICATE macro before compiling the
 server.
 
+  If you changed the installation prefix when pure-ftpd was compiled, the
+certificate must be in the <prefix sysconf dir>/ssl/private/pure-ftpd.pem file.
+
 
    ------------------------ ACCEPTING TLS SESSIONS ------------------------
       
@@ -220,6 +223,14 @@ tab and :
   
   SSL/TLS is automatically detected and works out of the box.
 
+
+* FTPTLS (OpenBSD, possibly other Unices as well)
+  URL: http://www-user.tu-chemnitz.de/~grmo/ftptls/
+  Port: http://www-user.tu-chemnitz.de/~grmo/ftptls/port/ftptls-port.tar.gz
+  
+  This is the OpenBSD's default FTP client with TLS support merged in.
+  It perfectly works with Pure-FTPd with no special tuning.
+  
 
 * Glub Tech Secure FTP Client (at least Unix, MacOS X and Windows)
   URL: http://secureftp.glub.com/

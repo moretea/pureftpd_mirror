@@ -139,7 +139,7 @@ char *bsd_realpath(const char *path, char *resolved)
             }
             symlinks++;
             n = readlink(p, resolved, sizeof_resolved - (size_t) 1U);
-            if (n < 1 || n >= sizeof_resolved) {
+            if (n < 1 || n >= (int) sizeof_resolved) {
                 goto err1;
             }
             resolved[n] = 0;

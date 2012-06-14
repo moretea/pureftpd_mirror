@@ -1,7 +1,7 @@
 dnl AM_ACLOCAL_INCLUDE(m4)
 
-AC_PREREQ(2.50)
-AC_INIT(pure-ftpd, 1.0.16a, bugs@pureftpd.org)
+AC_PREREQ(2.57)
+AC_INIT(pure-ftpd, 1.0.16b, bugs@pureftpd.org)
 AC_CONFIG_SRCDIR(src/ftpd.c)
 AM_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE([1.6 dist-bzip2])
@@ -27,8 +27,19 @@ AC_ARG_VAR(PYTHON,local path to the python interpreter)
 python_possible_path="/usr/bin:/usr/local/bin:/bin:/opt/python/bin:/opt/python/usr/bin:/opt/python/usr/local/bin"
 AC_PATH_PROG(PYTHON,python,/usr/bin/env python,$python_possible_path)
 
-CPPFLAGS="$CPPFLAGS -D_GNU_SOURCE=1 -I/usr/local/include"
-LDFLAGS="$LDFLAGS -L/usr/local/lib"
+CPPFLAGS="$CPPFLAGS -D_GNU_SOURCE=1"
+
+if test -d /usr/local/include; then
+  CPPFLAGS="$CPPFLAGS -I/usr/local/include"
+fi
+
+if test -d /usr/kerberos/include; then
+  CPPFLAGS="$CPPFLAGS -I/usr/kerberos/include"
+fi
+
+if test -d /usr/local/lib; then
+  LDFLAGS="$LDFLAGS -L/usr/local/lib"
+fi
 
 if uname | fgrep SunOS > /dev/null 2> /dev/null ; then
   CPPFLAGS="$CPPFLAGS -D__EXTENSIONS__=1 -D_XPG4_2=1"
