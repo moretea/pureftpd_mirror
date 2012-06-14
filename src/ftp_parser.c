@@ -194,12 +194,12 @@ char *charset_client2fs(const char * const string)
 	die_mem();
     }
     if (utf8 > 0 && strcasecmp(charset_fs, "utf-8") != 0) {
-	if (iconv(iconv_fd_utf82fs, (const char **) &string,
+	if (iconv(iconv_fd_utf82fs, (char **) &string,
 		  &inlen, &output_, &outlen_) == (size_t) -1) {
 	    strncpy(output, string, outlen);
 	}
     } else if (utf8 <= 0 && strcasecmp(charset_fs, charset_client) != 0) {
-	if (iconv(iconv_fd_client2fs, (const char **) &string,
+	if (iconv(iconv_fd_client2fs, (char **) &string,
 		  &inlen, &output_, &outlen_) == (size_t) -1) {
 	    strncpy(output, string, outlen);
 	}
@@ -353,20 +353,36 @@ void parser(void)
             addreply_noformat(tls_cnx == NULL ? 503 : 200, "PBSZ=0");
         } else if (!strcmp(cmd, "prot")) {
             if (tls_cnx == NULL) {
-                addreply_noformat(503, "PBSZ?");
+                addreply_noformat(503, MSG_PROT_BEFORE_PBSZ);
                 goto wayout;
             }
             switch (*arg) {
             case 0:
                 addreply_noformat(503, MSG_MISSING_ARG);
+                data_protection_level = CPL_NONE;
                 break;
             case 'C':
                 if (arg[1] == 0) {
-                    addreply_noformat(200, "OK");
+                    addreply(200, MSG_PROT_OK, "clear");
+                    data_protection_level = CPL_CLEAR;
+                    break;
+                }
+            case 'S':
+            case 'E':
+                if (arg[1] == 0) {
+                    addreply(200, MSG_PROT_UNKNOWN_LEVEL, arg, "private");
+                    data_protection_level = CPL_PRIVATE;
+                    break;
+                }
+            case 'P':
+                if (arg[1] == 0) {
+                    addreply(200, MSG_PROT_OK, "private");
+                    data_protection_level = CPL_PRIVATE;
                     break;
                 }
             default:
                 addreply_noformat(534, "Fallback to [C]");
+                data_protection_level = CPL_CLEAR;
                 break;
             }
 #endif
@@ -458,7 +474,16 @@ void parser(void)
                 docwd("..");
             } else if (!strcmp(cmd, "retr")) {
                 if (*arg != 0) {
-                    doretr(arg);
+#ifdef WITH_TLS
+                    if (enforce_tls_auth == 3 &&
+                        data_protection_level != CPL_PRIVATE) {
+                        addreply_noformat(521, MSG_PROT_PRIVATE_NEEDED);
+                    }
+                    else
+#endif
+                    {
+                        doretr(arg);
+                    }
                 } else {
                     addreply_noformat(501, MSG_NO_FILE_NAME);
                 }
@@ -480,20 +505,44 @@ void parser(void)
             } else if (!strcmp(cmd, "stor")) {
                 arg = revealextraspc(arg);
                 if (*arg != 0) {
-                    dostor(arg, 0, autorename);
+#ifdef WITH_TLS
+                    if (enforce_tls_auth == 3 &&
+                        data_protection_level != CPL_PRIVATE) {
+                        addreply_noformat(521, MSG_PROT_PRIVATE_NEEDED);
+                    } else 
+#endif
+                    {
+                        dostor(arg, 0, autorename);
+                    }
                 } else {
                     addreply_noformat(501, MSG_NO_FILE_NAME);
                 }
             } else if (!strcmp(cmd, "appe")) {
                 arg = revealextraspc(arg);
                 if (*arg != 0) {
-                    dostor(arg, 1, 0);
+#ifdef WITH_TLS
+                    if (enforce_tls_auth == 3 &&
+                        data_protection_level != CPL_PRIVATE) {
+                        addreply_noformat(521, MSG_PROT_PRIVATE_NEEDED);
+                    } else 
+#endif
+                    {
+                        dostor(arg, 1, 0);
+                    }
                 } else {
                     addreply_noformat(501, MSG_NO_FILE_NAME);
                 }
 #ifndef MINIMAL
             } else if (!strcmp(cmd, "stou")) {
-                dostou();
+#ifdef WITH_TLS
+                if (enforce_tls_auth == 3 &&
+                    data_protection_level != CPL_PRIVATE) {
+                    addreply_noformat(521, MSG_PROT_PRIVATE_NEEDED);
+                } else 
+#endif
+                {
+            	     dostou();
+                }
 #endif
 #ifndef DISABLE_MKD_RMD
             } else if (!strcmp(cmd, "mkd") || !strcmp(cmd, "xmkd")) {
@@ -530,18 +579,50 @@ void parser(void)
 #ifndef MINIMAL
                 modern_listings = 0;
 #endif
-                donlist(arg, 0, 1, 1);
+#ifdef WITH_TLS
+                if (enforce_tls_auth == 3 &&
+                    data_protection_level != CPL_PRIVATE) {
+                    addreply_noformat(521, MSG_PROT_PRIVATE_NEEDED);
+                } else
+#endif
+                {
+                    donlist(arg, 0, 1, 1);
+                }
             } else if (!strcmp(cmd, "nlst")) {
 #ifndef MINIMAL                
                 modern_listings = 0;
 #endif
-                donlist(arg, 0, 0, broken_client_compat);
+#ifdef WITH_TLS
+                if (enforce_tls_auth == 3 &&
+                    data_protection_level != CPL_PRIVATE) {
+                    addreply_noformat(521, MSG_PROT_PRIVATE_NEEDED);
+                } else
+#endif
+                {
+                    donlist(arg, 0, 0, broken_client_compat);
+                }
 #ifndef MINIMAL
             } else if (!strcmp(cmd, "mlst")) {
-                domlst(*arg != 0 ? arg : ".");
+#ifdef WITH_TLS
+                if (enforce_tls_auth == 3 &&
+                    data_protection_level != CPL_PRIVATE) {
+                    addreply_noformat(521, MSG_PROT_PRIVATE_NEEDED);
+                } else
+#endif
+                {
+                    domlst(*arg != 0 ? arg : ".");
+                }
             } else if (!strcmp(cmd, "mlsd")) {
                 modern_listings = 1;
-                donlist(arg, 0, 1, 0);
+#ifdef WITH_TLS
+                if (enforce_tls_auth == 3 &&
+                    data_protection_level != CPL_PRIVATE) {
+                    addreply_noformat(521, MSG_PROT_PRIVATE_NEEDED);
+                } else
+#endif
+                {
+                    donlist(arg, 0, 1, 0);
+                }
 #endif
             } else if (!strcmp(cmd, "abor")) {
                 addreply_noformat(226, MSG_ABOR_SUCCESS);

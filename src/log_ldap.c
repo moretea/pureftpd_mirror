@@ -77,7 +77,14 @@ void pw_ldap_parse(const char * const file)
         default_gid = (gid_t) strtoul(default_gid_s, NULL, 10);
         free(default_gid_s);
         default_gid_s = NULL;
-    }        
+    }
+    use_tls = 0;
+    if (use_tls_s != NULL) {
+        if (strcasecmp(use_tls_s, "True") == 0) {
+            use_tls = 1;
+        }
+        free(use_tls_s);
+    }   
     if (base == NULL) {
         die(421, LOG_ERR, MSG_LDAP_MISSING_BASE);
     }
@@ -122,10 +129,13 @@ static LDAP *pw_ldap_connect(void)
     }
 # ifdef LDAP_OPT_PROTOCOL_VERSION
     if (ldap_set_option(ld, LDAP_OPT_PROTOCOL_VERSION, &version) !=
-    LDAP_SUCCESS) {
-    return NULL;
+        LDAP_SUCCESS) {
+        return NULL;
     }
 # endif
+    if (use_tls > 0 && ldap_start_tls_s(ld, NULL, NULL) != LDAP_SUCCESS) {
+        return NULL;
+    }
     if (ldap_bind_s(ld, root, pwd, LDAP_AUTH_SIMPLE) != LDAP_SUCCESS) {
         return NULL;
     }
@@ -223,19 +233,19 @@ static struct passwd *pw_ldap_getpwnam(const char *name,
     LDAP *ld;
     LDAPMessage *res;
     char *attrs[] = {                  /* OpenLDAP forgot a 'const' ... */
-    LDAP_HOMEDIRECTORY,
-    LDAP_UIDNUMBER, LDAP_FTPUID, LDAP_GIDNUMBER, LDAP_FTPGID,
-    LDAP_USERPASSWORD, LDAP_LOGINSHELL, LDAP_FTPSTATUS,
+            LDAP_HOMEDIRECTORY,
+            LDAP_UIDNUMBER, LDAP_FTPUID, LDAP_GIDNUMBER, LDAP_FTPGID,
+            LDAP_USERPASSWORD, LDAP_LOGINSHELL, LDAP_FTPSTATUS,
 # ifdef QUOTAS
-    LDAP_QUOTAFILES, LDAP_QUOTAMBYTES,
+            LDAP_QUOTAFILES, LDAP_QUOTAMBYTES,
 # endif
-#ifdef RATIOS
-    LDAP_DOWNLOADRATIO, LDAP_UPLOADRATIO,
-#endif
+# ifdef RATIOS
+            LDAP_DOWNLOADRATIO, LDAP_UPLOADRATIO,
+# endif
 #ifdef THROTTLING
-    LDAP_DOWNLOADBANDWIDTH, LDAP_UPLOADBANDWIDTH, 
+            LDAP_DOWNLOADBANDWIDTH, LDAP_UPLOADBANDWIDTH, 
 #endif
-    NULL
+            NULL
     };
     const char *pw_uid_s = NULL;
     const char *pw_gid_s = NULL;
@@ -272,64 +282,64 @@ static struct passwd *pw_ldap_getpwnam(const char *name,
     pw_ldap_getpwnam_freefields(&pwret);    
     pwret.pw_name = (char *) name;
     pw_enabled = pw_ldap_getvalue(ld, res, LDAP_FTPSTATUS);
-    if ((pw_enabled != NULL) && (strcasecmp(pw_enabled, "enabled") != 0)) {
-    goto error;
+    if ((pw_enabled != NULL) && (strcasecmp(pw_enabled, "TRUE") != 0)) {
+        goto error;
     }
 #ifdef QUOTAS
     if ((quota_files = pw_ldap_getvalue(ld, res, LDAP_QUOTAFILES)) != NULL) {
-    const unsigned long long q = strtoull(quota_files, NULL, 10);
-    
-    if (q > 0ULL) {
-        result->user_quota_files = q;
-        result->quota_files_changed = 1;
-    }
+        const unsigned long long q = strtoull(quota_files, NULL, 10);
+        
+        if (q > 0ULL) {
+            result->user_quota_files = q;
+            result->quota_files_changed = 1;
+        }
     }
     if ((quota_mbytes = pw_ldap_getvalue(ld, res, LDAP_QUOTAMBYTES)) 
-    != NULL) {
-    const unsigned long long q = strtoull(quota_mbytes, NULL, 10);
-    
-    if (q > 0ULL) {
-        result->user_quota_size = q * (1024UL * 1024UL);
-        result->quota_size_changed = 1;
-    }
+        != NULL) {
+        const unsigned long long q = strtoull(quota_mbytes, NULL, 10);
+        
+        if (q > 0ULL) {
+            result->user_quota_size = q * (1024UL * 1024UL);
+            result->quota_size_changed = 1;
+        }
     }
 #endif    
 #ifdef RATIOS
     if ((ratio_dl = pw_ldap_getvalue(ld, res, LDAP_DOWNLOADRATIO)) != NULL) {
-    const unsigned int q = strtoul(ratio_dl, NULL, 10);
-    
-    if (q > 0U) {
-        result->ratio_download = q;
-        result->ratio_dl_changed = 1;
-    }
+        const unsigned int q = strtoul(ratio_dl, NULL, 10);
+        
+        if (q > 0U) {
+            result->ratio_download = q;
+            result->ratio_dl_changed = 1;
+        }
     }
     if ((ratio_ul = pw_ldap_getvalue(ld, res, LDAP_UPLOADRATIO)) != NULL) { 
-    const unsigned int q = strtoul(ratio_ul, NULL, 10);
-    
-    if (q > 0U) {
-        result->ratio_upload = q;
-        result->ratio_ul_changed = 1;
-    }
+        const unsigned int q = strtoul(ratio_ul, NULL, 10);
+        
+        if (q > 0U) {
+            result->ratio_upload = q;
+            result->ratio_ul_changed = 1;
+        }
     }
 #endif
 #ifdef THROTTLING
     if ((bandwidth_dl = pw_ldap_getvalue(ld, res, LDAP_DOWNLOADBANDWIDTH)) 
     != NULL) {
-    const unsigned long q = (unsigned long) strtoul(bandwidth_dl, NULL, 10);
-    
-    if (q > 0UL) {
-        result->throttling_bandwidth_dl = q * 1024UL;
-        result->throttling_dl_changed = 1;
-    }
+        const unsigned long q = (unsigned long) strtoul(bandwidth_dl, NULL, 10);
+        
+        if (q > 0UL) {
+            result->throttling_bandwidth_dl = q * 1024UL;
+            result->throttling_dl_changed = 1;
+        }
     }
     if ((bandwidth_ul = pw_ldap_getvalue(ld, res, LDAP_UPLOADBANDWIDTH)) 
-    != NULL) {
-    const unsigned long q = (unsigned long) strtoul(bandwidth_ul, NULL, 10);
-    
-    if (q > 0UL) {
-        result->throttling_bandwidth_ul = q * 1024UL;
-        result->throttling_ul_changed = 1;
-    }
+        != NULL) {
+        const unsigned long q = (unsigned long) strtoul(bandwidth_ul, NULL, 10);
+        
+        if (q > 0UL) {
+            result->throttling_bandwidth_ul = q * 1024UL;
+            result->throttling_ul_changed = 1;
+        }
     }
 #endif
     if ((pw_passwd_ldap =
@@ -478,7 +488,7 @@ void pw_ldap_check(AuthResult * const result,
         return;
     }
     result->slow_tilde_expansion = 1;
-    result->auth_ok =- result->auth_ok;       /* 1 */
+    result->auth_ok = -result->auth_ok;       /* 1 */
 }
 #else
 extern signed char v6ready;

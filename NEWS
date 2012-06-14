@@ -1,4 +1,28 @@
 
+* Version 1.0.22:
+ - the LDAP authentication backend now supports TLS encryption.
+ - TLS encryption is supported on data channels.
+ - downloads require way less CPU time on platforms with slow mmap() calls.
+ - MySQL 5+ stored procedures can now be used in the authentication process. 
+ - time zones issues should be fixed for good.
+ - on-demand directories can now be created with any set of permissions.
+ - password scrambling of MySQL 5+ is now supported.
+ - a catalan translation has been contributed.
+ - spurious disconnections due to some clients keepalive tricks have
+been fixed.
+ - custom authentication handlers are now informed about the encryption
+status of the session.
+ - standard-conformance and compatibility with several clients have improved.
+ - large files are now supported by default.
+ - enhanced support for Solaris.
+ - a bunch of bug fixes, optimizations and compatibility with newer
+libraries and operating system versions.
+ - "ftp" and "anonymous" user names can have passwords if the -E switch (no
+anonymous logins) is specified.
+ - in compatibility mode, non-dangling symbolic links are now displayed as
+if they were regular files/directories.
+ - --with-everything now includes privsep.
+ 
 * Version 1.0.21:
  - pure-pw has a new option (-F) to specify the location of the puredb
 database.
@@ -354,7 +378,7 @@ pure-pw. Suggested by Olivier Deckmyn.
 with default files.
  - New Italian translation, contributed by Stefano F. <fs@sp.unipi.it> .
  - New Brazilian Portuguese translation, contributed by Roger Constantin
-Demetrescu <roger@mrw.com.br>
+Demetrescu <roger.demetrescu@gmail.com>
  - New poweredby.jpg web button, contributed by Freeman <freeman@ozac.org>
  - New -g (--pidfile=) option to specify the location of the PID file.
 Suggested by Jason Lunz.

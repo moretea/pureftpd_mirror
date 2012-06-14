@@ -95,8 +95,8 @@ void logfile(const int facility, const char *format, ...)
     (void) facility;    
     va_start(va, format);
     vfprintf(stderr, format, va);
+    va_end(va);    
     fprintf(stderr, "\n");
-    va_end(va);
 }
 
 static inline int checkproc(const pid_t proc)

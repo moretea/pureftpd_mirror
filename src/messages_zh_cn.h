@@ -219,3 +219,8 @@
 #define MSG_TLS_NEEDED "抱歉，此服务器不接受明文式连接。\n" \
     "请使用SSL/TLS的安全机制重新连接。"
 #define MSG_ILLEGAL_CHARSET "Illegal charset"
+#define MSG_TLS_NO_CTX "SSL/TLS: Context not found. Exiting."
+#define MSG_PROT_OK "Data protection level set to \"%s\""
+#define MSG_PROT_PRIVATE_NEEDED "Data connection cannot be opened with this PROT setting."
+#define MSG_PROT_UNKNOWN_LEVEL "Protection level %s not understood. Fallback to \"%s\""
+#define MSG_PROT_BEFORE_PBSZ "PROT must be preceded by a successful PBSZ command"

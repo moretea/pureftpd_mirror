@@ -1,5 +1,5 @@
 
-/* (C)opyleft 2001-2006 Frank DENIS <j@pureftpd.org> */
+/* (C)opyleft 2001-2009 Frank DENIS <j at pureftpd dot org> */
 
 #include <config.h>
 
@@ -105,14 +105,14 @@ int puredb_open(PureDB * const db, const char *dbfile)
     if ((db->fd = open(dbfile, O_RDONLY | O_BINARY)) == -1) {
         return -1;
     }
-    if (fstat(db->fd, &st) < 0 || 
-        (db->size = (puredb_u32_t) st.st_size) > (size_t) 0xffffffff ||
-        db->size < ((size_t) (256U + 1U) * sizeof(puredb_u32_t) + 
-                   sizeof PUREDB_VERSION - (size_t) 1U)) {
+    if (fstat(db->fd, &st) < 0 || st.st_size > (off_t) 0xffffffff ||
+        (db->size = (puredb_u32_t) st.st_size) <
+        ((size_t) (256U + 1U) * sizeof(puredb_u32_t) + 
+         sizeof PUREDB_VERSION - (size_t) 1U)) {
         close(db->fd);
         
         return -2;
-    }   
+    }
 #ifdef HAVE_MMAP
     if ((char *) (db->map = 
                   (unsigned char *) mmap(NULL, db->size, PROT_READ,
@@ -141,8 +141,7 @@ int puredb_open(PureDB * const db, const char *dbfile)
                     sizeof PUREDB_VERSION - (size_t) 1U) != 0) {
         
         return -3;
-    }    
-    
+    }
     return 0;
 }
 

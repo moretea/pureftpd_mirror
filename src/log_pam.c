@@ -160,7 +160,10 @@ void pw_pam_check(AuthResult * const result,
     PAM_BAIL;
 # ifdef PAM_TTY
     (void) pam_set_item(pamh, PAM_TTY, "pure-ftpd");
-# endif        
+# endif
+# ifdef PAM_RUSER
+    (void) pam_set_item(pamh, PAM_RUSER, user);
+# endif
     /*
      * PAM doesn't make any distinction between "user not found" and
      * "bad password". So we assume user not found to fallback to other

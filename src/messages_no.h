@@ -219,3 +219,8 @@
 #define MSG_TLS_NEEDED "Beklager, klartekst-forbindelser er ikke tillatt på denne serveren.\n" \
     "Vær vennlig å koble til på nytt ved bruk av SSL/TLS-sikkerhetsmekanismer."
 #define MSG_ILLEGAL_CHARSET "Illegal charset"
+#define MSG_TLS_NO_CTX "SSL/TLS: Context not found. Exiting."
+#define MSG_PROT_OK "Data protection level set to \"%s\""
+#define MSG_PROT_PRIVATE_NEEDED "Data connection cannot be opened with this PROT setting."
+#define MSG_PROT_UNKNOWN_LEVEL "Protection level %s not understood. Fallback to \"%s\""
+#define MSG_PROT_BEFORE_PBSZ "PROT must be preceded by a successful PBSZ command"

@@ -78,7 +78,7 @@ static const char *name(void)
 int main(int argc, char *argv[])
 {
     unsigned int d;
-    unsigned short server_port = 21U;
+    in_port_t server_port = 21U;
 
 #ifdef HAVE_SETLOCALE
 # ifdef LC_MESSAGES
@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
 #endif    
     
     if (argc == 2) {
-        server_port = (unsigned short) strtoul(argv[1], NULL, 10);
+        server_port = (in_port_t) strtoul(argv[1], NULL, 10);
     }
     d = daemons(server_port);
     printf("%u\n%u\n%s\n%s\n", d, d, uptime(), name());

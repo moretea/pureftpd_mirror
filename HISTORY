@@ -1,4 +1,4 @@
-Troll-FTPd is a nice FTP server coded by Arnt Gulbrandsen <agulbra@troll.no>
+Troll-FTPd is a nice FTP server coded by Arnt Gulbrandsen <agulbra at troll.no>
 from Troll Tech. Despite his lack of popularity, it has always been a very
 good project, coded with the following requirements in mind :
 
@@ -20,7 +20,7 @@ to ensure a good nights sleep.
 
 Troll-FTPd was often considered for inclusion in secure distributions, but
 the project was't actively maintained. Release 1.25 is dated 03/1999 and has
-been made with help from Janos Farkas, cmj@localnet.com, August Fullford and
+been made with help from Janos Farkas, cmj at localnet.com, August Fullford and
 Ximenes Zalteca. Troll-FTPd 1.26 was released two years after, just to fix
 minor bugs. Arnt said that there won't be any other release unless he ever
 moves to IPv6.
@@ -45,4 +45,4 @@ Thanks to Arnt for his excellent job. The Pure-FTPd project would never have
 been started without it.
 
 
-                           -Frank DENIS "Jedi/Sector One" <j@pureftpd.org>
+                       -Frank DENIS "Jedi/Sector One" <j at pureftpd dot org>

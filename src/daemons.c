@@ -9,7 +9,7 @@
 
 # define TCP_STATE_CNX 1UL
 
-static unsigned int count(unsigned short server_port, const char * const file)
+static unsigned int count(in_port_t server_port, const char * const file)
 {
     int f;
     int r;
@@ -86,7 +86,7 @@ static unsigned int count(unsigned short server_port, const char * const file)
     return d;
 }
 
-unsigned int daemons(const unsigned short server_port)
+unsigned int daemons(const in_port_t server_port)
 {
     unsigned int nbcnx;
     

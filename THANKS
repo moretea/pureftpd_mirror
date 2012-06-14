@@ -5,6 +5,8 @@ us build that tiny piece of free software. If you don't see your name in the
 following list, I'm awfully sorry. It's difficult to keep it up to date. But
 as you are reading this, you must be a very nice guy.
 
+Hosting :
+* Typhon SAS : http://www.typhon.com/
 
 Forum and external contributors :
 
@@ -75,7 +77,7 @@ reported various logging-related issues.
 Corrected the german translation for grammatical/spelling errors.
 * Leszek Reimus - Suggested that /./ mix with -a to get chrooted useres with
 no ratio.
-* Trilucid ( http://www.trilucid.com ) - Web design of pureftpd.org
+* Trilucid - Initial web design of pureftpd.org
 * Rafa Michalski - Reported broken throtting under FreeBSD.
 * Juergen Henge-Ernst - Reported broken process names on Linux.
 * Joe Silva (aka j03y) - Suggested adding "shadow" into PAM rules.
@@ -239,3 +241,17 @@ STOU command.
 * Oscar Sundbon <moose@djuren.org> - Fixed pastos in pid files removal.
 * Agri <agri@desnol.ru> reported that some write() were still in blocking mode
 before forking after a new connection was accepted.
+* Christer Mjellem Strand - Reported an useless close() in dochmod() that
+caused wrong errors to  be printed.
+* Ulrich Zehl - Found a documentation error in the sample LDAP schema.
+* Marcus Engene - Fixed an extra free() in the pgsql handler and a
+documentation error in pgsql.
+* Michael Bowe - Reported a buglet in configure script.
+* Jan Hudoba - Support for new MySQL scrambling.
+* Marc Balmer - TLS support for LDAP.
+* David Majorel - fixed LDAP FTPStatus
+* Johan Ström - Compatibility with newer OpenLDAP versions.
+* Jan Hudoba - support for new MySQL password scrambling.
+* Koczka Ferenc - suggested AUTHD_ENCRYPTED.
+* Frederico Gendorf - reported that on-demand directory creation didn't work
+with paths containing a /./ mark.

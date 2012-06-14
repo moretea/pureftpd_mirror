@@ -198,7 +198,7 @@
 #define MSG_NO_ASCII_RESUME "Wiederaufnahme im ASCII-Modus ist unsicher, bitte löschen Sie die Datei zuerst."
 #define MSG_UNKNOWN_ALTLOG "Unbekanntes Format für Logdatei."
 #define MSG_ACCOUNT_DISABLED "Einloggen als [%s] nicht möglich: Konto deaktiviert."
-#define MSG_SQL_WRONG_PARMS "Falsche LDAP-Parameter."
+#define MSG_SQL_WRONG_PARMS "Falsche SQL-Parameter."
 #define MSG_ILLEGAL_CONFIG_FILE_SQL "Ungültige SQL-Konfigurationsdatei."
 #define MSG_SQL_MISSING_SERVER "Kein SQL-Server in Konfigurationsdatei angegeben."
 #define MSG_SQL_DOWN "Der SQL-Server ist nicht erreichbar."
@@ -219,3 +219,8 @@
 #define MSG_TLS_NEEDED "Sorry, unverschlüsselte Sitzungen werden auf diesem Server nicht akzeptiert.\n" \
     "Bitte verbinden Sie sich mittels SSL/TLS-Verschlüsselung"
 #define MSG_ILLEGAL_CHARSET "Illegal charset"
+#define MSG_TLS_NO_CTX "SSL/TLS: Context not found. Exiting."
+#define MSG_PROT_OK "Data protection level set to \"%s\""
+#define MSG_PROT_PRIVATE_NEEDED "Data connection cannot be opened with this PROT setting."
+#define MSG_PROT_UNKNOWN_LEVEL "Protection level %s not understood. Fallback to \"%s\""
+#define MSG_PROT_BEFORE_PBSZ "PROT must be preceded by a successful PBSZ command"

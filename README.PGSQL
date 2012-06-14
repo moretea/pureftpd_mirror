@@ -97,15 +97,15 @@ name, looked up at run-time.
 Here's a dump of a simple table to handle this:
 
 CREATE TABLE "users" (
-  "User" CHAR(16) BINARY NOT NULL,
+  "User" VARCHAR(16) NOT NULL,
   "Password" VARCHAR(64) BINARY NOT NULL,
-  "Uid" INT(11) NOT NULL default '-1',
-  "Gid" INT(11) NOT NULL default '-1',
-  "Dir" VARCHAR(128) BINARY NOT NULL,
+  "Uid" INTEGER NOT NULL default '-1',
+  "Gid" INTEGER NOT NULL default '-1',
+  "Dir" VARCHAR(128) NOT NULL,
   PRIMARY KEY ("User")
-);
+) WITHOUT OIDS;
 
-Uid and Gid can be char() instead of int() if you want to use names instead
+Uid and Gid can be VARCHAR instead of INTEGER if you want to use names instead
 of values.
 
 Then, in the pureftpd-pgsql.conf configuration file, you have to provide SQL

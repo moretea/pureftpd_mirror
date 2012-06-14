@@ -30,13 +30,6 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *        This product includes software developed by the NetBSD
- *        Foundation, Inc. and its contributors.
- * 4. Neither the name of The NetBSD Foundation nor the names of its
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE NETBSD FOUNDATION, INC. AND CONTRIBUTORS
  * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
@@ -416,15 +409,15 @@ static int pure_getopt_internal(int nargc, char * const *nargv,
     }
     
     if ((optchar = (int) *pure_place++) == ':' ||
-        optchar == '-' && *pure_place != '\0' ||        
+        (optchar == '-' && *pure_place) != '\0' ||
         (oli = strchr(options, optchar)) == NULL) { 
          /*
           * If the user didn't specify '-' as an option,
-	  * assume it means -1 as POSIX specifies.
+          * assume it means -1 as POSIX specifies.
           */
         if (optchar == '-')
             return -1;
-	/* option letter unknown or ':' */
+        /* option letter unknown or ':' */
         if (!*pure_place)
             ++pure_optind;
         if (PRINT_ERROR)
@@ -450,13 +443,13 @@ static int pure_getopt_internal(int nargc, char * const *nargv,
         return optchar;
     }
     if (*++oli != ':') {            /* doesn't take argument */
-        if (!*pure_place)
+        if (!*pure_place) {
             ++pure_optind;
+        }
     } else {                /* takes (optional) argument */
         pure_optarg = NULL;
         if (*pure_place) {            /* no white space */
-	    pure_optarg = pure_place;
-	    /* XXX: disable test for :: if PC? (GNU doesn't) */
+            pure_optarg = pure_place;
         } else if (oli[1] != ':') {    /* arg not optional */
             if (++pure_optind >= nargc) {    /* no arg */
                 pure_place = EMSG;
@@ -464,19 +457,9 @@ static int pure_getopt_internal(int nargc, char * const *nargv,
                     fprintf(stderr, recargchar, optchar);
                 pure_optopt = optchar;
                 return BADARG;
-	    } else {
-		pure_optarg = nargv[pure_optind];
-	    }
-	} else if (!(flags & FLAG_PERMUTE)) {
-	    /* 
-	     * If permutation is disabled, we can accept an
-	     * optional arg separated by whitespace so long
-	     * as it does not start with a dash (-).
-	     */
-	    if (pure_optind + 1 < nargc &&
-		*nargv[pure_optind + 1] != '-') {
-		pure_optarg = nargv[++pure_optind];
-	    }
+            } else {
+                pure_optarg = nargv[pure_optind];
+            }
         }
         pure_place = EMSG;
         ++pure_optind;

@@ -117,7 +117,7 @@
 # define OLD_IP_STACK 1
 #endif
 
-#include "ipv4stack.h"
+#include "ipstack.h"
 
 /* We can't have more than one implementation, so if more than one were
  * found, the configure test failed - Use none */
@@ -126,24 +126,26 @@
 #  define DISABLE_SENDFILE 1
 # endif
 #endif
+/* Solaris now supports both sendfilev() and Linux-like sendfile().
+ * Prefer sendfile() if available. */
+#if defined(SENDFILEV_SOLARIS) && defined(SENDFILE_LINUX)
+# undef SENDFILEV_SOLARIS
+#endif
 #if defined(DISABLE_SENDFILE) || \
   (defined(SENDFILE_FREEBSD) && (defined(SENDFILE_LINUX) || defined(SENDFILEV_SOLARIS) || defined(SENDFILE_HPUX))) || \
   (defined(SENDFILE_LINUX) && (defined(SENDFILEV_SOLARIS) || defined(SENDFILE_HPUX))) || \
   (defined(SENDFILEV_SOLARIS) && defined(SENDFILE_HPUX))
 # undef SENDFILE_FREEBSD
 # undef SENDFILE_LINUX
-# undef SENDFILE_LINUX64
+# undef SENDFILE64_LINUX
 # undef SENDFILE_HPUX
 # undef SENDFILEV_SOLARIS
 #endif
 #if defined(SENDFILE_FREEBSD) || defined(SENDFILEV_SOLARIS) || \
-    defined(SENDFILE_HPUX) || defined(SENDFILE_LINUX64)
-/* Only unsupported old Linux kernels/glibcs can't handle 64-bits sendfile() */
-#elif defined(SENDFILE_LINUX)
-# ifdef WITH_LARGE_FILES
-#  undef SENDFILE_LINUX
-#  define SENDFILE_NONE
-# endif
+    defined(SENDFILE_HPUX) || \
+    (defined(SENDFILE_LINUX) && defined(SENDFILE64_LINUX))
+/* Old Linux kernels/glibcs that can't handle 64-bits sendfile() aren't
+ * supported any more. */
 #else
 # define SENDFILE_NONE
 #endif
@@ -315,7 +317,14 @@ typedef struct AltLogPrefixes_ {
     const AltLogFormat format;
 } AltLogPrefixes;
 
+typedef enum {
+    CPL_NONE, CPL_CLEAR, CPL_SAFE, CPL_CONFIDENTIAL, CPL_PRIVATE
+} ChannelProtectionLevel;
+
 int safe_write(const int fd, const void *buf_, size_t count);
+#ifdef WITH_TLS
+int secure_safe_write(const void *buf_, size_t count);
+#endif
 void *aborttransfer(int);
 void parser(void);
 void stripctrl(char * const buf, size_t len);
@@ -368,15 +377,15 @@ void addreply_noformat(const int code, const char * const line);
 void doreply(void);
 void sighandler(int sig);
 void prevent(char *arg);
-unsigned int daemons(unsigned short server_port);
+unsigned int daemons(in_port_t server_port);
 void logfile(const int facility, const char *format, ...) 
     __attribute__ ((format(printf, 2, 3)));
 void die(const int err, const int priority, const char * const format, ...)
     __attribute__ ((format(printf, 3, 4)));
 void die_mem(void);
 void setprocessname(const char * const title);
-int modernformat(const char *file,
-                 char *target, size_t target_size);
+int modernformat(const char *file, char *target, size_t target_size,
+                 const char * const prefix);
 int sfgets(void);
 const char *getgroup(const gid_t gid);
 const char *getname(const uid_t uid);
@@ -498,7 +507,7 @@ Your platform has a very large MAXPATHLEN, we should not trust it.
 # define GLOB_TIMEOUT 17                   /* Max user time for a 'ls' to complete */
 #endif
 #ifndef MAX_CPU_TIME
-# define MAX_CPU_TIME (60 * 60)           /* Max allowed CPU time per session */
+# define MAX_CPU_TIME (4 * 60 * 60)           /* Max allowed CPU time per session */
 #endif
 #ifndef MAX_SESSION_XFER_IDLE    
 # define MAX_SESSION_XFER_IDLE (24 * 60 * 60)   /* Max duration of a transfer */
@@ -528,9 +537,9 @@ Your platform has a very large MAXPATHLEN, we should not trust it.
 # define CONF_TCP_SO_SNDBUF 65536
 #endif
     
-#define DEFAULT_DL_CHUNK_SIZE (1 << 18)
-#define DEFAULT_UL_CHUNK_SIZE (CONF_TCP_SO_RCVBUF)
-#define MAX_UL_CHUNK_SIZE (CONF_TCP_SO_RCVBUF)
+#define DEFAULT_DL_CHUNK_SIZE (1 << 28)
+#define DEFAULT_UL_CHUNK_SIZE ((CONF_TCP_SO_RCVBUF) * 2)
+#define MAX_UL_CHUNK_SIZE ((CONF_TCP_SO_RCVBUF) * 2)
 #define MAX_THROTTLING_DELAY 42           /* Maximum throttling compensation */
 
 #define VHOST_PREFIX_MAX_LEN 64    
@@ -553,11 +562,11 @@ Your platform has a very large MAXPATHLEN, we should not trust it.
 # define CORK_OFF(SK) do { } while(0)
 #endif
 
-#define STORAGE_PORT(X) (((struct sockaddr_in *) &(X))->sin_port)
-#define STORAGE_PORT6(X) (((struct sockaddr_in6 *) &(X))->sin6_port)
-#define STORAGE_SIN_ADDR(X) ((((struct sockaddr_in *) &(X))->sin_addr).s_addr)
-#define STORAGE_SIN_ADDR6(X) ((((struct sockaddr_in6 *) &(X))->sin6_addr).s6_addr)
-#define STORAGE_SIN_ADDR6_NF(X) (((struct sockaddr_in6 *) &(X))->sin6_addr)
+#define STORAGE_PORT(X)  (*storage_port(&(X)))
+#define STORAGE_PORT6(X) (*storage_port6(&(X)))
+#define STORAGE_SIN_ADDR(X) (storage_sin_addr(&(X))->s_addr)
+#define STORAGE_SIN_ADDR6(X) (storage_sin_addr6(&(X))->s6_addr)
+#define STORAGE_SIN_ADDR6_NF(X) (*(storage_sin_addr6(&(X))))
 
 #ifdef HAVE_SS_LEN
 # define STORAGE_LEN(X) ((X).ss_len)

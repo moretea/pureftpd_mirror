@@ -21,15 +21,6 @@ common attacks other Windows FTP daemons were vulnerable to (directory
 traversals, device opening, etc) .
 
 
------------------------- PURE-FTPD WIN32 REPOSITORY ------------------------
- 
-
-  Info and download links about Pure-FTPd on Win32 platforms are available
-from:
-
-                       http://www.pureftpd.org/windows/
-
-
        ------------------------ INSTALLATION ------------------------
        
        

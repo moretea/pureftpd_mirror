@@ -1,6 +1,6 @@
 
                               .:. PURE-FTPD .:.
-		      Documentation for version 1.0.21
+                      Documentation for version 1.0.22
 
 
            ------------------------ BLURB ------------------------
@@ -28,8 +28,7 @@ virtual users, virtual quotas, privilege separation, SSL/TLS and more.
 
 Many people new to Unix are running Pure-FTPd because they find it easy to
 install. But that software is also used on embedded systems and highly loaded
-production servers, especially for hosting services. A list of some companies
-successfully using it is available at http://www.pureftpd.org/users.shtml
+production servers, especially for hosting services.
 
 Pure-FTPd was also part of a crack-a-machine challenge with other software,
 and that machine never got compromised.
@@ -42,14 +41,12 @@ easily write new custom handlers in any language.
         ------------------------ COMPILATION ------------------------
         
 
-In its current form, Pure-FTPd uses some OS-specific system calls. And altough
+In its current form, Pure-FTPd uses some OS-specific system calls. And although
 some portability work has been done in order to ease its port to other
 operating systems, only Linux FreeBSD, NetBSD, OpenBSD, ISOS, MirBSD, BSDi,
 DragonflyBSD, Darwin, Solaris, Tru64, Irix, AIX and HPUX are known to work,
 other operating systems may need some tweaks. With Linux, any modern
 distribution should be ok.
-
-An unofficial Windows port is available from http://www.pureftpd.org/windows/
 
 If you have Cdialog or Xdialog installed on your system, try the following
 command to build and install Pure-FTPd:
@@ -92,7 +89,7 @@ export CC=cc
 export CFLAGS=-I/usr/freeware/include
 export LDFLAGS=-L/usr/freeware/lib32
 
-To compile under Solaris 8, use GNU Make, not Solaris basic make. Then do:
+To compile under Solaris, use GNU Make, not Solaris make. Then do:
 
 export PATH=/usr/ccs/bin:$PATH
 export MAKE=gmake
@@ -145,8 +142,8 @@ manual) .
 
 --with-everything: build a big server with almost all features turned on:
 altlog, cookies, throttling, ratios, ftpwho, upload script, virtual users
-(puredb), quotas, virtual hosts, directory aliases, external authentication
-and Bonjour.
+(puredb), quotas, virtual hosts, directory aliases, external authentication,
+Bonjour and privilege separation.
 
 --with-extauth: compiles support for external authentication modules. Please
 read README.Authentication-Modules and the pure-authd(8) man page before
@@ -177,16 +174,7 @@ mode. It can be way slower in inetd mode.
 --with-language=catalan
 --with-language=czech: change the language of server messages.
 Default is english. If you want to contribute a translation, please
-translate the 'src/messages_en.h' file and send it to <j@pureftpd.org> .
-
---with-largefile: support downloading of files larger than 2 gigabytes on
-32-bit architectures. Transfering so huge files through FTP is a strange
-idea. And your filesystem has to support it. Your kernel and your libc as
-well. And of course, the FTP client has to be safe against large files, too.
-And when this feature is enabled, downloads can be a bit slower (or more
-cpu-intensive) than without it, due to a limitation of actual Linux kernels.
-To summarize: don't enable this for fun, just if you are really planning to
-download files over 2 gigabytes.
+translate the 'src/messages_en.h' file and send it to <j at pureftpd dot org> .
 
 --with-ldap: use the native LDAP directory support. When this option is
 enabled, system accounts can be bypassed. You need OpenLDAP to use that
@@ -298,7 +286,8 @@ by default.
 
 --with-boring: display boring "professionnal-looking" messages.
 
---with-privsep: enable privilege separation (see notes about this later).
+--with-privsep: enable privilege separation (see notes about this later),
+recommended.
 
 --with-bonjour: enable Bonjour support on MacOS X (see the -v switch).
 
@@ -401,6 +390,8 @@ portability.
   ------------------------ STANDALONE INSTALLATION ------------------------
 
 
+This is the recommended way to start the server.
+
 Unless you compiled the server with "--without-standalone", running the
 server is as easy as typing:
 
@@ -438,7 +429,7 @@ The final comma is important, don't forget it. Actually, it's a shorthand for:
 
 If you prefer host names over IP addresses, it's your choice:
 
-/usr/local/sbin/pure-ftpd -S ftp.rtchat.com,21
+/usr/local/sbin/pure-ftpd -S ftp.example.com,21
 
 IPv6 addresses are of course supported.
 
@@ -454,7 +445,7 @@ can be added. For instance:
 
 or
 
-/usr/local/sbin/pure-ftpd -S ftp.rtchat.com,21 -c 50 &
+/usr/local/sbin/pure-ftpd -S ftp.example.com,21 -c 50 &
 
 And only 50 simultanous connections will be allowed. To discover what
 options are available please jump to the 'OPTIONS' chapter below. If the
@@ -478,14 +469,23 @@ after the next connection.
 For easy scripting, the file '/var/run/pure-ftpd.pid' is created and it
 always contains the PID of the main server process.
 
+If you want to stop the server, you can just kill the processes:
+
+pkill pure-ftpd
+
+Of course, don't use -9 unless the server is completely stuck. -9 doesn't
+let processes any chance to clean things up and should never be used except
+where there's absolutely nothing else to do.
+
 
  ------------------------ SUPER-SERVER INSTALLATION ------------------------
     
     
-Pure-FTPd can also run with the help of a super-server, like telnet, wu-ftp, 
-finger or Qmail. Using a super-server is usually slower than the standalone
-mode. But if you love tcpwrappers or built-in filtering abilities of your
-super-server, Pure-FTPd can cope with them.
+Pure-FTPd can also run with the help of a super-server, like telnet, wu-ftp,
+finger or Qmail. This is not recommended. If this is an option, start it in
+standalone mode instead. Using a super-server is usually slower than the
+standalone mode. But if you love tcpwrappers or built-in filtering abilities
+of your super-server, Pure-FTPd can cope with them.
 
 Unix has tons of super-servers: Inetd (the most common one), TCPserver,
 G2S, Xinetd, Rlinetd, ... Only the first three will be covered here, but
@@ -663,7 +663,8 @@ If you want to chroot() everyone, but root, use the following flag:
 - '-A': chroot() everyone, but root.
 
 - '-b': Ignore parts of RFC standards in order to deal with some totally
-broken FTP clients, or broken firewalls/NAT boxes.
+broken FTP clients, or broken firewalls/NAT boxes. Also, non-dangling
+symoblic links are shown as real files/directories.
 
 - '-B': Have the standalone server start in background (daemonization).
 
@@ -780,7 +781,8 @@ display directory listings, your NAT gateway sucks. Use '-N' as a workaround.
 
 - '-o': Write all uploaded files to '/var/run/pure-ftpd.upload.pipe' so
 that the 'pure-uploadscript' program can run. Don't enable that option if
-you don't actually use 'pure-uploadscript'.
+you don't actually use 'pure-uploadscript' otherwise pure-ftpd will hang
+waiting for pure-uploadscript to start.
 
 - '-O <format>:<log file>': Record all file transfers into a specific log
 file, in an alternative format. Currently, four formats are supported: CLF
@@ -949,6 +951,9 @@ With such a setup, a single user can't easily fill all slots.
 including anonymous sessions. The server must have been compiled with
 --with-tls and a valid certificate must be in place to get this feature.
 See the README.TLS file for more info about SSL/TLS.
+  '-Y 3': Cleartext sessions are refused and only SSL/TLS compatible 
+clients are accepted. Clear data connections are also refused, so private 
+data connections are enforced.
 
 - '-z': Allow anonymous users to read files and directories starting with a
 dot ('.') .
@@ -1019,7 +1024,8 @@ aliases are available. You can get this list at any time by typing
 -x  --prohibitdotfileswrite 
 -X  --prohibitdotfilesread  
 -y  --peruserlimits         <per user max>:<max anonymous sessions>
--Y  --tls                   <0:no TLS | 1:TLS+cleartext | 2:enforce TLS>
+-Y  --tls                   <0:no TLS | 1:TLS+cleartext | 2:enforce TLS |
+                             3: enforce encrypted data channel as well>
 -z  --allowdotfiles
 -Z  --customerproof
 
@@ -1051,7 +1057,8 @@ aliases are available. You can get this list at any time by typing
 -D  --displaydotfiles   
 -H  --dontresolve   
 
--Y  --tls                   <0:no TLS | 1:TLS+cleartext | 2:enforce TLS>
+-Y  --tls                   <0:no TLS | 1:TLS+cleartext | 2:enforce TLS |
+                             3:enforce encrypted data channel as well>
 
 -P  --forcepassiveip        <ip address>
 -F  --fortunesfile          <file>
@@ -1280,10 +1287,10 @@ Q.O.S. abilities.
 
 
 Using Virtual servers is a convenient way of hosting several FTP sites on the same
-computer. Let's say, you got two customers. The former owns the 'c9x.org'
-domain name, while the latter owns the 'rtchat.com' domain name. Both are
+computer. Let's say, you got two customers. The former owns the 'cgx.org'
+domain name, while the latter owns the 'example.com' domain name. Both are
 hosted on the same computer, but they don't want to share the same files.
-ftp://ftp.c9x.org/ should show different content than ftp://ftp.rtchat.com/
+ftp://ftp.cgx.org/ should show different content than ftp://ftp.example.com/
 .
 
 The FTP protocol doesn't allow name-based selection. So, if you want to host
@@ -1303,11 +1310,11 @@ file for that virtual host.
 
 Example:
 
-ln -s /home/customers/rtchat.com/ftp /etc/pure-ftpd/216.226.17.77
-ln -s /home/customers/c9x.org/ftp    /etc/pure-ftpd/212.73.209.252
+ln -s /home/customers/example.com/ftp /etc/pure-ftpd/216.226.17.77
+ln -s /home/customers/cgx.org/ftp    /etc/pure-ftpd/212.73.209.252
 
-Done! Put the C9X files in /home/customers/c9x.org/ftp/ and the RTChat
-files in /home/customers/rtchat.com/ftp/ .
+Done! Put the CGX files in /home/customers/cgx.org/ftp/ and the Example
+files in /home/customers/example.com/ftp/ .
 
 With that feature, every account on the server can have its own public
 anonymous FTP area. If you are providing hosting services, this is a nice
@@ -1732,7 +1739,7 @@ after authentication and chroot() and punctually communicates with the
 parent over a private channel.
 
 Privilege separation decreases performance of loaded servers, but it
-increases theorical security.
+increases theorical security and reliability. Enabling it is recommended.
 
 Some old broken operating systems may allow the ptrace() system call on
 processes that revoked privileges. On these platforms, enabling privilege
@@ -1860,10 +1867,6 @@ that are parsing log files often choke on this.
 
 - Incomplete transfers aren't logged in alternative formats.
 
-- On Solaris (at least Solaris 8), the large files + virtualchroot
-combination doesn't compile (we need to use struct stat64 in place of stat
-everywhere) .
-
 - On Solaris, to get chroot to work with pure-ftpd you need a dev directory
 in your new rootdir with these:
 
@@ -1928,7 +1931,7 @@ mailing list. Newbies and silly ideas are welcome.
 
 Thank you, 
 
-                        -Frank DENIS "Jedi/Sector One" <j@pureftpd.org> .
+                       -Frank DENIS "Jedi/Sector One" <j at pureftpd dot org>
                                  
 
 * Please also read the CONTACT file.

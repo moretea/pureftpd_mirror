@@ -31,7 +31,7 @@
  * SUCH DAMAGE.
  */
 
-/* Recursion and matches limiting by Frank Denis <j@pureftpd.org> */
+/* Recursion and matches limiting by Frank Denis <j at pureftpd dot org> */
 
 /*
  * glob(3) -- a superset of the one defined in POSIX 1003.2.

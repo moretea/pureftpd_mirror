@@ -1,8 +1,8 @@
 #! @PYTHON@
 
-#  Original pure-config.py by Frank Denis <j@pureftpd.org>
-#  Copyright 2001 by Joshua Rodman <joshua_rodman@yahoo.com>,
-#  Modifications Copyright 2001-2006 by Matthias Andree
+#  Original pure-config.py by Frank Denis <j at pureftpd dot org>
+#  Copyright 2001 by Joshua Rodman <joshua_rodman at yahoo dot com>,
+#  Modifications Copyright 2001-2009 by Matthias Andree
 #  
 #                All Rights Reserved
 # 

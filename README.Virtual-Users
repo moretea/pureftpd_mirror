@@ -29,7 +29,7 @@ Linux/OpenBSD/NetBSD/Solaris/HPUX/a lot of other Unix-like systems:
 groupadd ftpgroup
 useradd -g ftpgroup -d /dev/null -s /etc ftpuser
 
-FreeBSD:
+FreeBSD/DragonflyBSD:
 
 pw groupadd ftpgroup
 pw useradd ftpuser -g ftpgroup -d /dev/null -s /etc

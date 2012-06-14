@@ -61,6 +61,7 @@ static void callback_client_password(const char *str);
 static void callback_client_sa_host(const char *str);
 static void callback_client_sa_port(const char *str);
 static void callback_client_peer_host(const char *str);
+static void callback_client_encrypted(const char *str);
 static void callback_client_end(const char *str);
 
 typedef struct ExtauthdCallBack_ {
@@ -74,6 +75,7 @@ static ExtauthdCallBack extauthd_callbacks[] = {
     { EXTAUTH_CLIENT_SA_HOST, callback_client_sa_host },
     { EXTAUTH_CLIENT_SA_PORT, callback_client_sa_port },
     { EXTAUTH_CLIENT_PEER_HOST, callback_client_peer_host },
+    { EXTAUTH_CLIENT_ENCRYPTED, callback_client_encrypted },
     { EXTAUTH_CLIENT_END, callback_client_end },
     { NULL, callback_client_end }
 };
@@ -83,6 +85,7 @@ static ExtauthdCallBack extauthd_callbacks[] = {
 #define ENV_AUTHD_SA_HOST "AUTHD_LOCAL_IP"
 #define ENV_AUTHD_SA_PORT "AUTHD_LOCAL_PORT"
 #define ENV_AUTHD_PEER_HOST "AUTHD_REMOTE_IP"
+#define ENV_AUTHD_ENCRYPTED "AUTHD_ENCRYPTED"
 
 #define AUTHD_SCRIPT_TIMEOUT 60U
 

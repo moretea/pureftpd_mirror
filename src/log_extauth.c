@@ -3,6 +3,9 @@
 #ifdef WITH_EXTAUTH
 
 #include "ftpd.h"
+#include "dynamic.h"
+#include "ftpwho-update.h"
+#include "globals.h"
 #include "log_extauth.h"
 #include "log_extauth_p.h"
 
@@ -180,6 +183,9 @@ void pw_extauth_check(AuthResult * const result,
     char sa_port[NI_MAXSERV];
     char peer_hbuf[NI_MAXHOST];
     char line[4096];
+#ifndef WITH_TLS
+    int data_protection_level = 0;
+#endif    
     
     result->auth_ok = 0;
     if (getnameinfo((struct sockaddr *) sa, STORAGE_LEN(*sa),
@@ -214,8 +220,10 @@ void pw_extauth_check(AuthResult * const result,
                          EXTAUTH_CLIENT_SA_HOST "%s\n"
                          EXTAUTH_CLIENT_SA_PORT "%s\n"
                          EXTAUTH_CLIENT_PEER_HOST "%s\n"
+                         EXTAUTH_CLIENT_ENCRYPTED "%d\n"
                          EXTAUTH_CLIENT_END "\n",
-                         account, password, sa_hbuf, sa_port, peer_hbuf), 
+                         account, password, sa_hbuf, sa_port, peer_hbuf,
+                         data_protection_level),
                 sizeof line)) {
         goto bye;
     }
@@ -227,7 +235,7 @@ void pw_extauth_check(AuthResult * const result,
     result->dir = NULL;
     result->slow_tilde_expansion = 1;    
     auth_finalized = 0;
-    if ((readen = safe_read(kindy, line, sizeof line)) <= (ssize_t) 0) {
+    if ((readen = safe_read(kindy, line, sizeof line - 1U)) <= (ssize_t) 0) {
         goto bye;
     }
     line[readen] = 0;    

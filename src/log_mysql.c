@@ -70,7 +70,7 @@ static char *pw_mysql_escape_string(MYSQL * const id_sql_server,
 #ifdef HAVE_MYSQL_REAL_ESCAPE_STRING
     tolen = mysql_real_escape_string(id_sql_server, to, from, from_len);
 #else
-    /* MySQL 3.22.x and earlier are obsolete. Better use 3.23.x or 4.x */
+    /* MySQL 3 is obsolete. */
     tolen = mysql_escape_string(to, from, from_len);    
 #endif
     if (tolen >= to_len || 
@@ -283,9 +283,14 @@ static char *pw_mysql_getquery(MYSQL * const id_sql_server,
     
     bye:
     if (qresult != NULL) {
-        mysql_free_result(qresult);
-    }
-    
+	mysql_free_result(qresult);
+#ifdef CLIENT_MULTI_STATEMENTS
+	while (mysql_next_result(id_sql_server) == 0) {
+	    qresult = mysql_store_result(id_sql_server);
+	    mysql_free_result(qresult);
+	}
+#endif
+    }    
     return answer;    
 }
 
@@ -429,16 +434,26 @@ void pw_mysql_check(AuthResult * const result,
         }
     }
     if (crypto_mysql != 0) {
+#if MYSQL_VERSION_ID < 40100 || defined(USE_OLD_MYSQL_SCRAMBLING)
         unsigned long hash_res[2];
         char scrambled_password[MYSQL_CRYPT_LEN];
      
-#if MYSQL_VERSION_ID < 40100	    
+# if MYSQL_VERSION_ID < 40100
         hash_password(hash_res, password);
-#else
+# else
         hash_password(hash_res, password, strlen(password));	    
-#endif	    
+# endif	    
         snprintf(scrambled_password, sizeof scrambled_password, "%08lx%08lx", 
                  hash_res[0], hash_res[1]);
+#else
+	char scrambled_password[42]; /* 2 * 20 (sha1 hash size) + 2 */
+
+# if MYSQL_VERSION_ID >= 40100 && MYSQL_VERSION_ID < 40101
+	make_scrambled_password(scrambled_password, password, 1, NULL);
+# else
+	make_scrambled_password(scrambled_password, password);
+# endif
+#endif
         if (strcmp(scrambled_password, spwd) == 0) {
             goto auth_ok;
         }
@@ -557,7 +572,7 @@ void pw_mysql_check(AuthResult * const result,
     }
 #endif
     result->slow_tilde_expansion = !tildexp;
-    result->auth_ok =- result->auth_ok;
+    result->auth_ok = -result->auth_ok;
     bye:
     if (committed == 0) {
         (void) pw_mysql_simplequery(id_sql_server, MYSQL_TRANSACTION_END);

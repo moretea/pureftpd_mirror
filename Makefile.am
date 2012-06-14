@@ -10,7 +10,6 @@ EXTRA_DIST = \
 	README.LDAP \
 	README.MySQL \
 	README.PGSQL \
-	README.Netfilter \
 	README.Contrib \
 	README.Debian \
 	README.Virtual-Users \
