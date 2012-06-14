@@ -44,3 +44,7 @@ session required pam_uwtmp.so
 $ kill -HUP $(cat /var/run/xinetd.pid)
  
 
+  To take advantage of Rendezvous, please add --with-rendezvous to ./configure
+switches and give the server a Rendezvous service name with the -v (--rendezvous=)
+switch.
+

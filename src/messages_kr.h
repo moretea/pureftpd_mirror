@@ -105,7 +105,7 @@
 
 #define MSG_RATIO_DENIAL \
     "죄송합니다. 당신의 업/다운 비율은 %u:%u 입니다.\n" \
-	 "당신은 %llu Kb 를 업로드하고 %llu Kb를 다운로드 하였습니다.\n" \
+     "당신은 %llu Kb 를 업로드하고 %llu Kb를 다운로드 하였습니다.\n" \
     "좋은 파일을 업로드 해주세요."
 #define MSG_NO_MORE_TO_DOWNLOAD "다운로드 할 것이 없음"
 #define MSG_WINNER "컴퓨터는 당신의 친구이니 믿어야만 합니다!"

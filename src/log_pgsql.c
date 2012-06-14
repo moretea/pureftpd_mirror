@@ -242,10 +242,10 @@ static int pw_pgsql_connect(PGconn ** const id_sql_server)
     if ((*id_sql_server = PQconnectdb(conninfo)) == NULL ||
         PQstatus(*id_sql_server) == CONNECTION_BAD) {
         free(conninfo);
-	if (server_down == 0) {
-	    server_down++;
-	    logfile(LOG_ERR, MSG_SQL_DOWN);
-	}
+    if (server_down == 0) {
+        server_down++;
+        logfile(LOG_ERR, MSG_SQL_DOWN);
+    }
         goto bye;
     }
     server_down = 0;
@@ -271,7 +271,7 @@ static int pw_pgsql_simplequery(PGconn * const id_sql_server,
     }
     if (PQresultStatus(result) != PGRES_COMMAND_OK) {
         PQclear(result);        
-	return -1;
+    return -1;
     }
     PQclear(result);
     

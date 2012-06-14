@@ -90,9 +90,9 @@
 #define MSG_DELE_SUCCESS "%s foi removido"
 #define MSG_DELE_TOTAL_FAILURE "Nenhum arquivo foi removido"
 #define MSG_LOAD_TOO_HIGH \
-	"A carga era %3.2f quando a conexão foi realizada. Não é permitido recebimento\n" \
-	"de arquivos por usuários anônimos quando a carga estiver tão alta.\n" \
-	"Envio de arquivos é sempre permitido."
+    "A carga era %3.2f quando a conexão foi realizada. Não é permitido recebimento\n" \
+    "de arquivos por usuários anônimos quando a carga estiver tão alta.\n" \
+    "Envio de arquivos é sempre permitido."
 #define MSG_OPEN_FAILURE "Não foi possível abrir %s"
 #define MSG_OPEN_FAILURE2 "Não foi possível abrir esse arquivo"
 #define MSG_STAT_FAILURE "Não foi possível determinar o tamanho do arquivo"
@@ -101,12 +101,12 @@
 #define MSG_REST_RESET "Restart offset reinicializado em 0"
 #define MSG_NOT_REGULAR_FILE "Somente arquivos comuns podem ser recebidos"
 #define MSG_NOT_MODERATED \
-	"Este arquivo foi enviado por um usuário anônimo. Porém ainda não\n" \
-	"foi aprovado pelos administradores do site para poder ser recebido."
+    "Este arquivo foi enviado por um usuário anônimo. Porém ainda não\n" \
+    "foi aprovado pelos administradores do site para poder ser recebido."
 #define MSG_RATIO_DENIAL \
-	"Desculpe, a proporção de envio/recebimento é %u:%u .\n" \
-	"Até o momento você enviou %llu Kb e recebeu %llu Kb.\n" \
-	"Por favor envie mais arquivos e tente fazer o recebimento posteriormente."
+    "Desculpe, a proporção de envio/recebimento é %u:%u .\n" \
+    "Até o momento você enviou %llu Kb e recebeu %llu Kb.\n" \
+    "Por favor envie mais arquivos e tente fazer o recebimento posteriormente."
 #define MSG_NO_MORE_TO_DOWNLOAD "Não há mais nada para receber"
 #define MSG_WINNER "O computador é seu amigo. Confie nele"
 #define MSG_KBYTES_LEFT "%.1f kbytes para receber"

@@ -300,7 +300,7 @@ int main(int argc, char *argv[])
                 return -1;
             }
             startpath = strdup(optarg);
-	    if (startpath == NULL) {
+        if (startpath == NULL) {
                 oom();
             }
             break;

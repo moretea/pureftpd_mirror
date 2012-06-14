@@ -1,4 +1,4 @@
-/* $Id: diraliases.h,v 1.1 2001/12/26 23:36:49 chrysalis Exp $ */
+/* $Id: diraliases.h,v 1.2 2004/02/29 12:52:51 chrysalis Exp $ */
 
 #ifndef __DIRALIASES_H__
 #define __DIRALIASES_H__ 1
@@ -9,7 +9,7 @@
 #  define ALIASES_FILE CONFDIR "/pureftpd-dir-aliases"
 # endif
 # ifndef MAXALIASLEN
-#  define MAXALIASLEN 256U		/* including trailing 0 */
+#  define MAXALIASLEN 256U        /* including trailing 0 */
 # endif
 
 typedef struct DirAlias_ {

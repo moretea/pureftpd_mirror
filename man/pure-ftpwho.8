@@ -1,10 +1,10 @@
-.TH "pure-ftpwho" "8" "1.0.0" "Pure-FTPd team" "Pure-FTPd"
+.TH "pure-ftpwho" "8" "1.0.18" "Pure-FTPd team" "Pure-FTPd"
 .SH "NAME"
 .LP 
 pure\-ftpwho \- Report current FTP sessions
 .SH "SYNTAX"
 .LP 
-pure\-ftpwho [\fI\-c\fP] [\fI\-h\fP] [\fI\-H\fP] [\fI\-n\fP] [\fI\-s\fP] [\fI\-v\fP] [\fI\-w\fP] [\fI\-W\fP] [\fI\-x\fP]
+pure\-ftpwho [\fI\-c\fP] [\fI\-h\fP] [\fI\-H\fP] [\fI\-n\fP] [\fI\-p\fP] [\fI\-s\fP] [\fI\-v\fP] [\fI\-w\fP] [\fI\-W\fP] [\fI\-x\fP]
 .SH "DESCRIPTION"
 .LP 
 pure\-ftpwho shows current Pure\-FTPd client sessions.
@@ -31,6 +31,9 @@ Don't resolve host names, and only show IP addresses (faster).
 .TP 
 \fB\-n\fR
 A synonym for \-H.
+.TP 
+\fB\-p\fR
+Output Apple / GNUStep plist data.
 .TP 
 \fB\-s\fR
 Output only one line per client, with only numeric data, delimited by a | character.

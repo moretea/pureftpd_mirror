@@ -288,7 +288,7 @@ typedef struct AuthResult_ {
 #endif
 } AuthResult;
 
-typedef struct FileInfo_ {
+typedef struct PureFileInfo_ {
     char **names_pnt;
     size_t name_offset;
     off_t size;
@@ -297,12 +297,12 @@ typedef struct FileInfo_ {
     nlink_t nlink;
     uid_t uid;
     gid_t gid;
-} FileInfo;
+} PureFileInfo;
 
 #define FI_NAME(X) (*((X)->names_pnt) + (X)->name_offset)
 
 typedef enum {
-    ALTLOG_NONE, ALTLOG_CLF, ALTLOG_STATS, ALTLOG_W3C
+    ALTLOG_NONE, ALTLOG_CLF, ALTLOG_STATS, ALTLOG_W3C, ALTLOG_XFERLOG
 } AltLogFormat;
 
 typedef struct AltLogPrefixes_ {
@@ -356,16 +356,16 @@ void donlist(char *arg, const int on_ctrlconn, const int opt_l_,
 void opendata(void);
 void closedata(void);
 void addreply(const int code, const char * const line, ...)
-	__attribute__ ((format(printf, 2, 3)));
+    __attribute__ ((format(printf, 2, 3)));
 void addreply_noformat(const int code, const char * const line);
 void doreply(void);
 void sighandler(int sig);
 void prevent(char *arg);
 unsigned int daemons(unsigned short server_port);
 void logfile(const int facility, const char *format, ...) 
-	__attribute__ ((format(printf, 2, 3)));
+    __attribute__ ((format(printf, 2, 3)));
 void die(const int err, const int priority, const char * const format, ...)
-	__attribute__ ((format(printf, 3, 4)));
+    __attribute__ ((format(printf, 3, 4)));
 void die_mem(void);
 void setprogname(const char * const title);
 int modernformat(const char *file,
@@ -463,17 +463,39 @@ the server may be insecure if a wrong value is set here.
 Your platform has a very large MAXPATHLEN, we should not trust it.
 #endif
 
-#define DEFAULT_MAX_USERS 50
-#define DEFAULT_FTP_DATA_PORT 20 
-#define MAX_SYSLOG_LINE (MAXPATHLEN + 512U)
-#define DEFAULT_IDLE (15UL * 60UL)
-#define MAX_SITE_IDLE (42UL * 60UL)
-#define DEFAULT_MAX_LS_FILES 2000U
-#define DEFAULT_MAX_LS_DEPTH 5U
-#define GLOB_TIMEOUT 17                   /* Max user time for a 'ls' to complete */
-#define MAX_CPU_TIME (17 * 60)           /* Max allowed CPU time per session */
-#define MAX_SESSION_XFER_IDLE (24 * 60 * 60)   /* Max duration of a transfer */
-#define MAX_USER_LENGTH 32U
+#ifndef DEFAULT_MAX_USERS    
+# define DEFAULT_MAX_USERS 50
+#endif
+#ifndef DEFAULT_FTP_DATA_PORT
+# define DEFAULT_FTP_DATA_PORT 20
+#endif
+#ifndef MAX_SYSLOG_LINE
+# define MAX_SYSLOG_LINE (MAXPATHLEN + 512U)
+#endif
+#ifndef DEFAULT_IDLE
+# define DEFAULT_IDLE (15UL * 60UL)
+#endif
+#ifndef MAX_SITE_IDLE
+# define MAX_SITE_IDLE (42UL * 60UL)
+#endif
+#ifndef DEFAULT_MAX_LS_FILES    
+# define DEFAULT_MAX_LS_FILES 2000U
+#endif
+#ifndef DEFAULT_MAX_LS_DEPTH
+# define DEFAULT_MAX_LS_DEPTH 5U
+#endif
+#ifndef GLOB_TIMEOUT
+# define GLOB_TIMEOUT 17                   /* Max user time for a 'ls' to complete */
+#endif
+#ifndef MAX_CPU_TIME
+# define MAX_CPU_TIME (60 * 60)           /* Max allowed CPU time per session */
+#endif
+#ifndef MAX_SESSION_XFER_IDLE    
+# define MAX_SESSION_XFER_IDLE (24 * 60 * 60)   /* Max duration of a transfer */
+#endif
+#ifndef MAX_USER_LENGTH
+# define MAX_USER_LENGTH 32U
+#endif
 
 #ifdef LOG_FTP
 # define DEFAULT_FACILITY LOG_FTP
@@ -653,10 +675,10 @@ Your platform has a very large MAXPATHLEN, we should not trust it.
 # define S_IXUGO (S_IXUSR | S_IXGRP | S_IXOTH)
 #endif
 
-#ifdef ACCEPT_UNICODE_CONTROL_CHARS
-# define ISCTRLCODE(X) ((X) == 0x7f || ((unsigned char) (X)) < 32U)
-#else
+#ifdef DISABLE_UNICODE_CONTROL_CHARS
 # define ISCTRLCODE(X) ((X) == 0x7f || !(((unsigned char) (X)) & 0x60))
+#else
+# define ISCTRLCODE(X) ((X) == 0x7f || ((unsigned char) (X)) < 32U)
 #endif
     
 #ifndef HAVE_MUNMAP

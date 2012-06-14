@@ -1,10 +1,11 @@
 dnl AM_ACLOCAL_INCLUDE(m4)
 
-AC_PREREQ(2.57)
-AC_INIT(pure-ftpd, 1.0.17a, bugs@pureftpd.org)
+AC_PREREQ(2.58)
+AC_INIT([pure-ftpd],[1.0.18],[bugs@pureftpd.org])
 AC_CONFIG_SRCDIR(src/ftpd.c)
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([1.6 dist-bzip2])
+AC_CONFIG_LIBOBJ_DIR(src)
 
 AC_SUBST(VERSION)
 
@@ -17,7 +18,7 @@ AC_PROG_RANLIB
 AC_PROG_CC
 AC_AIX
 AC_ISC_POSIX
-AC_PROG_CC_STDC
+
 
 AC_ARG_VAR(PERL,local path to the perl interpreter)
 perl_possible_path="/usr/bin:/usr/local/bin:/bin:/opt/perl/bin:/opt/perl/usr/bin:/opt/perl/usr/local/bin"
@@ -70,6 +71,7 @@ AC_CHECK_HEADERS(windows.h io.h)
 AC_CHECK_HEADERS(crypt.h)
 AC_CHECK_HEADERS(utime.h)
 AC_CHECK_HEADERS(openssl/ssl.h)
+AC_CHECK_HEADERS(CoreFoundation/CoreFoundation.h)
 AC_SYS_POSIX_TERMIOS
 
 if test "x$ac_cv_sys_posix_termios" = "xyes"; then
@@ -94,16 +96,13 @@ AC_CHECK_MEMBER(struct tm.tm_gmtoff, [AC_DEFINE(STRUCT_TM_TM_GMTOFF,,[Define if 
 ])
 
 AC_MSG_CHECKING([whether timezone is scalar])
-AC_TRY_COMPILE([
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <sys/types.h>
 #include <$ac_cv_struct_tm>    
-    ], 
-    [timezone = 42L],
-    [
+    ]], [[timezone = 42L]])],[
          AC_MSG_RESULT(yes)
          AC_DEFINE(HAVE_SCALAR_TIMEZONE,,[Define if your timezone is a scalar number])
-    ],
-    [    AC_MSG_RESULT(no)    ])   
+    ],[    AC_MSG_RESULT(no)    ])   
 
 AC_CHECK_TYPE(nlink_t, , [AC_DEFINE(nlink_t, int, [nlink_t type])],
 [
@@ -156,8 +155,7 @@ fi
 if test "$ac_cv_lib_nsl_gethostbyname" = "$ac_cv_func_gethostbyname" ; then
   AC_MSG_CHECKING([if we can include libnsl + libsocket])
   LIBS="-lnsl -lsocket $LIBS"
-  AC_TRY_LINK( , [(void) gethostbyname], my_ac_link_result=yes,
-             my_ac_link_result=no )
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([[]], [[(void) gethostbyname]])],[my_ac_link_result=yes],[my_ac_link_result=no ])
   if test "$my_ac_link_result" = "no" ; then
     AC_MSG_RESULT([failure])
     AC_MSG_ERROR([unable to use gethostbyname()])
@@ -216,14 +214,14 @@ dnl Options
 AM_WITH_DMALLOC
 
 AC_ARG_WITH(standalone,
-[AC_HELP_STRING([--without-standalone],[Don't compile the standalone server code])],
+[AS_HELP_STRING(--without-standalone,Don't compile the standalone server code)],
 [ if test "x$withval" = "xno" ; then
     AC_DEFINE(NO_STANDALONE,,[without standalone])
     no_standalone=yes
   fi ])
 
 AC_ARG_WITH(inetd,
-[AC_HELP_STRING([--without-inetd],[Don't support super-servers (like inetd)])],
+[AS_HELP_STRING(--without-inetd,Don't support super-servers (like inetd))],
 [ if test "x$withval" = "xno" ; then
     AC_DEFINE(NO_INETD,,[without inetd])
     no_inetd=yes
@@ -234,7 +232,7 @@ if test "x$no_standalone" = "xyes" && test "x$no_inetd" = "xyes" ; then
 fi
 
 AC_ARG_WITH(capabilities,
-[AC_HELP_STRING([--without-capabilities],[Don't use Linux capabilities (default=detect)])],
+[AS_HELP_STRING(--without-capabilities,Don't use Linux capabilities (default=detect))],
 [ if test "x$withval" = "xno" ; then
     no_capabilities=1
   fi ])
@@ -249,7 +247,7 @@ if test -z "$no_capabilities" ; then
 fi
 
 AC_ARG_WITH(shadow,
-[AC_HELP_STRING([--without-shadow],[Don't use shadow passwords (default=detect)])],
+[AS_HELP_STRING(--without-shadow,Don't use shadow passwords (default=detect))],
 [ if test "x$withval" = "xno" ; then
     no_shadow=1
   fi ])
@@ -263,80 +261,86 @@ if test -z "$no_shadow" && test "x$ac_cv_header_shadow_h" = "xyes" ; then
 fi
 
 AC_ARG_WITH(usernames,
-[AC_HELP_STRING([--without-usernames],[Use only numerical UIDs/GIDs])],
+[AS_HELP_STRING(--without-usernames,Use only numerical UIDs/GIDs)],
 [ if test "x$withval" = "xno" ; then
     AC_DEFINE(NO_FTP_USERS,,[without usernames])
   fi ])
 
 AC_ARG_WITH(iplogging,
-[AC_HELP_STRING([--without-iplogging],[Never log remote IP addresses (privacy)])],
+[AS_HELP_STRING(--without-iplogging,Never log remote IP addresses (privacy))],
 [ if test "x$withval" = "xno" ; then
     AC_DEFINE(DONT_LOG_IP,,[without iplogging])
   fi ])
 
 AC_ARG_WITH(humor,
-[AC_HELP_STRING([--without-humor],[Disable humor (enabled by default)])],
+[AS_HELP_STRING(--without-humor,Disable humor (enabled by default))],
 [ if test "x$withval" = "xno" ; then
     AC_DEFINE(DISABLE_HUMOR,,[without humor])
   fi ])
 
 AC_ARG_WITH(longoptions,
-[AC_HELP_STRING([--without-longoptions],[Ignored - just for backward compatibility])],
+[AS_HELP_STRING(--without-longoptions,Ignored - just for backward compatibility)],
 [ if test "x$withval" = "xno" ; then
     AC_DEFINE(NO_GETOPT_LONG,,[without longoptions])
   fi ])
 
 AC_ARG_WITH(ascii,
-[AC_HELP_STRING([--without-ascii],[Don't support 7-bits (ASCII) transfers])],
+[AS_HELP_STRING(--without-ascii,Don't support 7-bits (ASCII) transfers)],
 [ if test "x$withval" = "xno" ; then
     AC_DEFINE(WITHOUT_ASCII,,[without ascii])
   fi ])
 
 AC_ARG_WITH(banner,
-[AC_HELP_STRING([--without-banner],[Don't display any initial banner])],
+[AS_HELP_STRING(--without-banner,Don't display any initial banner)],
 [ if test "x$withval" = "xno" ; then
     AC_DEFINE(NO_BANNER,,[without banner])
   fi ])
 
 AC_ARG_WITH(globbing,
-[AC_HELP_STRING([--without-globbing],[Don't include globbing code])],
+[AS_HELP_STRING(--without-globbing,Don't include globbing code)],
 [ if test "x$withval" = "xno" ; then
     AC_DEFINE(DISABLE_GLOBBING,,[without globbing])
   fi ])
 
 AC_ARG_WITH(nonalnum,
-[AC_HELP_STRING([--without-nonalnum],[Only allow basic alphanumeric characters in file names])],
+[AS_HELP_STRING(--without-nonalnum,Only allow basic alphanumeric characters in file names)],
 [ if test "x$withval" = "xno" ; then
     AC_DEFINE(PARANOID_FILE_NAMES,,[disallow non-alphanumeric characters])
   fi ])
 
+AC_ARG_WITH(unicode,
+[AS_HELP_STRING(--without-unicode,Disable non-latin characters in file names)],
+[ if test "x$withval" = "xno" ; then
+    AC_DEFINE(DISABLE_UNICODE_CONTROL_CHARS,,[disallow unicode control chars])
+  fi ])
+
 AC_ARG_WITH(sendfile,
-[AC_HELP_STRING([--without-sendfile],[Don't use zero-copy optimizations (for network FS)])],
+[AS_HELP_STRING(--without-sendfile,Don't use zero-copy optimizations (for network FS))],
 [ if test "x$withval" = "xno" ; then
     AC_DEFINE(DISABLE_SENDFILE,,[without sendfile])
   fi ])
 
 AC_ARG_WITH(boring,
-[AC_HELP_STRING([--with-boring],[Display only boring messages])],
+[AS_HELP_STRING(--with-boring,Display only boring messages)],
 [ if test "x$withval" = "xyes" ; then
     AC_DEFINE(BORING_MODE,,[display only boring messages])
     AC_DEFINE(DISABLE_HUMOR)
   fi ])
 
 AC_ARG_WITH(brokenrealpath,
-[AC_HELP_STRING([--with-brokenrealpath],[If your libc has a broken realpath() call])],
+[AS_HELP_STRING(--with-brokenrealpath,If your libc has a broken realpath() call)],
 [ if test "x$withval" = "xyes" ; then
     AC_DEFINE(USE_BUILTIN_REALPATH,,[realpath() is broken])
   fi ])
 
 AC_ARG_WITH(probe-random-dev,
-[AC_HELP_STRING([--with-probe-random-dev],[If you want to probe for /dev/*random at run-time])],
+[AS_HELP_STRING(--with-probe-random-dev,If you want to probe for /dev/*random at run-time)],
 [ if test "x$withval" = "xyes" ; then
     AC_DEFINE(PROBE_RANDOM_AT_RUNTIME,,[probe for /dev/Xrandom at run-time])
   fi ])
 
 AC_ARG_WITH(minimal,
-[AC_HELP_STRING([--with-minimal],[Build only a small minimal server])],
+[AS_HELP_STRING(--with-minimal,Build only a small minimal server)],
 [ if test "x$withval" = "xyes" ; then
     AC_DEFINE(MINIMAL,,[with minimal])
     AC_DEFINE(NO_GETOPT_LONG)
@@ -350,37 +354,37 @@ AC_ARG_WITH(minimal,
   fi ])
 
 AC_ARG_WITH(paranoidmsg,
-[AC_HELP_STRING([--with-paranoidmsg],[Use paranoid, but not admin-friendly messages])],
+[AS_HELP_STRING(--with-paranoidmsg,Use paranoid, but not admin-friendly messages)],
 [ if test "x$withval" = "xyes" ; then
     AC_DEFINE(PARANOID_MESSAGES,,[with paranoidmsg])
   fi ])
 
 AC_ARG_WITH(sysquotas,
-[AC_HELP_STRING([--with-sysquotas],[Use system (not virtual) quotas])],
+[AS_HELP_STRING(--with-sysquotas,Use system (not virtual) quotas)],
 [ if test "x$withval" = "xyes" ; then
     AC_DEFINE(SYSTEM_QUOTAS,,[with sysquotas])
   fi ])
 
 AC_ARG_WITH(altlog,
-[AC_HELP_STRING([--with-altlog],[Support alternative log format (Apache-like)])],
+[AS_HELP_STRING(--with-altlog,Support alternative log format (Apache-like))],
 [ if test "x$withval" = "xyes" ; then
     AC_DEFINE(WITH_ALTLOG,,[with altlog]) 
   fi ])
 
 AC_ARG_WITH(puredb,
-[AC_HELP_STRING([--with-puredb],[Support virtual (FTP-only) users])],
+[AS_HELP_STRING(--with-puredb,Support virtual (FTP-only) users)],
 [ if test "x$withval" = "xyes" ; then
     AC_DEFINE(WITH_PUREDB,,[with puredb])
   fi ])
 
 AC_ARG_WITH(extauth,
-[AC_HELP_STRING([--with-extauth],[Support external authentication modules])],
+[AS_HELP_STRING(--with-extauth,Support external authentication modules)],
 [ if test "x$withval" = "xyes" ; then
     AC_DEFINE(WITH_EXTAUTH,,[with extauth (*BETA*)])
   fi ])
 
 AC_ARG_WITH(pam,
-[AC_HELP_STRING([--with-pam],[Enable PAM support (default=disabled)])],
+[AS_HELP_STRING(--with-pam,Enable PAM support (default=disabled))],
 [ if test "x$withval" = "xyes" ; then
     with_pam="yes"
   fi ])
@@ -394,7 +398,7 @@ if test "x$with_pam" = "xyes" ; then
     AC_DEFINE(USE_PAM,,[use pam])
     AC_CHECK_FUNCS(pam_getenvlist)
     AC_MSG_CHECKING([whether pam_strerror takes only one argument])
-    AC_TRY_COMPILE([
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <stdio.h>
 #ifdef STDC_HEADERS
 # include <stdlib.h>
@@ -405,10 +409,7 @@ if test "x$with_pam" = "xyes" ; then
 # endif
 #endif
 #include <security/pam_appl.h>
-        ], 
-        [(void)pam_strerror((pam_handle_t *)NULL, -1)],
-        [AC_MSG_RESULT(no)],
-        [
+        ]], [[(void)pam_strerror((pam_handle_t *)NULL, -1)]])],[AC_MSG_RESULT(no)],[
             AC_DEFINE(HAVE_OLD_PAM,,[obsolete pam])
             AC_MSG_RESULT(yes)
         ])   
@@ -416,25 +417,22 @@ if test "x$with_pam" = "xyes" ; then
 fi  
 
 AC_MSG_CHECKING([whether syslog names are available])
-AC_TRY_COMPILE([
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #define SYSLOG_NAMES 1
 #include <stdio.h>
 #include <syslog.h>
-],
-[
+]], [[
  (void) facilitynames
-],
-[
+]])],[
   AC_MSG_RESULT(yes)
   AC_DEFINE(HAVE_SYSLOG_NAMES,,[define if syslog names are available])
-],
-[
+],[
   AC_MSG_RESULT(no)
 ])  
 
 
 AC_MSG_CHECKING([whether struct addrinfo is defined])
-AC_TRY_COMPILE([
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <stdio.h>
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
@@ -442,24 +440,21 @@ AC_TRY_COMPILE([
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
-],
-[
+]], [[
 do {
  struct addrinfo a;
  (void) a.ai_flags;
 } while(0)
-],
-[
+]])],[
   AC_MSG_RESULT(yes)
   AC_DEFINE(HAVE_STRUCT_ADDRINFO,,[define if you have struct addrinfo])
-],
-[
+],[
   AC_MSG_RESULT(no)
 ])  
 
 
 AC_MSG_CHECKING([whether sin_len is defined])
-AC_TRY_COMPILE([
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <stdio.h>
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
@@ -467,97 +462,85 @@ AC_TRY_COMPILE([
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-],
-[
+]], [[
 do {
  struct sockaddr_in a;
  (void) a.sin_len;
 } while(0)
-],
-[
+]])],[
   AC_MSG_RESULT(yes)
   AC_DEFINE(HAVE_SIN_LEN,,[define if you have sin_len])
-],
-[
+],[
   AC_MSG_RESULT(no)
 ])  
 
 
 AC_MSG_CHECKING([whether __ss_family is defined])
-AC_TRY_COMPILE([
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <stdio.h>
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
 #endif
 #include <sys/types.h>
 #include <sys/socket.h>
-],
-[
+]], [[
 do {
  struct sockaddr_storage a;
  (void) a.__ss_family;
 } while(0)
-],
-[
+]])],[
   AC_MSG_RESULT(yes)
   AC_DEFINE(HAVE___SS_FAMILY,,[define if you have __ss_family])
-],
-[
+],[
   AC_MSG_RESULT(no)
 ])  
 
 
 AC_MSG_CHECKING([whether ss_len is defined])
-AC_TRY_COMPILE([
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <stdio.h>
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
 #endif
 #include <sys/types.h>
 #include <sys/socket.h>
-],
-[
+]], [[
 do {
  struct sockaddr_storage a;
  (void) a.ss_len;
 } while(0)
-],
-[
+]])],[
   AC_MSG_RESULT(yes)
   AC_DEFINE(HAVE_SS_LEN,,[define if you have ss_len])
-],
-[
+],[
   AC_MSG_RESULT(no)
 ])  
 
 
 AC_MSG_CHECKING([whether __ss_len is defined])
-AC_TRY_COMPILE([
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <stdio.h>
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
 #endif
 #include <sys/types.h>
 #include <sys/socket.h>
-],
-[
+]], [[
 do {
  struct sockaddr_storage a;
  (void) a.__ss_len;
 } while(0)
-],
-[
+]])],[
   AC_MSG_RESULT(yes)
   AC_DEFINE(HAVE___SS_LEN,,[define if you have __ss_len])
-],
-[
+],[
   AC_MSG_RESULT(no)
 ])  
 
 
 
 AC_MSG_CHECKING([if a linuxish sendfile is available])
-AC_TRY_LINK([
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
 #endif
@@ -569,8 +552,7 @@ AC_TRY_LINK([
 #ifdef HAVE_SYS_SENDFILE_H
 # include <sys/sendfile.h>
 #endif
-],
-[
+]], [[
 do {
  int fd = 0;
  off_t *off = NULL;
@@ -578,18 +560,16 @@ do {
  
  (void) sendfile(fd, fd, off, cnt);
 } while(0)
-],
-[
+]])],[
   AC_MSG_RESULT(yes)
   AC_DEFINE(SENDFILE_LINUX,,[define if you have a linuxish sendfile])
-],
-[
+],[
   AC_MSG_RESULT(no)
 ])  
 
 
 AC_MSG_CHECKING([if a freebsdish sendfile is available])
-AC_TRY_LINK([
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
 #endif
@@ -601,8 +581,7 @@ AC_TRY_LINK([
 #ifdef HAVE_SYS_SENDFILE_H
 # include <sys/sendfile.h>
 #endif
-],
-[
+]], [[
 do {
  int fd = 0;
  off_t off = (off_t) 0;
@@ -611,21 +590,18 @@ do {
  
  (void) sendfile(fd, fd, off, cnt, hdtr, &off, 42);
 } while(0)
-],
-[
+]])],[
   AC_MSG_RESULT(yes)
   AC_DEFINE(SENDFILE_FREEBSD,,[define if you have a freebsdish sendfile])
-],
-[
+],[
   AC_MSG_RESULT(no)
 ])
 
 AC_MSG_CHECKING([if a hpuxish sendfile is available])
-AC_TRY_LINK([
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #include <sys/socket.h>
 #include <stdio.h>
-],
-[
+]], [[
 do {
  int fd = 0;
  off_t off = (off_t) 0;
@@ -634,19 +610,17 @@ do {
  
  (void) sendfile(fd, fd, off, nbytes, hdtrl, 42);
 } while(0)
-],
-[
+]])],[
   AC_MSG_RESULT(yes)
   AC_DEFINE(SENDFILE_HPUX,,[define if you have a hpuxish sendfile])
-],
-[
+],[
   AC_MSG_RESULT(no)
 ])
 
 AC_CHECK_FUNC(sendfilev, , [AC_CHECK_LIB(sendfile, sendfilev)])
 
 AC_MSG_CHECKING([if a solarisish sendfilev is available])
-AC_TRY_LINK([
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
 #endif
@@ -658,8 +632,7 @@ AC_TRY_LINK([
 #ifdef HAVE_SYS_SENDFILE_H
 # include <sys/sendfile.h>
 #endif
-],
-[
+]], [[
 do {
  int fd = 0, sfvcnt = 0;
  const struct sendfilevec vec;
@@ -667,85 +640,83 @@ do {
  
  (void) sendfilev(fd, &vec, sfvcnt, &xferred);
 } while(0)
-],
-[
+]])],[
   AC_MSG_RESULT(yes)
   AC_DEFINE(SENDFILEV_SOLARIS,,[define if you have a solarisish sendfilev])
-],
-[
+],[
   AC_MSG_RESULT(no)
 ])
 
 
 AC_ARG_WITH(cookie,
-[AC_HELP_STRING([--with-cookie],[Support 'fortune' cookies (-F option)])],
+[AS_HELP_STRING(--with-cookie,Support 'fortune' cookies (-F option))],
 [ if test "x$withval" = "xyes" ; then
     AC_DEFINE(COOKIE,,[with cookie])
   fi ])
 
 AC_ARG_WITH(throttling,
-[AC_HELP_STRING([--with-throttling],[Support bandwidth throttling (disabled by default)])],
+[AS_HELP_STRING(--with-throttling,Support bandwidth throttling (disabled by default))],
 [ if test "x$withval" = "xyes" ; then
     AC_DEFINE(THROTTLING,,[with throttling])
   fi ])
 
 AC_ARG_WITH(ratios,
-[AC_HELP_STRING([--with-ratios],[Support for upload/download ratios])],
+[AS_HELP_STRING(--with-ratios,Support for upload/download ratios)],
 [ if test "x$withval" = "xyes" ; then
     AC_DEFINE(RATIOS,,[with ratios])
   fi ])
 
 AC_ARG_WITH(quotas,
-[AC_HELP_STRING([--with-quotas],[Support .ftpquota files])],
+[AS_HELP_STRING(--with-quotas,Support .ftpquota files)],
 [ if test "x$withval" = "xyes" ; then
     AC_DEFINE(QUOTAS,,[with quotas])
   fi ])
 
 AC_ARG_WITH(ftpwho,
-[AC_HELP_STRING([--with-ftpwho],[Support for pure-ftpwho])],
+[AS_HELP_STRING(--with-ftpwho,Support for pure-ftpwho)],
 [ if test "x$withval" = "xyes" ; then
     AC_DEFINE(FTPWHO,,[with ftpwho])
   fi ])
 
 AC_ARG_WITH(largefile,
-[AC_HELP_STRING([--with-largefile],[Support for files > 2 Gb (may be slower)])],
+[AS_HELP_STRING(--with-largefile,Support for files > 2 Gb (may be slower))],
 [ if test "x$withval" = "xyes" ; then
     AC_SYS_LARGEFILE
     AC_DEFINE(WITH_LARGE_FILES,,[with largefile])
   fi ])
 
 AC_ARG_WITH(welcomemsg,
-[AC_HELP_STRING([--with-welcomemsg],[Support welcome.msg backward compatibility (deprecated)])],
+[AS_HELP_STRING(--with-welcomemsg,Support welcome.msg backward compatibility (deprecated))],
 [ if test "x$withval" = "xyes" ; then
       AC_DEFINE(WITH_WELCOME_MSG,,[with welcomemsg])
   fi ])
 
 AC_ARG_WITH(uploadscript,
-[AC_HELP_STRING([--with-uploadscript],[Allow running an external script after an upload (experimental)])],
+[AS_HELP_STRING(--with-uploadscript,Allow running an external script after an upload (experimental))],
 [ if test "x$withval" = "xyes" ; then
       AC_DEFINE(WITH_UPLOAD_SCRIPT,,[with uploadscript])
   fi ])
 
 AC_ARG_WITH(virtualhosts,
-[AC_HELP_STRING([--with-virtualhosts],[Handle virtual servers on different IP addresses])],
+[AS_HELP_STRING(--with-virtualhosts,Handle virtual servers on different IP addresses)],
 [ if test "x$withval" = "xyes" ; then
       AC_DEFINE(WITH_VIRTUAL_HOSTS,,[with virtualhosts])
   fi ])
 
 AC_ARG_WITH(virtualchroot,
-[AC_HELP_STRING([--with-virtualchroot],[Enable the ability to follow symlinks outside a chroot jail])],
+[AS_HELP_STRING(--with-virtualchroot,Enable the ability to follow symlinks outside a chroot jail)],
 [ if test "x$withval" = "xyes" ; then
       AC_DEFINE(WITH_VIRTUAL_CHROOT,,[with virtual chroot])
   fi ])
 
 AC_ARG_WITH(diraliases,
-[AC_HELP_STRING([--with-diraliases],[Enable directory aliases])],
+[AS_HELP_STRING(--with-diraliases,Enable directory aliases)],
 [ if test "x$withval" = "xyes" ; then
       AC_DEFINE(WITH_DIRALIASES,,[with directory aliases])
   fi ])
 
 AC_ARG_WITH(nonroot,
-[AC_HELP_STRING([--with-nonroot],[Non-root FTP])],
+[AS_HELP_STRING(--with-nonroot,Non-root FTP)],
 [ if test "x$withval" = "xyes" ; then
       AC_DEFINE(NON_ROOT_FTP,,[with nonroot])
       AC_DEFINE(WITH_VIRTUAL_CHROOT)
@@ -753,20 +724,20 @@ AC_ARG_WITH(nonroot,
   fi ])
 
 AC_ARG_WITH(peruserlimits,
-[AC_HELP_STRING([--with-peruserlimits],[Support per-user concurrency limits])],
+[AS_HELP_STRING(--with-peruserlimits,Support per-user concurrency limits)],
 [ if test "x$withval" = "xyes" ; then
       AC_DEFINE(PER_USER_LIMITS,,[with per-user limits])
       AC_DEFINE(FTPWHO)
   fi ])
 
 AC_ARG_WITH(debug,
-[AC_HELP_STRING([--with-debug],[For maintainers only - please do not use])],
+[AS_HELP_STRING(--with-debug,For maintainers only - please do not use)],
 [ if test "x$withval" = "xyes" ; then
     CFLAGS="$CFLAGS -DDEBUG=1 -g -Wall -W -Wcast-align -Wbad-function-cast -Wstrict-prototypes -Wwrite-strings -Wreturn-type "
   fi ])
 
 AC_ARG_WITH(everything,
-[AC_HELP_STRING([--with-everything],[Build a big server with almost everything])],
+[AS_HELP_STRING(--with-everything,Build a big server with almost everything)],
 [ if test "x$withval" = "xyes" ; then
     AC_DEFINE(WITH_ALTLOG)
     AC_DEFINE(COOKIE)
@@ -780,13 +751,15 @@ AC_ARG_WITH(everything,
     AC_DEFINE(FTPWHO)
     AC_DEFINE(WITH_DIRALIASES)
     AC_DEFINE(PER_USER_LIMITS)
+    with_rendezvous='yes'
   fi ])
 
 AC_ARG_WITH(language,
-[AC_HELP_STRING([--with-language=],[< english | german | romanian | french |
+[AS_HELP_STRING(--with-language=,< english | german | romanian | french |
 french-funny | polish | spanish | danish | dutch | italian |
 brazilian-portuguese | slovak | korean | swedish | norwegian | russian |
-traditional-chinese | simplified-chinese | czech | turkish >])],
+traditional-chinese | simplified-chinese | czech | turkish | hungarian |
+catalan>)],
 [ if test "x$withval" = "xenglish" ; then
     AC_DEFINE(MESSAGES_EN,,[english])
   elif test "x$withval" = "xgerman" ; then
@@ -827,6 +800,10 @@ traditional-chinese | simplified-chinese | czech | turkish >])],
     AC_DEFINE(MESSAGES_CS_CZ,,[czech])
   elif test "x$withval" = "xturkish" ; then
     AC_DEFINE(MESSAGES_TR,,[turkish])
+  elif test "x$withval" = "xhungarian" ; then
+    AC_DEFINE(MESSAGES_HU,,[hungarian])
+  elif test "x$withval" = "xcatalan" ; then
+    AC_DEFINE(MESSAGES_CA_ES,,[catalan])
   else 
     AC_MSG_WARN(--with-language=$withval is not recognized)
   fi ])
@@ -857,9 +834,10 @@ AC_CHECK_FUNCS(setusershell setgroups snprintf vsnprintf vfprintf gethostname)
 AC_CHECK_FUNCS(setlocale)
 AC_CHECK_FUNCS(utime utimes mknod mkfifo)
 AC_CHECK_FUNCS(random srandomdev)
+AC_CHECK_FUNCS(closefrom)
 
 AC_MSG_CHECKING([whether statvfs64() is defined])
-AC_TRY_COMPILE([
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <stdio.h>
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
@@ -868,25 +846,22 @@ AC_TRY_COMPILE([
 #ifdef HAVE_SYS_STATVFS_H
 # include <sys/statvfs.h>
 #endif
-],
-[
+]], [[
 for (;;) {
  struct statvfs64 a;
  if (statvfs64(".", &a) == 0 || a.f_bsize != 0) {
    break;
  }
 } 
-],
-[
+]])],[
   AC_MSG_RESULT(yes)
   AC_DEFINE(HAVE_STATVFS64,,[define if you have statvfs64])
-],
-[
+],[
   AC_MSG_RESULT(no)
 ])  
 
 AC_MSG_CHECKING(whether snprintf is C99 conformant)
-AC_TRY_RUN([
+AC_RUN_IFELSE([AC_LANG_SOURCE([[
 #include <stdio.h>
 #ifdef STDC_HEADERS
 # include <stdlib.h>
@@ -908,9 +883,8 @@ int main(void)
         (int) snprintf(buf, sizeof buf, "12345678"));
     return 0;
 }
-],
-CONF_SNPRINTF_TYPE=`cat conftestval`
-)
+]])],[CONF_SNPRINTF_TYPE=`cat conftestval`
+],[],[])
 AC_MSG_RESULT(done)
 if test "x$CONF_SNPRINTF_TYPE" = "x" ; then
   AC_MSG_WARN(your operating system doesn't implement snprintf)
@@ -920,7 +894,7 @@ fi
 
 
 AC_MSG_CHECKING(whether getgroups 0 is sane)
-AC_TRY_RUN([
+AC_RUN_IFELSE([AC_LANG_SOURCE([[
 #include <stdio.h>
 #ifdef STDC_HEADERS
 # include <stdlib.h>
@@ -938,16 +912,14 @@ int main(void)
 {
     return getgroups(0, NULL) <= 0;
 }
-],
-[
+]])],[
 AC_MSG_RESULT(yes)
 AC_DEFINE(SAFE_GETGROUPS_0,,[Define is getgroups(0, NULL) works on your system])
-],
-AC_MSG_RESULT(no)
-)
+],[AC_MSG_RESULT(no)
+],[])
 
 AC_MSG_CHECKING(whether realpath likes unreadable directories)
-AC_TRY_RUN([
+AC_RUN_IFELSE([AC_LANG_SOURCE([[
 #include <stdio.h>
 #ifdef STDC_HEADERS
 # include <stdlib.h>
@@ -999,18 +971,16 @@ int main(void)
     
     return 0;    
 }
-],
-[
+]])],[
 AC_MSG_RESULT(yes)
 AC_DEFINE(REALPATH_IGNORES_UNREADABLE_DIRECTORIES,,
 [Define if realpath() works on unreadable directories])
-],
-AC_MSG_RESULT(no)
+],[AC_MSG_RESULT(no)
 AC_DEFINE(USE_BUILTIN_REALPATH)
-)
+],[])
 
 AC_MSG_CHECKING(whether you already have a standard MD5 implementation)
-AC_TRY_RUN([
+AC_RUN_IFELSE([AC_LANG_SOURCE([[
 #include <stdio.h>
 #include <stdio.h>
 #include <string.h>
@@ -1029,17 +999,15 @@ int main(void)
 
     return strcasecmp(b, "098f6bcd4621d373cade4e832627b4f6");
 }
-],
-[
+]])],[
 AC_MSG_RESULT(yes)
 AC_DEFINE(USE_SYSTEM_CRYPT_MD5,,[Define if you already have standard
 MD5 functions])
-],
-AC_MSG_RESULT(no)
-)
+],[AC_MSG_RESULT(no)
+],[])
 
 AC_MSG_CHECKING(whether you already have a standard SHA1 implementation)
-AC_TRY_RUN([
+AC_RUN_IFELSE([AC_LANG_SOURCE([[
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
@@ -1057,14 +1025,12 @@ int main(void)
     
     return strcasecmp(b, "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3");
 }
-],
-[
+]])],[
 AC_MSG_RESULT(yes)
 AC_DEFINE(USE_SYSTEM_CRYPT_SHA1,,[Define if you already have standard
 SHA1 functions])
-],
-AC_MSG_RESULT(no)
-)
+],[AC_MSG_RESULT(no)
+],[])
 
 AC_MSG_CHECKING([whether we are inside a Virtuozzo virtual host])
 if test -d /proc/vz; then
@@ -1076,7 +1042,7 @@ else
 fi
 
 AC_MSG_CHECKING(default TCP send buffer size)
-AC_TRY_RUN([
+AC_RUN_IFELSE([AC_LANG_SOURCE([[
 #include <stdio.h>
 #ifdef STDC_HEADERS
 # include <stdlib.h>
@@ -1101,16 +1067,13 @@ int main(void)
         fprintf (fopen("conftestval", "w"), "%d\n", val);
     return 0;
 }
-],
-CONF_TCP_SO_SNDBUF=`cat conftestval`,
-CONF_TCP_SO_SNDBUF=65536,
-CONF_TCP_SO_SNDBUF=65536)
+]])],[CONF_TCP_SO_SNDBUF=`cat conftestval`],[CONF_TCP_SO_SNDBUF=65536],[CONF_TCP_SO_SNDBUF=65536])
 AC_MSG_RESULT($CONF_TCP_SO_SNDBUF)
 
 AC_DEFINE_UNQUOTED(CONF_TCP_SO_SNDBUF, $CONF_TCP_SO_SNDBUF, [default TCP send buffer])
 
 AC_MSG_CHECKING(default TCP receive buffer size)
-AC_TRY_RUN([
+AC_RUN_IFELSE([AC_LANG_SOURCE([[
 #include <stdio.h>
 #ifdef STDC_HEADERS
 # include <stdlib.h>
@@ -1135,17 +1098,14 @@ int main(void)
         fprintf (fopen("conftestval", "w"), "%d\n", val);
     return 0;
 }
-],
-CONF_TCP_SO_RCVBUF=`cat conftestval`,
-CONF_TCP_SO_RCVBUF=65536,
-CONF_TCP_SO_RCVBUF=65536)
+]])],[CONF_TCP_SO_RCVBUF=`cat conftestval`],[CONF_TCP_SO_RCVBUF=65536],[CONF_TCP_SO_RCVBUF=65536])
 AC_MSG_RESULT($CONF_TCP_SO_RCVBUF)
 
 AC_DEFINE_UNQUOTED(CONF_TCP_SO_RCVBUF, $CONF_TCP_SO_RCVBUF, [defaut TCP receive buffer])
 
 
 AC_ARG_WITH(ldap,
-[AC_HELP_STRING([--with-ldap],[Users database is an LDAP directory (see doc)])],
+[AS_HELP_STRING(--with-ldap,Users database is an LDAP directory (see doc))],
 [ if test "x$withval" != "xno" ; then
     if test "x$withval" != "x" && test "x$withval" != "xyes" ; then
       LD_RUN_PATH="${withval}/lib${LD_RUN_PATH:+:}${LD_RUN_PATH}"
@@ -1170,7 +1130,7 @@ AC_ARG_WITH(ldap,
 AC_SUBST(LDAP_SSL_LIBS)
 
 AC_ARG_WITH(mysql,
-[AC_HELP_STRING([--with-mysql],[Users database is a MySQL database (see doc)])],
+[AS_HELP_STRING(--with-mysql,Users database is a MySQL database (see doc))],
 [ if test "x$withval" != "xno" ; then
     if test "x$withval" != "x" && test "x$withval" != "xyes" ; then
       LD_RUN_PATH="${withval}/lib${LD_RUN_PATH:+:}${LD_RUN_PATH}"    
@@ -1188,7 +1148,7 @@ AC_ARG_WITH(mysql,
     AC_CHECK_LIB(mysqlclient, mysql_init, ,
       [AC_MSG_ERROR(libmysqlclient is needed for MySQL support)])
     AC_MSG_CHECKING(whether mysql clients can run)
-    AC_TRY_RUN([
+    AC_RUN_IFELSE([AC_LANG_SOURCE([[
       #include <stdio.h>
       #include <mysql.h>    
       int main(void)
@@ -1196,18 +1156,17 @@ AC_ARG_WITH(mysql,
           MYSQL *a = mysql_init(NULL);
           return 0;
       }
-      ], , 
-      [
+      ]])],[],[
         AC_MSG_RESULT(no)
         AC_MSG_ERROR(Your MySQL client libraries aren't properly installed)
-      ]
-    )
+      
+    ],[])
     AC_MSG_RESULT(yes)
     AC_CHECK_FUNCS(mysql_real_escape_string)
   fi ])
 
 AC_ARG_WITH(pgsql,
-[AC_HELP_STRING([--with-pgsql],[Users database is a PostgreSQL database (see doc)])],
+[AS_HELP_STRING(--with-pgsql,Users database is a PostgreSQL database (see doc))],
 [ if test "x$withval" != "xno" ; then
     if test "x$withval" != "x" && test "x$withval" != "xyes" ; then
       LD_RUN_PATH="${withval}/lib${LD_RUN_PATH:+:}${LD_RUN_PATH}"    
@@ -1225,7 +1184,7 @@ AC_ARG_WITH(pgsql,
     AC_CHECK_LIB(pq, PQconnectdb, ,
       [AC_MSG_ERROR(libpq is needed for PostgreSQL support)])        
     AC_MSG_CHECKING(whether postgresql clients can run)
-    AC_TRY_RUN([
+    AC_RUN_IFELSE([AC_LANG_SOURCE([[
       #include <stdio.h>
       #include <libpq-fe.h>
       int main(void)
@@ -1233,17 +1192,16 @@ AC_ARG_WITH(pgsql,
           PGconn *a = PQconnectdb("");
           return 0;
       }
-      ], , 
-      [
+      ]])],[],[
         AC_MSG_RESULT(no)
         AC_MSG_ERROR(Your PostgreSQL client libraries aren't properly installed)
-      ]
-    )    
+      
+    ],[])    
     AC_MSG_RESULT(yes)
   fi ])
 
 AC_ARG_WITH(privsep,
-[AC_HELP_STRING([--with-privsep],[Enable privilege separation])],
+[AS_HELP_STRING(--with-privsep,Enable privilege separation)],
 [ if test "x$withval" = "xyes" ; then
     AC_DEFINE(WITH_PRIVSEP,,[enable privilege separation])
     with_privsep=yes
@@ -1254,7 +1212,7 @@ if test "x$with_privsep" = "xyes" && test "x$non_root_ftp" = "xyes" ; then
 fi
 
 AC_ARG_WITH(tls,
-[AC_HELP_STRING([--with-tls],[Enable SSL/TLS support (experimental, needs OpenSSL)])],
+[AS_HELP_STRING(--with-tls,Enable SSL/TLS support (experimental, needs OpenSSL))],
 [ if test "x$withval" = "xyes" ; then
     with_tls="yes"
   fi ])
@@ -1269,7 +1227,7 @@ if test "x$with_tls" = "xyes" ; then
 fi
 
 AC_ARG_WITH(certfile,
-[AC_HELP_STRING([--with-certfile=],[certificate file (default: /etc/ssl/private/pure-ftpd.pem)])],
+[AS_HELP_STRING(--with-certfile=,certificate file (default: /etc/ssl/private/pure-ftpd.pem))],
 [ if test "x$withval" != "x" ; then
     certfile="$withval"
     AC_SUBST(certfile)
@@ -1278,6 +1236,21 @@ AC_ARG_WITH(certfile,
       AC_MSG_WARN(No certificate is installed in $certfile yet)
     fi
   fi ])
+  
+AC_ARG_WITH(rendezvous,
+[AS_HELP_STRING(--with-rendezvous,Enable Rendezvous support on MacOS X (experimental))],
+[ if test "x$withval" = "xyes" ; then
+    with_rendezvous="yes"
+  fi ])
+
+if test "x$with_rendezvous" = "xyes" ; then
+  if test "x$ac_cv_header_CoreFoundation_CoreFoundation_h" = "xyes" ; then
+    AC_DEFINE(WITH_OSX_RENDEZVOUS,,[Enable Rendezvous on MacOS X])
+    RENDEZVOUS_LDADD='-framework CoreFoundation -framework CoreServices'
+  fi
+fi
+
+AC_SUBST(RENDEZVOUS_LDADD)
 
 if test "x$sysconfdir" = 'xNONE' || test "x$sysconfdir" = 'x'; then
   CONFDIR='/etc'

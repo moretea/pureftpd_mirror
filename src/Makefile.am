@@ -15,7 +15,8 @@ noinst_PROGRAMS = \
 	ptracetest
 
 pure_ftpd_LDADD = \
-	../puredb/src/libpuredb_read.a @LDAP_SSL_LIBS@ @GETLOADAVG_LIBS@
+	../puredb/src/libpuredb_read.a \
+	@LDAP_SSL_LIBS@ @GETLOADAVG_LIBS@ @RENDEZVOUS_LDADD@
 
 pure_ftpd_CFLAGS = -DINCLUDE_IO_WRAPPERS=1
 
@@ -71,6 +72,7 @@ pure_ftpd_SOURCES = \
 	messages_es.h \
 	messages_fr.h \
 	messages_fr_funny.h \
+	messages_hu.h \
 	messages_it.h \
 	messages_kr.h \
 	messages_nl.h \
@@ -115,7 +117,9 @@ pure_ftpd_SOURCES = \
 	privsep_p.h \
 	privsep.c \
 	tls.h \
-	tls.c
+	tls.c \
+	osx-extensions.h \
+	osx-extensions.c
 
 pure_mrtginfo_CFLAGS = -DIN_PURE_MRTGINFO=1
 

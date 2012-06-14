@@ -51,6 +51,7 @@ static const char *standalone_port = DEFAULT_FTP_PORT_S;
 static const char *standalone_ip;
 static volatile unsigned int nb_children;
 static volatile int listenfd = -1;
+static volatile int listenfd6 = -1;
 #endif
 
 struct reply {
@@ -59,7 +60,7 @@ struct reply {
 };
 
 static const char *GETOPT_OPTIONS =
-    "014Aa:bc:"
+    "0146Aa:bc:"
 #ifndef NO_STANDALONE
     "BC:"
 #endif
@@ -92,6 +93,9 @@ static const char *GETOPT_OPTIONS =
     "t:T:"
 #endif
     "u:U:V:wWxX"
+#ifdef WITH_OSX_RENDEZVOUS
+    "v:"
+#endif
 #ifdef PER_USER_LIMITS
     "y:"
 #endif
@@ -105,6 +109,7 @@ static struct option long_options[] = {
     { "notruncate", 0, NULL, '0' },    
     { "logpid", 0, NULL, '1' },
     { "ipv4only", 0, NULL, '4' },
+    { "ipv6only", 0, NULL, '6' },    
     { "chrooteveryone", 0, NULL, 'A' },
     { "trustedgid", 1, NULL, 'a' },
     { "brokenclientscompatibility", 0, NULL, 'b' },
@@ -163,6 +168,9 @@ static struct option long_options[] = {
     { "umask", 1, NULL, 'U' },
     { "minuid", 1, NULL, 'u' },
     { "trustedip", 1, NULL, 'V' },
+#ifdef WITH_OSX_RENDEZVOUS
+    { "rendezvous", 1, NULL, 'v' },
+#endif
     { "allowuserfxp", 0, NULL, 'w' },
     { "allowanonymousfxp", 0, NULL, 'W' },
     { "prohibitdotfileswrite", 0, NULL, 'x' },
@@ -185,6 +193,7 @@ static const AltLogPrefixes altlogprefixes[] = {
     { "clf", ALTLOG_CLF },
     { "stats", ALTLOG_STATS },
     { "w3c", ALTLOG_W3C },
+    { "xferlog", ALTLOG_XFERLOG },
     { NULL, ALTLOG_NONE }
 };
 

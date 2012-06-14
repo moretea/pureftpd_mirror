@@ -1,6 +1,6 @@
 
 /* LDAP posixAccount handler for Pure-FTPd */
-/* (C)opyleft 2001-2003 by Frank DENIS <j@pureftpd.org> */
+/* (C)opyleft 2001-2004 by Frank DENIS <j@pureftpd.org> */
 
 #ifndef __LOG_LDAP_P_H__
 #define __LOG_LDAP_P_H__ 1

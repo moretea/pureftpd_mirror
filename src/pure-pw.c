@@ -169,7 +169,7 @@ static void help(void)
          "                [-q <upload ratio>] [-Q <download ratio>]\n"
          "                [-r <allow client ip>/<mask>] [-R <deny client ip>/<mask>]\n"
          "                [-i <allow local ip>/<mask>] [-I <deny local ip>/<mask>]\n"
-	 "                [-y <max number of concurrent sessions>]\n"
+     "                [-y <max number of concurrent sessions>]\n"
          "                [-z <hhmm>-<hhmm>] [-m]\n"
          "\n"
          "pure-pw usermod <login> -f <passwd file> -u <uid> [-g <gid>]\n"
@@ -179,7 +179,7 @@ static void help(void)
          "                [-q <upload ratio>] [-Q <download ratio>]\n"
          "                [-r <allow client ip>/<mask>] [-R <deny client ip>/<mask>]\n"
          "                [-i <allow local ip>/<mask>] [-I <deny local ip>/<mask>]\n"
-	 "                [-y <max number of concurrent sessions>]\n"	 
+     "                [-y <max number of concurrent sessions>]\n"     
          "                [-z <hhmm>-<hhmm>] [-m]\n"
          "\n"
          "pure-pw userdel <login> [-f <passwd file>] [-m]\n"
@@ -194,7 +194,7 @@ static void help(void)
          "\n"
          "-d <home directory> : chroot user (recommended)\n"
          "-D <home directory> : don't chroot user\n"
-	 "-<option> '' : set this option to unlimited\n"
+     "-<option> '' : set this option to unlimited\n"
          "-m : also update the " DEFAULT_PW_DB " database\n"
          "For a 1:10 ratio, use -q 1 -Q 10\n"
          "To allow access only between 9 am and 6 pm, use -z 0900-1800\n"
@@ -432,7 +432,7 @@ static int parse_pw_line(char *line, PWInfo * const pwinfo)
         return 0;
     }
     if (*line != 0) {
-	pwinfo->per_user_max = (unsigned int) strtoul(line, NULL, 10);
+    pwinfo->per_user_max = (unsigned int) strtoul(line, NULL, 10);
         if (pwinfo->per_user_max > 0U) {
             pwinfo->has_per_user_max = 1;
         }
@@ -639,9 +639,9 @@ static int add_new_pw_line(FILE * const fp2, const PWInfo * const pwinfo)
         return -1;
     }
     if (pwinfo->has_per_user_max != 0) {
-	if (fprintf(fp2, "%u", pwinfo->per_user_max) < 0) {
-	    return -1;
-	}
+    if (fprintf(fp2, "%u", pwinfo->per_user_max) < 0) {
+        return -1;
+    }
     }
     if (fprintf(fp2, PW_LINE_SEP) < 0) {    
         return -1;
@@ -1113,7 +1113,7 @@ static int do_show(const char * const file, const PWInfo * const pwinfo)
            "Allowed client IPs : %s\n"
            "Denied  client IPs : %s\n"           
            "Time restrictions  : %04u-%04u (%s)\n"
-	   "Max sim sessions   : %u (%s)\n"
+       "Max sim sessions   : %u (%s)\n"
            "\n",
            fetched_info.login,
            fetched_info.pwd,
@@ -1140,7 +1140,7 @@ static int do_show(const char * const file, const PWInfo * const pwinfo)
            SHOW_IFEN(fetched_info.has_time, fetched_info.time_begin),
            SHOW_IFEN(fetched_info.has_time, fetched_info.time_end),
            SHOW_STATE(fetched_info.has_time),
-	   SHOW_IFEN(fetched_info.has_per_user_max, fetched_info.per_user_max),
+       SHOW_IFEN(fetched_info.has_per_user_max, fetched_info.per_user_max),
            SHOW_STATE(fetched_info.per_user_max));
     
     return 0;
@@ -1251,11 +1251,10 @@ static void init_zrand(void)
     gettimeofday(&tv, &tz);
 #ifdef HAVE_SRANDOMDEV
     srandomdev();
-#endif    
-#ifdef HAVE_RANDOM
-    srandom((unsigned int) (tv.tv_sec ^ tv.tv_usec));
+#elif defined(HAVE_RANDOM)
+    srandom((unsigned int) (tv.tv_sec ^ tv.tv_usec ^ (getpid() << 16)));
 #else
-    srand((unsigned int) (tv.tv_sec ^ tv.tv_usec));
+    srand((unsigned int) (tv.tv_sec ^ tv.tv_usec ^ (getpid() << 16)));
 #endif
 }
 
@@ -1500,14 +1499,14 @@ int main(int argc, char *argv[])
             }
             break;
         }
-	case 'y' : {
-	    if ((pwinfo.per_user_max = (unsigned int) strtoul(optarg, NULL, 10)) <= 0U) {
+    case 'y' : {
+        if ((pwinfo.per_user_max = (unsigned int) strtoul(optarg, NULL, 10)) <= 0U) {
                 pwinfo.has_per_user_max = -1;
             } else {
                 pwinfo.has_per_user_max = 1;
             }
-	    break;
-	}
+        break;
+    }
         case 'z' : {
             if (sscanf(optarg, "%u-%u", 
                        &pwinfo.time_begin, &pwinfo.time_end) == 2 &&

@@ -1,15 +1,15 @@
 .\"
 .\" Troll-FTPd is Copyright 1995-2000 Trolltech AS, and Copyright 2001-2002 Arnt Gulbrandsen.
-.\" Pure-FTPd is (C)opyleft 2001-2003 by Frank DENIS <j@pureftpd.org> and the Pure-FTPd team.
+.\" Pure-FTPd is (C)opyleft 2001-2004 by Frank DENIS <j@pureftpd.org> and the Pure-FTPd team.
 .\"
 .\" Use, modification and distribution is allowed without limitation, warranty, or liability of any kind.
 .\"
-.TH "pure-ftpd" "8" "1.0.17" "Pure-FTPd Team" "Pure-FTPd"
+.TH "pure-ftpd" "8" "1.0.18" "Pure-FTPd Team" "Pure-FTPd"
 .SH "NAME"
 pure\-ftpd \- simple File Transfer Protocol server
 
 .SH "SYNOPSIS"
-.B pure\-ftpd [\-0] [\-1] [\-4] [\-a gid] [\-A] [\-b] [\-B] [\-c clients] [\-C cnx/ip] [\-d [\-d]] [\-D] [\-e] [\-E] [\-f facility] [\-F fortunes file] [\-g pidfile] [\-G] [\-H] [\-i] [\-I] [\-j] [\-k percentage] [\-K] [\-l authentication[:config file]] [\-L max files:max depth] [\-m maxload] [\-M] [\-n maxfiles:maxsize] [\-N] [\-o] [\-O format:log file] [\-p first:last] [\-P ip address or host name] [\-q upload:download ratio] [\-Q upload:download ratio] [\-r] [\-R] [\-s] [\-S [address,][port]] [\-t upload bandwidth:download bandwidth] [\-T upload bandwidth:download bandwidth] [\-u uid] [\-U umask files:umask dirs] [\-V ip address] [\-w] [\-W] [\-x] [\-X] [\-y max user sessions:max anon sessions] [\-Y tls behavior] [\-z] [\-Z]
+.B pure\-ftpd [\-0] [\-1] [\-4] [\-6] [\-a gid] [\-A] [\-b] [\-B] [\-c clients] [\-C cnx/ip] [\-d [\-d]] [\-D] [\-e] [\-E] [\-f facility] [\-F fortunes file] [\-g pidfile] [\-G] [\-H] [\-i] [\-I] [\-j] [\-k percentage] [\-K] [\-l authentication[:config file]] [\-L max files:max depth] [\-m maxload] [\-M] [\-n maxfiles:maxsize] [\-N] [\-o] [\-O format:log file] [\-p first:last] [\-P ip address or host name] [\-q upload:download ratio] [\-Q upload:download ratio] [\-r] [\-R] [\-s] [\-S [address,][port]] [\-t upload bandwidth:download bandwidth] [\-T upload bandwidth:download bandwidth] [\-u uid] [\-U umask files:umask dirs] [\-v rendezvous name] [\-V ip address] [\-w] [\-W] [\-x] [\-X] [\-y max user sessions:max anon sessions] [\-Y tls behavior] [\-z] [\-Z]
 
 .br
 Alternative style :
@@ -19,6 +19,8 @@ Alternative style :
 \-1 \-\-logpid
 .br
 \-4 \-\-ipv4only
+.br
+\-6 \-\-ipv6only
 .br
 \-a \-\-trustedgid
 .br
@@ -102,6 +104,8 @@ Alternative style :
 .br
 \-U \-\-umask
 .br
+\-v \-\-rendezvous
+.br
 \-V \-\-trustedip
 .br
 \-w \-\-allowuserfxp
@@ -148,8 +152,10 @@ Add the PID to the syslog output. Ignored if
 is set.
 .TP
 .B \-4
-Listen only for IPv4 connections. MANDATORY FOR IPv4 NETWORKS ON
-OPENBSD, NETBSD, MICROBSD and FREEBSD 5.
+Listen only to IPv4 connections.
+.TP
+.B \-6
+Listen only to IPv6 connections.
 .TP
 .B \-a gid
 Regular users will be chrooted to their home directories, unless
@@ -360,7 +366,7 @@ Enable
 .B \-O format:log file
 Record all file transfers into a specific log
 file, in an alternative format. Currently, three formats are supported : CLF,
-Stats and W3C.
+Stats, W3C and xferlog.
 .br
 If you add
 .br
@@ -482,6 +488,9 @@ readable -but not writable- by other users) and 022 (same thing for directory, w
 If new files should only be readable by the user, use 177:077. If you want uploaded files to be executable,
 use 022:022 (files will be readable by other people) or 077:077 (files will only be
 readable by their owner).
+.TP
+.B \-v rendezvous name
+Set the Rendezvous name of the service (only available on MacOS X when Rendezvous support is compiled in).
 .TP
 .B \-V ip address
 Allow non-anonymous FTP access only on this specific
@@ -904,7 +913,7 @@ Troll\-FTPd was written by Arnt Gulbrandsen <agulbra@troll.no> and copyright 199
 Troll Tech AS, Waldemar Thranes gate 98B, N\-0175 Oslo, Norway, fax +47
 22806380.
 .PP
-Pure\-FTPd is (C)opyleft 2001\-2003 by Frank DENIS <j@pureftpd.org> and
+Pure\-FTPd is (C)opyleft 2001\-2004 by Frank DENIS <j@pureftpd.org> and
 the Pure\-FTPd team.
 .PP
 This software is covered by the BSD license.
@@ -978,7 +987,11 @@ Contributors:
  Aristoteles Pagaltzis,
  Stefan Hornburg,
  Mehmet Cokcevik,
- Brynjar Eide.
+ Brynjar Eide,
+ Torgnt Wernersson,
+ Banhalmi Csaba,
+ Volodin D,
+ Oriol Magrané. 
 
 .SH "SEE ALSO"
 .BR "ftp(1)" ,

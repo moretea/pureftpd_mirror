@@ -241,12 +241,6 @@ tab and :
   SSL/TLS is automatically detected and works out of the box.
 
 
-* Transmit (MacOS X)
-  http://www.panic.com/transmit/index.html
-  
-  SSL/TLS was reported to properly work with Pure-FTPd.
-
-
 The following clients are _not_ compatible with Pure-FTPd's TLS :
 
 * WS_FTP Pro 8

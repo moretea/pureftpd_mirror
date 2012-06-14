@@ -61,11 +61,11 @@ int init_aliases(void)
     char dir[MAXPATHLEN + 1U];
 
     if ((fp = fopen(ALIASES_FILE, "r")) == NULL) {
-	return 0;
+    return 0;
     }
     while (fgets(alias, sizeof alias, fp) != NULL) {
-	if (*alias == '#' || *alias == '\n' || *alias == 0) {
-	    continue;
+    if (*alias == '#' || *alias == '\n' || *alias == 0) {
+        continue;
         }
         {
             register char * const z = alias + strlen(alias) - 1U;
@@ -87,24 +87,24 @@ int init_aliases(void)
                 }
             }
         } while (*dir == '#' || *dir == 0);
-	if (head == NULL) {
-	    if ((head = tail = malloc(sizeof *head)) == NULL ||
+    if (head == NULL) {
+        if ((head = tail = malloc(sizeof *head)) == NULL ||
                 (tail->alias = strdup(alias)) == NULL ||
                 (tail->dir = strdup(dir)) == NULL) {
-		die_mem();
+        die_mem();
             }
-	    tail->next = NULL;
-	} else {
-	    DirAlias *curr;
+        tail->next = NULL;
+    } else {
+        DirAlias *curr;
 
-	    if ((curr = malloc(sizeof *curr)) == NULL ||
+        if ((curr = malloc(sizeof *curr)) == NULL ||
                 (curr->alias = strdup(alias)) == NULL ||
                 (curr->dir = strdup(dir)) == NULL) {
-		die_mem();
+        die_mem();
             }
-	    tail->next = curr;
-	    tail = curr;
-	}
+        tail->next = curr;
+        tail = curr;
+    }
     }
     fclose(fp);
     aliases_up++;
@@ -123,13 +123,13 @@ char *lookup_alias(const char *alias)
     register const DirAlias *curr = head;
 
     if (aliases_up == 0) {
-	return NULL;
+    return NULL;
     }
     while (curr != NULL) {
-	if (strcmp(curr->alias, alias) == 0) {
-	    return curr->dir;
-	}
-	curr = curr->next;
+    if (strcmp(curr->alias, alias) == 0) {
+        return curr->dir;
+    }
+    curr = curr->next;
     }
     return NULL;
 }
@@ -140,18 +140,18 @@ void print_aliases(void)
     register const DirAlias *curr = head;
 
     if (aliases_up == 0) {
-	addreply_noformat(502, MSG_CONF_ERR);
+    addreply_noformat(502, MSG_CONF_ERR);
         
-	return;
+    return;
     }
     addreply_noformat(214, MSG_ALIASES_LIST);
     while (curr != NULL) {
-	char line[MAXALIASLEN + MAXPATHLEN + 3U];
+    char line[MAXALIASLEN + MAXPATHLEN + 3U];
 
-	snprintf(line, sizeof line,
+    snprintf(line, sizeof line,
                  " %s %s", curr->alias, curr->dir);
-	addreply_noformat(0, line);
-	curr = curr->next;
+    addreply_noformat(0, line);
+    curr = curr->next;
     }
     addreply_noformat(214, " ");
 }

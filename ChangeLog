@@ -1,4 +1,35 @@
 
+* Version 1.0.18:
+    Autoconf was bumped to 2.59, automake to 1.8.
+    The sample source code in README.Authentication-Modules was bogus
+because of a missing 'echo end' statement. Thanks to Peter Ahlert
+<petera@gmx.net> for reporting this.
+    New translation : hungarian. Contributed by Bánhalmi Csaba
+<banhalmi@enternet.hu>.
+    New translation : catalan. Contributed by Oriol Magrané
+<omagrane@mediapro.es>.
+    Max CPU time was bumped to 60 min.
+    Disable hash_password() function call on MySQL 4.1.x and later.
+    We now use two listening sockets (listenfd / listenfd6), one for IPv4, one
+for IPv6. The standalone_server() function has been reworked and splitted.
+    New urlencode() function to escape characters in W3C and CLF altlog files.
+Based upon a suggestion and a patch by Volodin D.
+    The xferlog format was also implemented by the way.
+    New global : no_ipv4 to only listen to IPv6 in standalone mode.
+    Use closefrom() if available to close all descriptors.
+    Support for Rendezvous on MacOS X by Jean-Matthieu Schaffhauser.
+    Support for Apple / GNUSTEP plist data output in pure-ftpwho, also by
+Jean-Matthieu Schaffhauser.
+    The FileInfo structure was renamed PureFileInfo to avoid a name clash on
+Darwin.
+    A lot of compile-time default values like GLOB_TIMEOUT, MAX_CPU_TIME and
+MAX_USER_LENGTH, are now overridable without any change to src/ftpd.h
+    ENABLE_UNICODE_CONTROL_CHARS has been replaced with
+DISABLE_UNICODE_CONTROL_CHARS and a new switch, --without-unicode, defines
+that macro.
+    Unlink the right pid files in pure-authd and pure-uploadscript. Reported
+and fixed by Oscar Sundbon <moose@djuren.org>.
+
 * Version 1.0.17a:
     FD_SET(-1, ...) is invalid, but it could happen on aborted transfers,
 causing Pure-FTPd to exit without removing ftpwho entries nor atomic files.

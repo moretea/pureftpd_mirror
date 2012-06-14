@@ -264,20 +264,6 @@ then launch it again:
                          
 
 
-* OpenBSD, ISOS, EkkoBSD and MacOS X.
-
--> I'm trying to run Pure-FTPd on OpenBSD. The daemon is running, but I
-can't connect: nobody answers on port 21.
-
-Intentionally, OpenBSD refuses to listen for IPv4 and IPv6 connections on a
-single socket. By defaut, Pure-FTPd will only listen to IPv6 connections on
-OpenBSD. The same thing applies to recent releases of ISOS, EkkoBSD and
-MacOS X.
-To listen to IPv4 addresses, you must run pure-ftpd with the '-4' switch:
-/usr/local/sbin/pure-ftpd -4 &
-
-
-
 * FTP over SSH.
 
 -> How to run Pure-FTPd over SSH? I want to encrypt all connection data

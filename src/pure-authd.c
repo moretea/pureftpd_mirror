@@ -46,8 +46,7 @@ static int closedesc_all(const int closestdin)
     (void) dup2(1, 2);
     if (fodder > 2) {
         (void) close(fodder);
-    }
-    
+    }    
     return 0;
 }
 
@@ -62,9 +61,12 @@ static void dodaemonize(void)
         } else if (child != (pid_t) 0) {
             _exit(EXIT_SUCCESS);
         } else if (setsid() == (pid_t) -1) {
-               perror("Daemonization failed : setsid");
+            perror("Daemonization failed : setsid");
         }
         (void) chdir("/");
+#ifdef HAVE_CLOSEFROM
+        (void) closefrom(3);
+#endif
         (void) closedesc_all(1);
     }
 }
@@ -74,7 +76,7 @@ static int init(void)
 #ifndef NON_ROOT_FTP
     if (geteuid() != (uid_t) 0) {
         fprintf(stderr, 
-		"Sorry, but you have to be r00t to run this program\n");
+        "Sorry, but you have to be r00t to run this program\n");
         return -1;
     }
 #endif
@@ -106,7 +108,7 @@ static int parseoptions(int argc, char *argv[])
     while ((fodder =
 #ifndef NO_GETOPT_LONG
             getopt_long(argc, argv, GETOPT_OPTIONS, long_options, 
-			&option_index)
+            &option_index)
 #else
             getopt(argc, argv, GETOPT_OPTIONS)
 #endif
@@ -484,7 +486,7 @@ int main(int argc, char *argv[])
     updatepidfile();
     if (changeuidgid() < 0) {
         perror("Identity change");
-        (void) unlink(PID_FILE);
+        (void) unlink(AUTHD_PID_FILE);
         return -1;
     }
 #ifdef SIGPIPE
@@ -494,7 +496,7 @@ int main(int argc, char *argv[])
     signal(SIGCHLD, SIG_DFL);
 #endif    
     err = listencnx();    
-    (void) unlink(PID_FILE);    
+    (void) unlink(AUTHD_PID_FILE);    
     
     return err;
 }

@@ -1,5 +1,5 @@
 
-/* (C)opyleft 2001-2003 Frank DENIS <j@pureftpd.org> */
+/* (C)opyleft 2001-2004 Frank DENIS <j@pureftpd.org> */
 
 #include <config.h>
 
@@ -134,7 +134,7 @@ int puredb_open(PureDB * const db, const char *dbfile)
                 CloseHandle(fmh);
             }
         }
-    }	
+    }    
 #endif    
     if (read_memcmp(db, (puredb_u32_t) 0U, 
                     (const unsigned char *) PUREDB_VERSION, 

@@ -90,9 +90,9 @@
 #define MSG_DELE_SUCCESS "Cancellato %s"
 #define MSG_DELE_TOTAL_FAILURE "Nessun file cancellato"
 #define MSG_LOAD_TOO_HIGH \
-	"Il carico era %3.2f quando ti sei connesso. Non permettiamo downloads\n" \
-	"da parte di utenti anonimi quando il carico è così alto. Gli uploads sono sempre\n" \
-	"permessi."
+    "Il carico era %3.2f quando ti sei connesso. Non permettiamo downloads\n" \
+    "da parte di utenti anonimi quando il carico è così alto. Gli uploads sono sempre\n" \
+    "permessi."
 #define MSG_OPEN_FAILURE "Impossibile aprire %s"
 #define MSG_OPEN_FAILURE2 "Impossibile aprire quel file"
 #define MSG_STAT_FAILURE "Impossibile trovare la dimensione del file"
@@ -101,12 +101,12 @@
 #define MSG_REST_RESET "Offset di ripartenza resettato a 0"
 #define MSG_NOT_REGULAR_FILE "Posso servire solo normali files"
 #define MSG_NOT_MODERATED \
-	"Questo file è stato uploadato da un utente anonimo. Non è\n" \
-	"stato ancora approvato per il downloading dagli amministratore del sito."
+    "Questo file è stato uploadato da un utente anonimo. Non è\n" \
+    "stato ancora approvato per il downloading dagli amministratore del sito."
 #define MSG_RATIO_DENIAL \
-	"Spiacente, ma la ratio di upload/download è %u:%u .\n" \
-	"Hai uploadato %llu Kb e downloadato %llu Kb.\n" \
-	"Per favore uploada un po' di roba e prova a scaricare più tardi."
+    "Spiacente, ma la ratio di upload/download è %u:%u .\n" \
+    "Hai uploadato %llu Kb e downloadato %llu Kb.\n" \
+    "Per favore uploada un po' di roba e prova a scaricare più tardi."
 #define MSG_NO_MORE_TO_DOWNLOAD "Niente altro da downloadare"
 #define MSG_WINNER "Il computer è tuo amico. Fidati del computer"
 #define MSG_KBYTES_LEFT "%.1f kbytes da downloadare"

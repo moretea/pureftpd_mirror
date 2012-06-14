@@ -31,7 +31,7 @@ static const char *uptime(void)
         u = now - boottime.tv_sec;
         if (u > 60)
             u += 30;
-	
+    
         if (SNCHECK(snprintf(buf, sizeof buf, "%lu days, %lu:%02lu:%02lu",
                              u / 86400UL, u / 3600UL % 24UL, 
                              u / 60UL % 60UL, u % 60UL),

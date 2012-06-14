@@ -467,6 +467,101 @@ static void xml_output_footer(void)
     puts("</status>");
 }
 
+/* Apple / GNUStep plist output */
+
+static void plist_output_header(void)
+{
+    puts("<?xml version=\"1.0\" encoding=\"ISO-8859-15\"?>");
+    puts("<!DOCTYPE plist PUBLIC \"-//Apple Computer//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">");
+    puts("<plist version=\"1.0\">\n<dict>");
+    puts("\t<key>user-info</key>\n\t<array>");
+}
+
+static void plist_output_line(const pid_t pid, const char * const account,
+                              const unsigned long since,
+                              const unsigned long xfer_since,
+                              const char * const state,
+                              const char * const filename,
+                              const char * const hbuf,
+                              const char * const local_hbuf,
+                              const char * const local_port,
+                              const off_t restartat,                              
+                              const off_t total_size,
+                              const off_t current_size)
+{
+    puts("\t\t<dict>");
+    puts("\t\t\t<key>pid</key>");
+    printf("\t\t\t<string>%lu</string>\n", (unsigned long) pid);
+    puts("\t\t\t<key>account</key>");
+    printf("\t\t\t<string>%s</string>\n", xml_escaped(account));
+    puts("\t\t\t<key>time</key>");
+    printf("\t\t\t<string>%lu</string>\n", since);
+    puts("\t\t\t<key>state</key>");
+    printf("\t\t\t<string>%s</string>\n", state);
+    puts("\t\t\t<key>file</key>");
+    printf("\t\t\t<string>%s</string>\n", xml_escaped(filename));
+    puts("\t\t\t<key>host</key>");
+    printf("\t\t\t<string>%s</string>\n", xml_escaped(hbuf));
+    puts("\t\t\t<key>localhost</key>");
+    printf("\t\t\t<string>%s</string>\n", xml_escaped(local_hbuf));
+    puts("\t\t\t<key>localport</key>");
+    printf("\t\t\t<string>%s</string>\n", xml_escaped(local_port));
+    
+    if (current_size > (off_t) 0) {
+        unsigned long bandwidth;
+        long double pct;
+        int pcti;        
+        
+        if (xfer_since > 0UL && current_size > restartat) {
+            bandwidth = (unsigned long) ((current_size - restartat) / xfer_since);
+        } else {
+            bandwidth = 0UL;
+        }        
+        if ((long double) total_size > 0.0L) {
+            pct = ((long double) current_size * 100.0L) / (long double) total_size;
+            pcti = (int) (pct + 0.5L);
+            if (pcti > 100) {
+                pcti = 100;           /* should never happen */
+            }
+            puts("\t\t\t<key>resume</key>");
+            printf("\t\t\t<string>%llu</string>\n", (unsigned long long) restartat);
+            puts("\t\t\t<key>current_size</key>");
+            printf("\t\t\t<string>%llu</string>\n", (unsigned long long) current_size);
+            puts("\t\t\t<key>total_size</key>");
+            printf("\t\t\t<string>%llu</string>\n", (unsigned long long) total_size);
+            puts("\t\t\t<key>percentage</key>");
+            printf("\t\t\t<string>%d</string>\n", pcti);
+            puts("\t\t\t<key>bandwidth</key>");
+            printf("\t\t\t<string>%lu</string>\n", bandwidth);            
+        } else {
+            puts("\t\t\t<key>resume</key>");
+            printf("\t\t\t<string>%llu</string>\n", (unsigned long long) restartat);
+            puts("\t\t\t<key>current_size</key>");
+            printf("\t\t\t<string>%llu</string>\n", (unsigned long long) current_size);
+            puts("\t\t\t<key>bandwidth</key>");
+            printf("\t\t\t<string>%lu</string>\n", bandwidth);
+        }
+    } else {       
+        puts("\t\t\t<key>resume</key>");
+        puts("\t\t\t<string></string>");
+        puts("\t\t\t<key>current_size</key>");
+        puts("\t\t\t<string></string>");
+        puts("\t\t\t<key>total_size</key>");
+        puts("\t\t\t<string></string>");
+        puts("\t\t\t<key>percentage</key>");
+        puts("\t\t\t<string></string>");
+        puts("\t\t\t<key>bandwidth</key>");
+        puts("\t\t\t<string></string>");
+    }
+    puts("\t\t</dict>");
+}
+
+static void plist_output_footer(void)
+{
+    puts("\t</array>");
+    puts("</dict>\n</plist>");
+}
+
 /* Shell output */
 
 static const char *shell_escaped(const char * const s_)
@@ -579,6 +674,7 @@ static void help(void)
          "-h : help\n"
          "-H : don't resolve host names, only show IP addresses\n"
          "-n : synonym for -H\n"
+         "-p : output Apple / GNUStep plist data\n"
          "-s : easily parsable output for shell scripts\n"
          "     format is :\n"
          "     pid|acct|time|state|file|peer|local|port|current|total|%|bandwidth\n"
@@ -666,7 +762,7 @@ int main(int argc, char *argv[])
         output_line = html_output_line;            
         output_footer = html_output_footer;        
     }
-    while ((fodder = getopt(argc, argv, "CchHnsvwWx")) != -1) {
+    while ((fodder = getopt(argc, argv, "CchHnpsvwWx")) != -1) {
         switch(fodder) {
         case 'h' :
             help();
@@ -684,6 +780,11 @@ int main(int argc, char *argv[])
             output_header = html_output_header;
             output_line = html_output_line;            
             output_footer = html_output_footer;
+            break;
+        case 'p' :
+            output_header = plist_output_header;
+            output_line = plist_output_line;
+            output_footer = plist_output_footer;
             break;
         case 's' :
             output_header = shell_output_header;
@@ -857,8 +958,7 @@ int main(int argc, char *argv[])
         if (delete_file != 0) {
             unlink(entry->d_name);
         }
-    }
-    
+    }    
     output_footer();
     
     return 0;

@@ -135,6 +135,9 @@ codes that were still in recent code.
 Convinced me to finally implement atomic uploads. Joce by continuously asking
 for it, Daniel by pointing out that users could use the races to upload past
 their virtual quota when uploads and deletes are mixed.
+* Peter Ahlert <petera@gmx.net> - Reported a missing line in the
+README.Authentication-Modules sample.
+
 
 
 Mailing list-members :
@@ -233,9 +236,9 @@ hands solid like steel, ready to type billions of source code :)
 * JG <jg@cms.ac> - Reported a breakage of pure-ftpwho in version 1.0.16.
 * C. Jon Larsen <jlarsen@richweb.com> - Wrote a nice part of the FAQ about the
 STOU command.
+* Oscar Sundbon <moose@djuren.org> - Fixed pastos in pid files removal.
 
 
-In the memory of all people dead on September 11 2001, in Manhattan and in
-Pennsylvania, due to brain-damaged people thinking they can live in a better
-world by killing their fellow men.
+In the memory of all people dead because brain-damaged people think they can
+live in a better world by killing their fellow men.
 

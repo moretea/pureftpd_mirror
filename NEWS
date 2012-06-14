@@ -1,4 +1,22 @@
 
+* Version 1.0.18:
+ - A new, nice-looking PDF version of the documentation is now available from
+http://www.pureftpd.org/readme.pdf . Contributed by Torgny Wernersson.
+ - The beast now compiles and links against MySQL 4.1.x, but passwords must
+not be hashed with MySQL-specific hashing function.
+ - Buglets were fixed in the documentation.
+ - Two new translations were added : hungarian and catalan. Contributed by
+Bánhalmi Csaba and Contributed by Oriol Magrané.
+ - The server now uses distinct IPv4 and IPv6 to listen to both protocols on
+all operating systems. A new switch, -6, forces the server to only listen to
+IPv6.
+ - W3C and CLF alternative log formats are now more standard conformant.
+ - Pure-FTPd can now produce WU-FTPd (xferlog) compatible log files.
+ - Support for Rendezvous was added on MacOS X.
+ - Support for Apple / GNUStep plist data output was added to pure-ftpwho.
+ - UTF-8 characters are now supported in file names. A new switch,
+--without-unicode, can be used to filter out non-latin characters.
+
 * Version 1.0.17a:
  - An old standing issue has been fixed : ungracefully aborted transfers
 caused the session to exit without removing ftpwho entry and atomic files.
@@ -24,8 +42,8 @@ used.
 its final name only once the upload has been completed. If a file already
 exists with the same name, the content can be preserved until the new content
 has been fully transfered (using the new --notruncate run-time switch). Web
-servers will no more serve partially transfered files during uploads. The new
-handling of uploads also limits the races in virtual quota handling.
+servers will no more serve partially transfered files during uploads.
+  The new handling of uploads also limits the races in virtual quota handling.
 
 * Version 1.0.16c:
  - The PAM backend and the CGI mode were accidentally broken in version
