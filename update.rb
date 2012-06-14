@@ -68,7 +68,12 @@ private
 
   # Helper functions
   def clean_dir!
-    `find ./  ! -iregex ./update.rb ! -iregex ./README.md ! -iregex ./.git/.* -exec rm -rf {}`
+    files = Dir["./**/*"]
+    files -= ["./update.rb", "./README.md"]
+
+    files.each do |file|
+      `rm -rf #{file} 2>&1`
+    end
   end
 
   # Download, extract and clean up

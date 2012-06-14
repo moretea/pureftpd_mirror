@@ -1,0 +1,27 @@
+
+  Thanks to the great work of Jason Lunz, Debian users can now install and
+upgrade Pure-FTPd with apt-get . Intel precompiled binaries are available,
+as well as source code.
+
+  Just edit your /etc/apt/sources.conf file and add these lines :
+  
+* For Potato (stable) users :
+
+deb     http://pureftpd.sourceforge.net/debian/potato/ ./
+deb-src http://pureftpd.sourceforge.net/debian/potato/ ./
+
+* For Woody (testing) users :
+
+deb     http://pureftpd.sourceforge.net/debian/woody/ ./
+deb-src http://pureftpd.sourceforge.net/debian/sid/ ./
+
+* For Sid (unstable) users :
+
+deb     http://pureftpd.sourceforge.net/debian/sid/ ./
+deb-src http://pureftpd.sourceforge.net/debian/sid/ ./
+
+  Now, you can enjoy "apt-get install pure-ftpd",
+"apt-get upgrade pure-ftpd", and "apt-get source pure-ftpd" .
+
+  Direct comments and questions to Jason, <j@falooley.org> .
+  
