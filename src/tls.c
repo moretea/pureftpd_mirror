@@ -10,6 +10,7 @@
 # include "ftpwho-update.h"
 # include "globals.h"
 # include "messages.h"
+# include "globals.h"
 
 # ifndef DISABLE_SSL_RENEGOTIATION
 #  ifndef SSL3_FLAGS_ALLOW_UNSAFE_LEGACY_RENEGOTIATION
@@ -243,6 +244,12 @@ int tls_init_library(void)
     SSL_CTX_set_info_callback(tls_ctx, ssl_info_cb);
 # endif
     
+    if (tlsciphersuite != NULL) {
+        if (SSL_CTX_set_cipher_list(tls_ctx, tlsciphersuite) != 1) {
+            logfile(LOG_ERR, MSG_TLS_CIPHER_FAILED, tlsciphersuite);
+            _EXIT(EXIT_FAILURE);
+        }
+    }
 # ifdef REQUIRE_VALID_CLIENT_CERTIFICATE
     SSL_CTX_set_verify(tls_ctx, SSL_VERIFY_FAIL_IF_NO_PEER_CERT |
                        SSL_VERIFY_PEER | SSL_VERIFY_CLIENT_ONCE, NULL);
@@ -250,7 +257,8 @@ int tls_init_library(void)
                                       TLS_CERTIFICATE_FILE, NULL) != 1) {
         tls_error(__LINE__, 0);
     }
-# endif        
+# endif
+    
     return 0;
 }
 

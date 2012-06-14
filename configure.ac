@@ -1,7 +1,7 @@
 dnl AM_ACLOCAL_INCLUDE(m4)
 
 AC_PREREQ(2.61)
-AC_INIT([pure-ftpd],[1.0.30],[bugs at pureftpd dot org])
+AC_INIT([pure-ftpd],[1.0.31],[bugs at pureftpd dot org])
 AC_CONFIG_SRCDIR(src/ftpd.c)
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([1.9 dist-bzip2])
@@ -1216,10 +1216,10 @@ AC_ARG_WITH(mysql,
       }
       ]])],[],[
         AC_MSG_RESULT(no)
-        AC_MSG_ERROR(Your MySQL client libraries aren't properly installed)      
+        AC_MSG_ERROR(Your MySQL client libraries aren't properly installed)
     ],[])
     AC_MSG_RESULT(yes)
-    AC_CHECK_FUNCS(mysql_real_escape_string)
+    AC_CHECK_FUNCS(mysql_real_escape_string my_make_scrambled_password)
   fi ])
 
 AC_ARG_WITH(pgsql,
