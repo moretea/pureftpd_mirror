@@ -277,7 +277,7 @@ static int listfile(const PureFileInfo * const fi,  const char *name)
         name[1] == '.' && name[2] == 0) {
         st.st_mode &= ~S_IFLNK;
         st.st_mode |= S_IFDIR;
-    }  /* Hack to please some Windows client that dislike ../ -> ../ */
+    }  /* Hack to please some Windows clients that dislike ../ -> ../ */
 #endif
 #if !defined(MINIMAL) && !defined(ALWAYS_SHOW_SYMLINKS_AS_SYMLINKS)
     if (
@@ -391,10 +391,9 @@ static int listfile(const PureFileInfo * const fi,  const char *name)
                 _EXIT(EXIT_FAILURE);
             }
             if (S_ISLNK(st.st_mode)) {
-                char *p = alloca_nameline + strlen(alloca_nameline);
-                
+                char *p = alloca_nameline + strlen(alloca_nameline);                
                 {
-                    int sx;
+                    ssize_t sx;
                     
                     if ((sx = readlink(name, m, sizeof m - 1U)) > 0) {
                         m[sx] = 0;
@@ -848,7 +847,7 @@ void donlist(char *arg, const int on_ctrl_conn, const int opt_l_,
         }
 #endif
     } else {                           /* STAT command */
-        c = 1;
+        c = clientfd;
 #ifdef WITH_TLS
         if (data_protection_level == CPL_PRIVATE) {
             secure_safe_write(tls_cnx, "213-STAT" CRLF,

@@ -314,6 +314,29 @@ typedef enum {
     CPL_NONE, CPL_CLEAR, CPL_SAFE, CPL_CONFIDENTIAL, CPL_PRIVATE
 } ChannelProtectionLevel;
 
+int pureftpd_start(int argc, char *argv[], const char *home_directory);
+
+#ifdef __IPHONE__
+void pureftpd_register_login_callback(void (*callback)(void *user_data),
+                                      void *user_data);
+
+void pureftpd_register_logout_callback(void (*callback)(void *user_data),
+                                       void *user_data);
+
+void pureftpd_register_log_callback(void (*callback)(int crit,
+                                                     const char *message,
+                                                     void *user_data),
+                                    void *user_data);
+
+void pureftpd_register_simple_auth_callback(int (*callback)(const char *account,
+                                                            const char *password,
+                                                            void *user_data),
+                                            void *user_data);
+
+int pureftpd_shutdown(void);
+int pureftpd_enable(void);
+int pureftpd_disable(void);
+#endif
 int safe_write(const int fd, const void *buf_, size_t count);
 #ifdef WITH_TLS
 int secure_safe_write(void * const tls_fd, const void *buf_, size_t count);
@@ -364,6 +387,9 @@ void donlist(char *arg, const int on_ctrlconn, const int opt_l_,
              const int opt_a_, const int split_args);
 void opendata(void);
 void closedata(void);
+void client_fflush(void);
+void client_printf(const char * const format, ...)
+    __attribute__ ((format(printf, 1, 2)));    
 void addreply(const int code, const char * const line, ...)
     __attribute__ ((format(printf, 2, 3)));
 void addreply_noformat(const int code, const char * const line);
@@ -483,6 +509,9 @@ the server may be insecure if a wrong value is set here.
 Your platform has a very large MAXPATHLEN, we should not trust it.
 #endif
 
+#ifdef __IPHONE__
+# define DEFAULT_MAX_USERS 1
+#endif
 #ifndef DEFAULT_MAX_USERS    
 # define DEFAULT_MAX_USERS 50
 #endif
@@ -552,10 +581,16 @@ Your platform has a very large MAXPATHLEN, we should not trust it.
 # define DL_DEFAULT_CHUNK_SIZE_ASCII 32768UL
 #endif
 #ifndef DL_MAX_CHUNK_SIZE
-# define DL_MAX_CHUNK_SIZE (512 * 1024UL)
+# define DL_MAX_CHUNK_SIZE (128 * 1024UL)
 #endif
-#ifndef DL_MMAP_SIZE
-# define DL_MMAP_SIZE (10 * 1024 * 1024UL)
+#ifndef DL_DLMAP_SIZE
+# define DL_DLMAP_SIZE (128 * 1024UL)
+#endif
+#if DL_DEFAULT_CHUNK_SIZE > DL_MAX_CHUNK_SIZE || DL_MIN_CHUNK_SIZE > DL_MAX_CHUNK_SIZE
+# error DL_MAX_CHUNK_SIZE shouldnt be <= DL_MIN_CHUNK_SIZE or <= DL_DEFAULT_CHUNK_SIZE
+#endif
+#if DL_DLMAP_SIZE < DL_MAX_CHUNK_SIZE
+# error DL_DLMAP_SIZE should be >= DL_MAX_CHUNK_SIZE
 #endif
 
 #ifndef UL_MIN_CHUNK_SIZE
@@ -749,6 +784,10 @@ Your platform has a very large MAXPATHLEN, we should not trust it.
 # define _exit(X) exit(X)
 #endif
 
+#ifndef offsetof
+# define offsetof(type, member) ((size_t) &((type*) NULL)->member)
+#endif    
+    
 #include "bsd-realpath.h"    
 #include "fakechroot.h"
         

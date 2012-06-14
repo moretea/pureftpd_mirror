@@ -17,6 +17,7 @@ EXTRA_DIST = \
 	README.Windows \
 	README.TLS \
 	README.MacOS-X \
+	README.iPhone \
 	README.Donations \
 	pureftpd.schema \
 	pureftpd-ldap.conf \
@@ -32,4 +33,6 @@ SUBDIRS = \
 	pam \
 	gui \
 	configuration-file \
-        m4
+	m4 \
+	iphone
+

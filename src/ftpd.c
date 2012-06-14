@@ -310,7 +310,57 @@ void _EXIT(const int status)
 #ifdef FTPWHO
     ftpwho_exit();
 #endif
+#ifdef __IPHONE__
+    longjmp(jb, 1);
+#endif
     _exit(status);
+}
+
+static char replybuf[MAX_SERVER_REPLY_LEN * 4U];
+static char *replybuf_pos = replybuf;
+static size_t replybuf_left;
+
+static void client_init_reply_buf(void)
+{
+    replybuf_pos = replybuf;
+    replybuf_left = sizeof replybuf - 1U;
+}
+
+void client_fflush(void)
+{
+    if (replybuf_pos == replybuf) {
+        return;
+    }
+    safe_write(clientfd, replybuf, (size_t) (replybuf_pos - replybuf));
+    client_init_reply_buf();
+}
+
+void client_printf(const char * const format, ...)
+{
+    va_list va;
+    char buf[MAX_SERVER_REPLY_LEN];
+    size_t len;
+    int vlen;
+    
+    va_start(va, format);    
+    vlen = vsnprintf(buf, sizeof buf, format, va);
+    if (vlen < 0 || (size_t) vlen >= sizeof buf) {
+        buf[MAX_SERVER_REPLY_LEN - 1] = 0;
+        len = strlen(buf);
+    } else {
+        len = (size_t) vlen;
+    }
+    if (len >= replybuf_left) {
+        client_fflush();
+    }
+    if (len > replybuf_left) {
+        abort();
+    }
+    memcpy(replybuf_pos, buf, len);
+    replybuf_pos += len;
+    replybuf_left -= len;
+    
+    va_end(va);
 }
 
 void die(const int err, const int priority, const char * const format, ...)
@@ -330,8 +380,8 @@ void die(const int err, const int priority, const char * const format, ...)
     } else
 #endif
     {
-        printf("%d %s\r\n", err, line);
-        fflush(stdout);
+        client_printf("%d %s\r\n", err, line);
+        client_fflush();
     }
     logfile(priority, "%s", line);
     _EXIT(-priority - 1);
@@ -584,7 +634,7 @@ static int generic_aton(const char *src, struct sockaddr_storage *a)
 
 void logfile(const int crit, const char *format, ...)
 {
-#ifdef NON_ROOT_FTP
+#if defined(NON_ROOT_FTP) && !defined(__IPHONE__)
     (void) crit;
     (void) format;
 #else
@@ -592,9 +642,11 @@ void logfile(const int crit, const char *format, ...)
     va_list va;
     char line[MAX_SYSLOG_LINE];
     
+# ifndef __IPHONE__
     if (no_syslog != 0) {
         return;
     }
+# endif
     va_start(va, format);
     vsnprintf(line, sizeof line, format, va);
     va_end(va);    
@@ -617,6 +669,12 @@ void logfile(const int crit, const char *format, ...)
     default:
         urgency = "";
     }
+# ifdef __IPHONE__
+    if (log_callback != NULL) {
+        (*log_callback)(crit, line, log_callback_user_data);
+    }
+    return;
+# endif
 # ifdef SAVE_DESCRIPTORS
     openlog("pure-ftpd", log_pid, syslog_facility);
 # endif
@@ -746,7 +804,7 @@ void doreply(void)
 {
     struct reply *scannedentry;
     struct reply *nextentry;
-    
+
     if ((scannedentry = firstreply) == NULL) {
         return;
     }
@@ -762,17 +820,16 @@ void doreply(void)
         } else
 #endif
         {
-            printf("%3d%c%s\r\n", replycode, nextentry == NULL ? ' ' : '-',
-                   scannedentry->line);
+            client_printf("%3d%c%s\r\n", replycode,
+                          nextentry == NULL ? ' ' : '-',
+                          scannedentry->line);
         }
         if (logging > 1) {
             logfile(LOG_DEBUG, "%3d%c%s", replycode, 
                     nextentry == NULL ? ' ' : '-', scannedentry->line);
         }       
     } while ((scannedentry = nextentry) != NULL);
-    fflush(stdout);    
-    /* We don't free() after printf() because of Solaris stream bugs,
-     * Thanks to Kenneth Stailey */
+    client_fflush();
     scannedentry = firstreply;
     do {
         nextentry = scannedentry->next;
@@ -1083,15 +1140,29 @@ void dobanner(const int type)
 int modernformat(const char *file, char *target, size_t target_size,
                  const char * const prefix)
 {
+    char link_target[MAXPATHLEN + 1U];
     const char *ft;
+    const char *ftx = "";
     struct tm *t;
     struct stat st;
     int ret = 0;
     
-    if (stat(file, &st) != 0 ||
-        !(t = gmtime((time_t *) &st.st_mtime))) {
+    if (lstat(file, &st) != 0 || !(t = gmtime((time_t *) &st.st_mtime))) {
         return -1;
     }
+#if !defined(MINIMAL) && !defined(ALWAYS_SHOW_SYMLINKS_AS_SYMLINKS)
+    if (
+# ifndef ALWAYS_SHOW_RESOLVED_SYMLINKS
+        broken_client_compat != 0 &&
+# endif
+        S_ISLNK(st.st_mode)) {
+        struct stat sts;
+        
+        if (stat(file, &sts) == 0 && !S_ISLNK(sts.st_mode)) {
+            st = sts;
+        }
+    } /* Show non-dangling symlinks as files/directories */
+#endif    
     if (S_ISREG(st.st_mode)) {
         ft = "file";
     } else if (S_ISDIR(st.st_mode)) {
@@ -1106,14 +1177,25 @@ int modernformat(const char *file, char *target, size_t target_size,
         } else if (*file == '/' && file[1] == 0) {
             ft = "pdir";
         }
+    } else if (S_ISLNK(st.st_mode)) {
+        ssize_t sx;
+        
+        ft = "OS.unix=symlink";        
+        if ((sx = readlink(file, link_target, sizeof link_target - 1U)) > 0) {
+            link_target[sx] = 0;
+            if (strpbrk(link_target, "\r\n;") == NULL) {
+                ftx = link_target;
+                ft = "OS.unix=slink:";
+            }
+        }
     } else {
         ft = "unknown";
     }
     if (guest != 0) {
         if (SNCHECK(snprintf(target, target_size,
-                             "%stype=%s;siz%c=%llu;modify=%04d%02d%02d%02d%02d%02d;UNIX.mode=0%o;unique=%xg%llx; %s",
+                             "%stype=%s%s;siz%c=%llu;modify=%04d%02d%02d%02d%02d%02d;UNIX.mode=0%o;unique=%xg%llx; %s",
                              prefix,
-                             ft,
+                             ft, ftx,
                              ret ? 'd' : 'e',
                              (unsigned long long) st.st_size,
                              t->tm_year + 1900, t->tm_mon + 1, t->tm_mday,
@@ -1172,6 +1254,9 @@ void donoop(void)
 void doallo(const off_t size)
 {
     int ret = -1;
+#ifdef QUOTAS
+    Quota quota;
+#endif
     
     if (size <= 0) {
         ret = 0;
@@ -1179,8 +1264,6 @@ void doallo(const off_t size)
         ret = 0;
     }
 #ifdef QUOTAS
-    Quota quota;
-    
     if (quota_update(&quota, 0LL, 0LL, NULL) == 0) {
         if (quota.files >= user_quota_files ||
             quota.size >= user_quota_size ||
@@ -1309,13 +1392,16 @@ void douser(const char *username)
             }
             pw_.pw_uid = geteuid();
             pw_.pw_gid = getegid();
-# if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__)
-            if ((pw_.pw_dir = getenv("WIN32_ANON_DIR")) == NULL) {
-                pw_.pw_dir = WIN32_ANON_DIR;
+            pw_.pw_dir = (char *) NON_ROOT_ANON_DIR;
+            if (home_directory != NULL) {
+                pw_.pw_dir = (char *) home_directory;
             }
-# else
-            pw_.pw_dir = strdup(s);    /* checked for == NULL later */
-# endif
+            if (getenv("FTP_ANON_DIR") != NULL) {
+                pw_.pw_dir = getenv("FTP_ANON_DIR");
+            }
+            if (pw_.pw_dir == NULL) {
+                pw_.pw_dir = strdup(s);    /* checked for == NULL later */
+            }
             pw = &pw_;
         }
 #else
@@ -1361,6 +1447,7 @@ void douser(const char *username)
                 hd = (char *) "/";
             }
             if (chdir(root_directory) || chroot(root_directory) || chdir(hd)) {
+                die(421, LOG_ERR, "%d [%s] [%s]", __LINE__, root_directory, hd);
                 goto cantsec;
             }
             logfile(LOG_INFO, MSG_ANONYMOUS_LOGGED);
@@ -1674,7 +1761,11 @@ void dopass(char *password)
         addreply_noformat(530, MSG_WHOAREYOU);
         return;
     }
+#ifdef __IPHONE__
+    authresult = embedded_simple_pw_check(account, password);
+#else
     authresult = pw_check(account, password, &ctrlconn, &peer);
+#endif
     {
         /* Clear password from memory, paranoia */        
         volatile char *password_ = (volatile char *) password;
@@ -1716,8 +1807,9 @@ void dopass(char *password)
     }
 #endif
     
-    /* Add username to the uid/name cache */
+    /* Add username and primary group to the uid/gid cache */
     (void) getname(authresult.uid);
+    (void) getgroup(authresult.gid);    
     
     if (
 #if defined(WITH_LDAP) || defined(WITH_MYSQL) || defined(WITH_PGSQL) || defined(WITH_PUREDB) || defined(WITH_EXTAUTH)
@@ -1732,7 +1824,7 @@ void dopass(char *password)
         die(421, LOG_WARNING, MSG_NOTRUST);
 #endif
     }
-    
+
     /* handle /home/user/./public_html form */
     if ((root_directory = strdup(authresult.dir)) == NULL) {
         die_mem();
@@ -1797,6 +1889,9 @@ void dopass(char *password)
         userchroot = 1;
     }
 #endif
+    if ((userchroot == 0 || chrooted != 0) && setuid(authresult.uid) != 0) {
+        _EXIT(EXIT_FAILURE);
+    }
     if (loggedin == 0) {
         candownload = 1;        /* real users can always download */
     }
@@ -1861,7 +1956,7 @@ void dopass(char *password)
 #endif
     if (guest == 0 && allowfxp == 1) {
         addreply_noformat(0, MSG_FXP_SUPPORT);
-    }
+    }    
 #ifdef RATIOS
     if (ratio_for_non_anon != 0 && ratio_upload > 0) {
         addreply(0, MSG_RATIO, ratio_upload, ratio_download);
@@ -2454,7 +2549,7 @@ void opendata(void)
         int pollret;
         
         pfd = &pfds[0];
-        pfd->fd = 0;
+        pfd->fd = clientfd;
         pfd->events = POLLERR | POLLHUP;
         pfd->revents = 0;
         
@@ -2465,6 +2560,7 @@ void opendata(void)
 
         alarm(idletime);
         for (;;) {
+            pfds[0].revents = pfds[1].revents = 0;
             pollret = poll(pfds, sizeof pfds / sizeof pfds[0], idletime * 1000UL);
             if (pollret <= 0) {
                 die(421, LOG_INFO, MSG_TIMEOUT_DATA, (unsigned long) idletime);
@@ -2783,8 +2879,11 @@ void dodele(char *name)
         goto denied;
     }
 #endif
-    addreply(250, MSG_DELE_SUCCESS, name);
-    logfile(LOG_NOTICE, "%s: " MSG_DELE_SUCCESS, wd, name);
+    addreply(250, MSG_DELE_SUCCESS, "", "", "", name);
+    logfile(LOG_NOTICE, MSG_DELE_SUCCESS, root_directory,
+            *name == '/' ? "" : wd,
+            (*name != '/' && (!*wd || wd[strlen(wd) - 1] != '/'))
+            ? "/" : "", name);
     return;
     
     denied:
@@ -2888,8 +2987,7 @@ static void displayrate(const char *word, off_t size,
         }
 # endif
 # ifdef WITH_ALTLOG
-        (void) altlog_writexfer(up,
-                                alloca_filename_real + 1, size, t);
+        (void) altlog_writexfer(up, alloca_filename_real + 1, size, t);
 # endif
 # if defined(WITH_UPLOAD_SCRIPT)
         if (do_upload_script != 0 && up != 0) {
@@ -2993,15 +3091,6 @@ int dlhandler_init(DLHandler * const dlhandler,
         addreply_noformat(550, MSG_NOT_REGULAR_FILE);
         return -1;
     }
-    if (restartat > (off_t) 0 && restartat >= st.st_size) {
-        addreply(501, MSG_REST_TOO_LARGE_FOR_FILE "\n" MSG_REST_RESET,
-                 (long long) restartat, (long long) st.st_size);
-        return -1;
-    }
-    if (fcntl(xferfd, F_SETFL, fcntl(xferfd, F_GETFL) | O_NONBLOCK) == -1) {
-        error(451, "fcntl(F_SETFL, O_NONBLOCK)");
-        return -1;
-    }
     dlhandler->clientfd = clientfd;
     dlhandler->tls_clientfd = tls_clientfd;
     dlhandler->xferfd = xferfd;
@@ -3019,18 +3108,32 @@ int dlhandler_init(DLHandler * const dlhandler,
     pfd->events = POLLIN | POLLPRI | POLLERR | POLLHUP;
     pfd->revents = 0;
     
+    if (restartat > (off_t) 0) {
+        if (restartat == st.st_size) {
+            addreply_noformat(226, MSG_NO_MORE_TO_DOWNLOAD);
+            return -2;
+        } else if (restartat > st.st_size) {
+            addreply(554, MSG_REST_TOO_LARGE_FOR_FILE "\n" MSG_REST_RESET,
+                     (long long) restartat, (long long) st.st_size);
+            return -1;
+        }
+    }
+    if (fcntl(xferfd, F_SETFL, fcntl(xferfd, F_GETFL) | O_NONBLOCK) == -1) {
+        error(451, "fcntl(F_SETFL, O_NONBLOCK)");
+        return -1;
+    }    
     return 0;
 }
 
-int mmap_init(DLHandler * const dlhandler, 
-              const int clientfd, void * const tls_clientfd,
-              const int xferfd,
-              const char * const name,
-              const int f,
-              void * const tls_fd,
-              const off_t restartat,
-              const int ascii_mode,
-              const unsigned long bandwidth)
+int dlmap_init(DLHandler * const dlhandler, 
+               const int clientfd, void * const tls_clientfd,
+               const int xferfd,
+               const char * const name,
+               const int f,
+               void * const tls_fd,
+               const off_t restartat,
+               const int ascii_mode,
+               const unsigned long bandwidth)
 {
     if (dlhandler_init(dlhandler, clientfd, tls_clientfd, xferfd, name, f,
                        tls_fd, restartat, ascii_mode, bandwidth) != 0) {
@@ -3049,38 +3152,80 @@ int mmap_init(DLHandler * const dlhandler,
         }
     }
     dlhandler->chunk_size = dlhandler->default_chunk_size;
-    dlhandler->mmap_size = DL_MMAP_SIZE & ~(page_size - 1U);
-    dlhandler->mmap_gap = 0;
+    dlhandler->dlmap_size =
+        (DL_DLMAP_SIZE + page_size - (size_t) 1U) & ~(page_size - (size_t) 1U);
     dlhandler->cur_pos = restartat;
-    dlhandler->mmap_pos = (off_t) 0;
-    dlhandler->map = (void *) MAP_FAILED;
-    dlhandler->map_data = (void *) MAP_FAILED;
-    
+    dlhandler->dlmap_pos = (off_t) 0;
+    dlhandler->dlmap_fdpos = (off_t) -1;
+    dlhandler->sizeof_map = (size_t) 0U;
+    dlhandler->map_data = NULL;
+    dlhandler->sizeof_map = dlhandler->dlmap_size;
+    dlhandler->map = malloc(dlhandler->sizeof_map);
+    if (dlhandler->map == NULL) {
+        die_mem();
+    }        
     return 0;
 }
 
-int _mmap_remap(DLHandler * const dlhandler)
+static int _dlmap_read(DLHandler * const dlhandler)
 {
-    size_t min_mmap_size;
-    size_t max_mmap_size;
+    ssize_t readnb;
     
-    if (dlhandler->map != MAP_FAILED) {
-        if (dlhandler->cur_pos >= dlhandler->mmap_pos &&
+    if (dlhandler->dlmap_size > dlhandler->sizeof_map) {
+        abort();
+    }
+    if (dlhandler->dlmap_size <= (size_t) 0U) {
+        return 0;
+    }
+    if (dlhandler->dlmap_pos != dlhandler->dlmap_fdpos) {
+        do {
+#ifdef HAVE_PREAD
+            readnb = pread(dlhandler->f, dlhandler->map, dlhandler->dlmap_size,
+                           dlhandler->dlmap_pos);
+#else
+            if (lseek(dlhandler->f, dlhandler->dlmap_pos,
+                      SEEK_SET) == (off_t) -1) {
+                dlhandler->dlmap_fdpos = (off_t) -1;
+                return -1;
+            }
+            readnb = read(dlhandler->f, dlhandler->map, dlhandler->dlmap_size);
+#endif
+        } while (readnb == (ssize_t) -1 && errno == EINTR);
+    } else {
+        do {
+            readnb = read(dlhandler->f, dlhandler->map, dlhandler->dlmap_size);
+        } while (readnb == (ssize_t) -1 && errno == EINTR);
+    }
+    if (readnb <= (ssize_t) 0) {
+        dlhandler->dlmap_fdpos = (off_t) -1;
+        return -1;
+    }
+    if (readnb != (ssize_t) dlhandler->dlmap_size) {
+        dlhandler->dlmap_fdpos = (off_t) -1;
+    } else {
+        dlhandler->dlmap_fdpos += (off_t) readnb;
+    }    
+    return 0;
+}
+
+static int _dlmap_remap(DLHandler * const dlhandler)
+{
+    size_t min_dlmap_size;
+    size_t max_dlmap_size;
+    
+    if (dlhandler->map_data != NULL) {
+        if (dlhandler->cur_pos >= dlhandler->dlmap_pos &&
             dlhandler->cur_pos + dlhandler->chunk_size <=
-            dlhandler->mmap_pos + (off_t) dlhandler->mmap_size) {
-            if (dlhandler->cur_pos < dlhandler->mmap_pos ||
-                dlhandler->cur_pos - dlhandler->mmap_pos +
-                dlhandler->mmap_gap > (off_t) dlhandler->mmap_size) {
+            dlhandler->dlmap_pos + (off_t) dlhandler->dlmap_size) {
+            if (dlhandler->cur_pos < dlhandler->dlmap_pos ||
+                dlhandler->cur_pos - dlhandler->dlmap_pos >
+                (off_t) dlhandler->dlmap_size) {
+                addreply_noformat(451, "remap");
                 return -1;
             }
             dlhandler->map_data =
-                dlhandler->map + dlhandler->cur_pos - dlhandler->mmap_pos +
-                dlhandler->mmap_gap;
+                dlhandler->map + dlhandler->cur_pos - dlhandler->dlmap_pos;
             return 0;
-        }
-        if (munmap(dlhandler->map, dlhandler->mmap_size) != 0) {
-            error(451, MSG_MMAP_FAILED);
-            return -1;
         }
     }
     if (dlhandler->file_size - dlhandler->cur_pos < dlhandler->chunk_size) {
@@ -3089,39 +3234,25 @@ int _mmap_remap(DLHandler * const dlhandler)
     if (dlhandler->chunk_size <= 0) {
         return 1;
     }
-    dlhandler->mmap_gap = dlhandler->cur_pos -
-        (dlhandler->cur_pos & ~((off_t) page_size - 1U));
-    dlhandler->mmap_pos = dlhandler->cur_pos - dlhandler->mmap_gap;    
-    min_mmap_size = dlhandler->chunk_size + (size_t) dlhandler->mmap_gap;
-    if (dlhandler->mmap_size < min_mmap_size) {
-        dlhandler->mmap_size = min_mmap_size;
+    dlhandler->dlmap_pos = dlhandler->cur_pos;
+    min_dlmap_size = dlhandler->chunk_size;
+    if (dlhandler->dlmap_size < min_dlmap_size) {
+        dlhandler->dlmap_size = min_dlmap_size;
     }
-    dlhandler->mmap_size = (dlhandler->mmap_size + page_size - 1U) &
-        ~(page_size - 1U);
-    if (dlhandler->mmap_size < page_size) {
-        dlhandler->mmap_size = page_size;
+    dlhandler->dlmap_size = (dlhandler->dlmap_size + page_size - (size_t) 1U) &
+        ~(page_size - (size_t) 1U);
+    if (dlhandler->dlmap_size < page_size) {
+        dlhandler->dlmap_size = page_size;
     }
-    max_mmap_size = dlhandler->file_size - dlhandler->mmap_pos;
-    if (dlhandler->mmap_size > max_mmap_size) {
-        dlhandler->mmap_size = max_mmap_size;
-    }    
-    dlhandler->map = mmap(NULL, dlhandler->mmap_size,
-                          PROT_READ, MAP_FILE | MAP_SHARED,
-                          dlhandler->f, dlhandler->mmap_pos);
-    if (dlhandler->map == (void *) MAP_FAILED) {
-        error(451, MSG_MMAP_FAILED);
+    max_dlmap_size = dlhandler->file_size - dlhandler->dlmap_pos;
+    if (dlhandler->dlmap_size > max_dlmap_size) {
+        dlhandler->dlmap_size = max_dlmap_size;
+    }
+    if (_dlmap_read(dlhandler) != 0) {
+        error(451, MSG_DATA_READ_FAILED);
         return -1;
     }
-#ifdef MADV_SEQUENTIAL
-# ifdef MADV_WILLNEED
-    madvise(dlhandler->map, dlhandler->mmap_size, MADV_WILLNEED | MADV_SEQUENTIAL);
-# else
-    madvise(dlhandler->map, dlhandler->mmap_size, MADV_SEQUENTIAL);
-# endif
-#elif defined(MADV_WILLNEED)
-    madvise(dlhandler->map, dlhandler->mmap_size, MADV_WILLNEED);
-#endif
-    dlhandler->map_data = dlhandler->map + dlhandler->mmap_gap;
+    dlhandler->map_data = dlhandler->map;
     
     return 0;
 }
@@ -3177,9 +3308,10 @@ int dlhandler_handle_commands(DLHandler * const dlhandler,
     int pollret;
     char buf[100];
     char *bufpnt;
-    ssize_t readen;
+    ssize_t readnb;
 
     repoll:
+    dlhandler->pfds_f_in.revents = 0;
     pollret = poll(&dlhandler->pfds_f_in, 1U,
                    required_sleep <= 0.0 ?
                    0 : (int) (required_sleep * 1000.0));
@@ -3189,21 +3321,24 @@ int dlhandler_handle_commands(DLHandler * const dlhandler,
     if ((dlhandler->pfds_f_in.revents & (POLLIN | POLLPRI)) != 0) {
         if (dlhandler->tls_clientfd != NULL) {
 #ifdef WITH_TLS            
-            readen = SSL_read(dlhandler->tls_clientfd, buf,
+            readnb = SSL_read(dlhandler->tls_clientfd, buf,
                               sizeof buf - (size_t) 1U);
 #else
             abort();
 #endif
         } else {
-            readen = read(dlhandler->clientfd, buf, sizeof buf - (size_t) 1U);
+            readnb = read(dlhandler->clientfd, buf, sizeof buf - (size_t) 1U);
         }
-        if (readen < (ssize_t) 0) {
+        if (readnb == (ssize_t) 0) {
+            return -2;
+        }
+        if (readnb < (ssize_t) 0) {
             if (errno == EAGAIN || errno == EINTR) {
                 return 0;
             }
             return -1;
         }
-        buf[readen] = 0;
+        buf[readnb] = 0;
         bufpnt = skip_telnet_controls(buf);
         if (strchr(bufpnt, '\n') != NULL) {
             if (strncasecmp(bufpnt, "ABOR", sizeof "ABOR" - 1U) != 0 &&
@@ -3228,7 +3363,7 @@ int dlhandler_handle_commands(DLHandler * const dlhandler,
     return 0;
 }
 
-int mmap_send(DLHandler * const dlhandler)
+int dlmap_send(DLHandler * const dlhandler)
 {
     int ret;
     double ts_start = 0.0;
@@ -3241,9 +3376,8 @@ int mmap_send(DLHandler * const dlhandler)
     }
     required_sleep = 0.0;
     for (;;) {
-        ret = _mmap_remap(dlhandler);
+        ret = _dlmap_remap(dlhandler);
         if (ret < 0) {
-            error(425, "mmap()");            
             return -1;
         }
         if (ret == 1) {
@@ -3273,12 +3407,13 @@ int mmap_send(DLHandler * const dlhandler)
     return 0;
 }
 
-int mmap_exit(DLHandler * const dlhandler)
+int dlmap_exit(DLHandler * const dlhandler)
 {
-    if (dlhandler->map != (void *) MAP_FAILED) {
-        munmap(dlhandler->map, dlhandler->mmap_size);        
-        dlhandler->map = (void *) MAP_FAILED;
-        dlhandler->mmap_size = (size_t) 0U;
+    if (dlhandler->map != NULL) {
+        free(dlhandler->map);
+        dlhandler->map = NULL;
+        dlhandler->sizeof_map = (size_t) 0U;
+        dlhandler->dlmap_size = (size_t) 0U;
     }
     return 0;
 }
@@ -3322,7 +3457,7 @@ void doretr(char *name)
     }
     if (restartat > st.st_size) {
         (void) close(f);
-        addreply(501, MSG_REST_TOO_LARGE_FOR_FILE "\n" MSG_REST_RESET,
+        addreply(554, MSG_REST_TOO_LARGE_FOR_FILE "\n" MSG_REST_RESET,
                  (long long) restartat, (long long) st.st_size);
         goto end;
     }
@@ -3386,15 +3521,18 @@ void doretr(char *name)
         ftpwho_unlock();
     }
 #endif
+#ifdef HAVE_POSIX_FADVISE
+    (void) posix_fadvise(f, (off_t) 0, st.st_size, POSIX_FADV_SEQUENTIAL);
+#endif
     
     started = get_usec_time();
 
-    if (mmap_init(&dlhandler, 0, tls_cnx, xferfd, name, f, tls_data_cnx,
-                  restartat, type == 1, throttling_bandwidth_dl) == 0) {
-        ret = mmap_send(&dlhandler);
-        mmap_exit(&dlhandler);        
+    if (dlmap_init(&dlhandler, clientfd, tls_cnx, xferfd, name, f,
+                   tls_data_cnx, restartat, type == 1,
+                   throttling_bandwidth_dl) == 0) {
+        ret = dlmap_send(&dlhandler);
+        dlmap_exit(&dlhandler);        
     } else {
-        error(426, "mmap_init()");
         ret = -1;
     }
     
@@ -3417,7 +3555,7 @@ void dorest(const char *name)
     restartat = (off_t) strtoull(name, &endptr, 10);
     if (*endptr != 0 || restartat < (off_t) 0) {
         restartat = 0;
-        addreply(501, MSG_REST_NOT_NUMERIC "\n" MSG_REST_RESET);
+        addreply(554, MSG_REST_NOT_NUMERIC "\n" MSG_REST_RESET);
     } else {
         if (type == 1 && restartat != 0) {
 #ifdef STRICT_REST
@@ -3884,25 +4022,28 @@ int ulhandler_handle_commands(ULHandler * const ulhandler)
 {
     char buf[100];
     char *bufpnt;    
-    ssize_t readen;
+    ssize_t readnb;
     
     if (ulhandler->tls_clientfd != NULL) {
 #ifdef WITH_TLS            
-        readen = SSL_read(ulhandler->tls_clientfd, buf,
+        readnb = SSL_read(ulhandler->tls_clientfd, buf,
                           sizeof buf - (size_t) 1U);
 #else
         abort();
 #endif
     } else {
-        readen = read(ulhandler->clientfd, buf, sizeof buf - (size_t) 1U);
+        readnb = read(ulhandler->clientfd, buf, sizeof buf - (size_t) 1U);
     }
-    if (readen < (ssize_t) 0) {
+    if (readnb == (ssize_t) 0) {
+        return -2;
+    }
+    if (readnb < (ssize_t) 0) {
         if (errno == EAGAIN || errno == EINTR) {
             return 0;
         }
         return -1;
     }
-    buf[readen] = 0;
+    buf[readnb] = 0;
     bufpnt = skip_telnet_controls(buf);    
     if (strchr(buf, '\n') != NULL) {
         if (strncasecmp(bufpnt, "ABOR", sizeof "ABOR" - 1U) != 0 &&
@@ -3921,7 +4062,7 @@ int ulhandler_handle_commands(ULHandler * const ulhandler)
 int ul_handle_data(ULHandler * const ulhandler, off_t * const uploaded,
                    const double ts_start)
 {
-    ssize_t readen;
+    ssize_t readnb;
     double required_sleep = 0.0;
     int pollret;
     int ret;
@@ -3937,26 +4078,26 @@ int ul_handle_data(ULHandler * const ulhandler, off_t * const uploaded,
     }
     if (ulhandler->tls_fd != NULL) {
 #ifdef WITH_TLS            
-        readen = SSL_read(ulhandler->tls_fd, ulhandler->buf,
+        readnb = SSL_read(ulhandler->tls_fd, ulhandler->buf,
                           ulhandler->chunk_size);
 #else
         abort();
 #endif
     } else {
-        readen = read(ulhandler->xferfd, ulhandler->buf,
+        readnb = read(ulhandler->xferfd, ulhandler->buf,
                       ulhandler->chunk_size);
     }
-    if (readen == (ssize_t) 0) {
+    if (readnb == (ssize_t) 0) {
         return 2;
     }
-    if (readen < (ssize_t) 0) {
+    if (readnb < (ssize_t) 0) {
         if (errno == EAGAIN || errno == EINTR) {
             return 0;
         }
         addreply_noformat(451, MSG_DATA_READ_FAILED);
         return -1;
     }    
-    if (ul_dowrite(ulhandler, ulhandler->buf, readen, uploaded) != 0) {
+    if (ul_dowrite(ulhandler, ulhandler->buf, readnb, uploaded) != 0) {
         addreply_noformat(452, MSG_WRITE_FAILED);
         return -1;
     }
@@ -3972,6 +4113,7 @@ int ul_handle_data(ULHandler * const ulhandler, off_t * const uploaded,
         ulhandler_throttle(ulhandler, *uploaded, ts_start, &required_sleep);
         if (required_sleep > 0.0) {
             repoll:
+            ulhandler->pfds_command.revents = 0;
             pollret = poll(&ulhandler->pfds_command, 1, required_sleep * 1000.0);
             if (pollret == 0) {
                 return 0;
@@ -4016,6 +4158,8 @@ int ul_send(ULHandler * const ulhandler)
         } else {
             timeout = (int) ulhandler->idletime * 1000;
         }
+        ulhandler->pfds[PFD_DATA].revents =
+            ulhandler->pfds[PFD_COMMANDS].revents = 0;
         pollret = poll(ulhandler->pfds,
                        sizeof ulhandler->pfds / sizeof ulhandler->pfds[0],
                        timeout);
@@ -4059,7 +4203,8 @@ int ul_send(ULHandler * const ulhandler)
             addreply_noformat(221, MSG_LOGOUT);
             return -1;
         }
-    }    
+    }
+    /* NOTREACHED */
     return 0;
 }
 
@@ -4280,13 +4425,12 @@ void dostor(char *name, const int append, const int autorename)
 
     started = get_usec_time();    
     
-    if (ul_init(&ulhandler, 0, tls_cnx, xferfd, name, f, tls_data_cnx,
+    if (ul_init(&ulhandler, clientfd, tls_cnx, xferfd, name, f, tls_data_cnx,
                 restartat, type == 1, throttling_bandwidth_ul,
                 max_filesize) == 0) {
         ret = ul_send(&ulhandler);
         ul_exit(&ulhandler);
     } else {
-        error(426, "ul_init()");
         ret = -1;
     }
     (void) close(f);
@@ -4610,6 +4754,9 @@ void error(int n, const char *msg)
 
 static void fixlimits(void)
 {
+#ifdef __IPHONE__
+    return;
+#endif
 #ifdef HAVE_SETRLIMIT
     static struct rlimit lim;
 
@@ -4716,10 +4863,15 @@ static int fortune(void)
 static int check_standalone(void)
 {
     socklen_t socksize = (socklen_t) sizeof ctrlconn;
-
     if (getsockname(0, (struct sockaddr *) &ctrlconn, &socksize) != 0) {
+        clientfd = -1;
         return 1;
     }
+    if (dup2(0, 1) == -1) {
+        _EXIT(EXIT_FAILURE);
+    }
+    clientfd = 0;
+
     return 0;
 }
 #endif
@@ -4847,15 +4999,16 @@ static void doit(void)
     unsigned int users = 0U;
     int display_banner = 1;
 
+    client_init_reply_buf();
     session_start_time = time(NULL);
     fixlimits();
 #ifdef F_SETOWN
-    fcntl(0, F_SETOWN, getpid());
+    fcntl(clientfd, F_SETOWN, getpid());
 #endif
     set_signals_client();
     (void) umask((mode_t) 0);
     socksize = (socklen_t) sizeof ctrlconn;
-    if (getsockname(0, (struct sockaddr *) &ctrlconn, &socksize) != 0) {
+    if (getsockname(clientfd, (struct sockaddr *) &ctrlconn, &socksize) != 0) {
         die(421, LOG_ERR, MSG_NO_SUPERSERVER);
     }
     fourinsix(&ctrlconn);
@@ -4871,7 +5024,7 @@ static void doit(void)
        anon_only = 1;
     }
     socksize = (socklen_t) sizeof peer;
-    if (getpeername(0, (struct sockaddr *) &peer, &socksize)) {
+    if (getpeername(clientfd, (struct sockaddr *) &peer, &socksize)) {
         die(421, LOG_ERR, MSG_GETPEERNAME ": %s" , strerror(errno));
     }
     fourinsix(&peer);
@@ -4999,21 +5152,19 @@ static void doit(void)
         int fodder;
 #ifdef IPTOS_LOWDELAY
         fodder = IPTOS_LOWDELAY;
-        setsockopt(0, SOL_IP, IP_TOS, (char *) &fodder, sizeof fodder);
-        setsockopt(1, SOL_IP, IP_TOS, (char *) &fodder, sizeof fodder);        
+        setsockopt(clientfd, SOL_IP, IP_TOS, (char *) &fodder, sizeof fodder);
 #endif
 #ifdef SO_OOBINLINE
         fodder = 1;
-        setsockopt(0, SOL_SOCKET, SO_OOBINLINE, 
+        setsockopt(clientfd, SOL_SOCKET, SO_OOBINLINE,
                    (char *) &fodder, sizeof fodder);
 #endif
 #ifdef TCP_NODELAY
         fodder = 1;
-        setsockopt(1, IPPROTO_TCP, TCP_NODELAY,
+        setsockopt(clientfd, IPPROTO_TCP, TCP_NODELAY,
                    (char *) &fodder, sizeof fodder);
 #endif
-        keepalive(0, 0);
-        keepalive(1, 0);            
+        keepalive(clientfd, 0);
     }
 #ifdef HAVE_SRANDOMDEV
     srandomdev();
@@ -5027,6 +5178,12 @@ static void doit(void)
         display_banner = 0;
     }
 #endif
+#ifdef __IPHONE__
+    if (display_banner) {
+        addreply_noformat(0, MSG_WELCOME_TO " Pure-FTPd (iPhone)");
+        display_banner = 0;
+    }
+#endif    
     if (display_banner) {
 #ifdef BORING_MODE
         addreply_noformat(0, MSG_WELCOME_TO " Pure-FTPd.");
@@ -5217,16 +5374,26 @@ static void accept_client(const int active_listen_fd) {
     struct sockaddr_storage sa;
     socklen_t dummy;
     pid_t child;
-    int clientfd;   
-    
+
     memset(&sa, 0, sizeof sa);
     dummy = (socklen_t) sizeof sa;  
     if ((clientfd = accept
          (active_listen_fd, (struct sockaddr *) &sa, &dummy)) == -1) {
         return;
     }
+#ifdef __IPHONE__
+    if (suspend_client_connections != 0) {
+        (void) close(clientfd);
+        clientfd = -1;
+        return;
+    }
+    if (login_callback != NULL) {
+        (*login_callback)(login_callback_user_data);
+    }
+#endif
     if (STORAGE_FAMILY(sa) != AF_INET && STORAGE_FAMILY(sa) != AF_INET6) {
         (void) close(clientfd);
+        clientfd = -1;
         return;
     }    
     if (maxusers > 0U && nb_children >= maxusers) {
@@ -5238,6 +5405,7 @@ static void accept_client(const int active_listen_fd) {
         (void) fcntl(clientfd, F_SETFL, fcntl(clientfd, F_GETFL) | O_NONBLOCK);
         (void) write(clientfd, line, strlen(line));
         (void) close(clientfd);
+        clientfd = -1;
         return;
     }
     if (maxip > 0U) {
@@ -5264,6 +5432,7 @@ static void accept_client(const int active_listen_fd) {
                 }
             }
             (void) close(clientfd);
+            clientfd = -1;
             return;
         }
     }
@@ -5271,22 +5440,17 @@ static void accept_client(const int active_listen_fd) {
     sigaddset(&set, SIGCHLD);
     sigprocmask(SIG_BLOCK, &set, NULL);
     nb_children++;
+#ifdef __IPHONE__
+    child = (pid_t) 0;
+#else
     child = fork();
+#endif
     if (child == (pid_t) 0) {
-        dup2(clientfd, 0);
-        dup2(0, 1);
-        if (clientfd > 1) {
-            (void) close(clientfd);
-        }
-        if (listenfd > 1) {
-            (void) close(listenfd);
-        }
-        if (listenfd6 > 1) {
-            (void) close(listenfd6);
-        }
+#ifndef __IPHONE__
         if (isatty(2)) {
             (void) close(2);
         }
+#endif
 #ifndef SAVE_DESCRIPTORS
         if (no_syslog == 0) {
             closelog();
@@ -5305,6 +5469,7 @@ static void accept_client(const int active_listen_fd) {
         }
     }
     (void) close(clientfd);
+    clientfd = -1;
     sigprocmask(SIG_UNBLOCK, &set, NULL);   
 }
 
@@ -5324,7 +5489,7 @@ static void standalone_server(void)
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_addr = NULL;
     on = 1;
-    if (no_ipv4 == 0 &&
+    if (listenfd == -1 && no_ipv4 == 0 &&
         getaddrinfo(standalone_ip, standalone_port, &hints, &res) == 0) {
         if ((listenfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == -1 ||
             setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR,
@@ -5346,7 +5511,7 @@ static void standalone_server(void)
         freeaddrinfo(res);
         set_cloexec_flag(listenfd);     
     }
-    if (v6ready != 0) {
+    if (listenfd6 != -1 && v6ready != 0) {
         hints.ai_family = AF_INET6;
         if (getaddrinfo(standalone_ip, standalone_port, &hints, &res6) == 0) {
             if ((listenfd6 = socket(AF_INET6,
@@ -5419,7 +5584,7 @@ static struct passwd *fakegetpwnam(const char * const name)
 }
 #endif
 
-int main(int argc, char *argv[])
+int pureftpd_start(int argc, char *argv[], const char *home_directory_)
 {
 #ifndef NO_GETOPT_LONG
     int option_index = 0;
@@ -5428,6 +5593,11 @@ int main(int argc, char *argv[])
     int bypass_ipv6 = 0;
     struct passwd *pw;
 
+    (void) home_directory_;
+#ifdef NON_ROOT_FTP
+    home_directory = home_directory_;
+#endif
+    client_init_reply_buf();    
 #ifdef PROBE_RANDOM_AT_RUNTIME
     pw_zrand_probe();
 #endif    
@@ -6151,6 +6321,33 @@ int main(int argc, char *argv[])
         (void) tls_init_library();
     }
 #endif
+    
+#ifdef __IPHONE__
+    if (setjmp(jb) != 0) {
+        close(clientfd); close(datafd); close(xferfd);
+        clientfd = datafd = xferfd = -1;
+        chroot("/");
+        downloaded = uploaded = 0ULL;
+        datafd = xferfd = -1;
+        root_directory = NULL;
+        loggedin = 0;
+        userchroot = chrooted = 0;
+        guest = 0;
+        type = 2;
+        restartat = (off_t) 0;
+        state_needs_update = 1;
+        atomic_prefix = NULL;
+        nb_children = 0;        
+        if (logout_callback != NULL && suspend_client_connections == 0) {
+            (*logout_callback)(logout_callback_user_data);
+        }
+        if (stop_server > 0) {
+            close(listenfd); close(listenfd6);
+            listenfd = listenfd6 = -1;
+            goto bye;
+        }
+    }
+#endif
 #if !defined(NO_STANDALONE) && !defined(NO_INETD)
     if (check_standalone() != 0) {
         standalone_server();
@@ -6165,6 +6362,9 @@ int main(int argc, char *argv[])
 # error Configuration error
 #endif
 
+#ifdef __IPHONE__
+    bye:
+#endif
 #ifdef WITH_UPLOAD_SCRIPT
     upload_pipe_close();
 #endif
@@ -6182,6 +6382,7 @@ int main(int argc, char *argv[])
             free(previous);
         }
     }
+    first_authentications = last_authentications = NULL;
     free(trustedip);
 #ifdef WITH_RFC2640
     if (iconv_fd_fs2client != NULL) {
@@ -6205,9 +6406,104 @@ int main(int argc, char *argv[])
 #ifdef WITH_TLS
     tls_free_library();
 #endif
-#ifdef FTPWHO
-    _EXIT(EXIT_SUCCESS);
+    
+#ifdef __IPHONE__
+    /* We need to duplicate what is in _EXIT(), minus the jump */
+    delete_atomic_file();
+# ifdef FTPWHO
+    ftpwho_exit();
+# endif
+    stop_server = 0;
+    return 0;
 #endif
+    _EXIT(EXIT_SUCCESS);
 
     return 0;
 }
+
+#ifdef __IPHONE__
+int pureftpd_shutdown(void)
+{
+    stop_server = 1;
+    close(clientfd);
+    clientfd = -1;    
+    close(datafd); close(xferfd);
+    datafd = xferfd = -1;
+    close(listenfd); close(listenfd6);
+    listenfd = listenfd6 = -1;
+    
+    return 0;
+}
+
+int pureftpd_enable(void)
+{
+    suspend_client_connections = 0;
+    
+    return 0;
+}
+
+int pureftpd_disable(void)
+{
+    suspend_client_connections = 1;
+    
+    return 0;
+}
+
+void pureftpd_register_login_callback(void (*callback)(void *user_data),
+                                      void *user_data)
+{
+    login_callback = callback;
+    login_callback_user_data = user_data;
+}
+
+void pureftpd_register_logout_callback(void (*callback)(void *user_data),
+                                       void *user_data)
+{
+    logout_callback = callback;
+    logout_callback_user_data = user_data;
+}
+
+void pureftpd_register_log_callback(void (*callback)(int crit,
+                                                     const char *message,
+                                                     void *user_data),
+                                    void *user_data)
+{
+    log_callback = callback;
+    log_callback_user_data = user_data;
+}
+
+void pureftpd_register_simple_auth_callback(int (*callback)(const char *account,
+                                                            const char *password,
+                                                            void *user_data),
+                                            void *user_data)
+{
+    simple_auth_callback = callback;
+    simple_auth_callback_user_data = user_data;
+}
+
+static AuthResult embedded_simple_pw_check(const char *account, const char *password)
+{
+    AuthResult authresult;
+
+    if (simple_auth_callback == NULL ||
+        account == NULL || *account == 0 || password == NULL) {
+        authresult.auth_ok = 0;
+        return authresult;
+    }
+    if ((*simple_auth_callback)(account, password, simple_auth_callback_user_data) <= 0) {
+        authresult.auth_ok = -1;
+        return authresult;
+    }
+    if ((authresult.dir = strdup(home_directory)) == NULL) {
+        die_mem();
+    }
+    authresult.uid = geteuid();
+    authresult.gid = getegid();
+    authresult.auth_ok = 1;
+    authresult.slow_tilde_expansion = 0;
+    userchroot = 2;
+    
+    return authresult;
+}
+
+#endif
