@@ -18,7 +18,7 @@ Sourceforge "patch" section.
 
 -----------------------------------------------------------------------------
 
-  Warning : contributed packages haven't received any code audit. Please
+  Warning: contributed packages haven't received any code audit. Please
 report bugs directly to authors.
 
 -----------------------------------------------------------------------------
@@ -71,7 +71,7 @@ files, stores them in MySQL, and then generates HTML output on the fly. It
 can display statistics between any two given times, show you a transfer
 list, average and max speeds, details on each user, etc.
 
-  Unofficial download location :
+  Unofficial download location:
 
             ftp://ftp.pureftpd.org/pub/pure-ftpd/ftpstats/
 
@@ -100,10 +100,10 @@ notes.
 This is a PHP/MySQL user management script for Pure-FTPd. You cann
 add, edit remove and manage your FTP users via a web interface.
 
-  Screenshot :
+  Screenshot:
   http://www.solariz.de/site_gfx/pureftp_um_shot1.jpg
 
-  Download :
+  Download:
   http://www.solariz.de/download.php?file=pureftp_user_manager.zip&f.htm
 
 
@@ -111,10 +111,10 @@ add, edit remove and manage your FTP users via a web interface.
 
 Another PHP/MySQL user management script.
 
-  Demo :
+  Demo:
   http://www.fxp.nl/PureFTPD/
   
-  Source code :
+  Source code:
   http://www.fxp.nl/PureFTPD/source/
 
 
@@ -127,5 +127,14 @@ An SFV upload verification script, spawned with pure-uploadscript.
   
 * Another SFV Checker (author: Maciek Dobrzanski)
 
-  UEL: http://macko.scifi.pl/pure-sfv/
+  URL: http://macko.scifi.pl/pure-sfv/
+
+
+* Webmin module (author: La Shampoo)
+
+  This is a webmin module for managing Pure-FTPd, virtual users and
+monitor users sessions. This module is designed to work with Pure-FTPd
+compiled with quotas, puredb, throttling, ftpwho and virtualchroot.
+
+  URL : http://webmin.thirdpartymodules.com/?page=Search&action=search&searchval=pure-ftpd
   

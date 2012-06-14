@@ -4,12 +4,12 @@
 
 #include "ftpd.h"
 #include "crypto.h"
-#if !defined(HAVE_SHA1_H) || !defined(HAVE_SHA1TRANSFORM)
+#ifndef USE_SYSTEM_CRYPT_SHA1
 # include "crypto-sha1.h"
 #else
 # include <sha1.h>
 #endif
-#if !defined(HAVE_MD5_H) || !defined(HAVE_MD5TRANSFORM)
+#ifndef USE_SYSTEM_CRYPT_MD5
 # include "crypto-md5.h"
 #else
 # include <md5.h>

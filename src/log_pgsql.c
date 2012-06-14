@@ -191,7 +191,7 @@ static char *sqlsubst(const char *orig_str, char * const query,
                 *query_pnt++ = '\\';
             }
         }
-        if (((unsigned char) *orig_str_scan) < 32U) {
+        if (ISCTRLCODE(*orig_str_scan)) {
             goto nextone;
         }
         if (--query_len <= (size_t) 0U) {

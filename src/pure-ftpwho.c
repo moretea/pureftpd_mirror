@@ -306,7 +306,7 @@ static const char *xml_escaped(const char * const s_)
         return "*";
     }
     while (*s != 0U) {
-        if (*s < 32U || *s > 127U || *s == '"') {
+        if (*s < 32U || *s > 126U || *s == '"') {
             *bufpnt = '?';
         } else {
             *bufpnt = (char) *s;
@@ -394,7 +394,7 @@ static const char *shell_escaped(const char * const s_)
         return "-";
     }
     while (*s != 0U) {
-        if (*s < 32U) {
+        if (ISCTRLCODE(*s)) {
             *bufpnt = '_';
         } else if (*s == '|') {
             *bufpnt++ = '\\';

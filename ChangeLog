@@ -1,4 +1,40 @@
 
+* Version 1.0.14:
+    Use random() if available, not rand() for fortune cookies.
+    Remove broken lseek(fd, -1, 0).
+    When writing to clients data sockets fails, the client probably
+hung up. IE, for instance, doesn't seem to properly abort transfers
+and say "QUIT" when a transfer is canceled by the user. So, log
+MSG_ABORTED instead of MSG_DATA_WRITE_FAILED.
+    Check whether we are inside a Virtuozzo virtual environment, and
+disable sendfile() if this is the case. Thanks to Kittiwat Manosuthi
+for his help on this issue.
+    Automake has been upgraded to version 1.7, autoconf to version 2.57.
+    Introduce privsep.h, privsep_p.h, privsep.c and --with-privsep.
+    Drop capabilities after the call to nice() because we need
+CAP_SYS_NICE.
+    Don't waste time with in dopasv() to get the name of the socket we
+just created.
+    Add "ptracetest".
+    Enable __EXTENSIONS__ and _XPG4_2 on Solaris in ./configure.ac
+    Also check whether a client has gone away by testing xferfd, and
+introduce safe_fd_isset() that just works like SAFE_FD_ISSET() but doesn't
+choke when the descriptor is -1. It fixes bus errors on FreeBSD.
+    Add force_passive_ip_s in order to store the argument of -P.
+Passive IP addresses are now resolved in doit() for every new
+connection, by popular request. It means that "-P ftp.example.com" now
+works, even for dynamic addresses.
+    Split the funtion that creates an active data socket into two
+parts : doport2() and doport3(). doport3() actually creates it,
+doport2() does other gadgets like checking for FXP, etc.
+    Carefully check whether we have OpenBSD/MicroBSD-like MD5/SHA1
+functions in libc, and not an incompatible variant like Cyrus SASL.
+    The "Welcome to Pure-FTPd" decorations were replaced with
+something more neutral.
+    Introduce ISCTRLCODE() instead of doing it by hand every time, and
+properly reject Unicode control chars while we are at it.
+    New contrib : Webmin module, by La Shampoo.
+
 * Version 1.0.13a:
     Fix pure-config.pl with old versions of the Perl interpreter.
     Fix compilation with PostgreSQL, thanks to Sakari Tanhua 

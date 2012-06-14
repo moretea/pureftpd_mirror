@@ -197,7 +197,8 @@ runnable as a non-root user.
 * Adam Kruszewski (Fantomik) and Wojtek "elluin" Kaniewski - Pointed out an
 ugly fucking stupid huge bug (initgroups() called after chroot()).
 * TJ Saunders <tj@castaglia.org> - Reported that Proftpd and
-Proftpd-modquota are different packages.
+Proftpd-modquota were different packages.
+* Kittiwat Manosuthi <kittiwat@hostpacific.com> - Help with Virtuozzo.
 
 
 In the memory of all people dead on September 11 2001, in Manhattan and in

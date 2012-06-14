@@ -185,6 +185,12 @@ static const AltLogPrefixes altlogprefixes[] = {
 # define ALTLOG_DEFAULT ALTLOG_CLF
 #endif
 
+#ifdef WITH_PRIVSEP
+# define VERSION_PRIVSEP "-privsep"
+#else
+# define VERSION_PRIVSEP ""
+#endif
+
 #ifndef HAVE_SYS_FSUID_H
 static sigset_t old_sigmask;
 #endif

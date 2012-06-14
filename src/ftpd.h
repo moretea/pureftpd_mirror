@@ -8,7 +8,7 @@
 # define __attribute__(a)
 #endif
 
-#ifdef SYSTEM_QUOTAS
+#if defined(SYSTEM_QUOTAS) || defined(WITH_PRIVSEP)
 # ifdef HAVE_SYS_FSUID_H
 #  undef HAVE_SYS_FSUID_H
 # endif
@@ -118,6 +118,11 @@
 
 /* We can't have more than one implementation, so if more than one were
  * found, the configure test failed - Use none */
+#ifdef VIRTUOZZO
+# ifndef DISABLE_SENDFILE
+#  define DISABLE_SENDFILE 1
+# endif
+#endif
 #if defined(DISABLE_SENDFILE) || \
   (defined(SENDFILE_FREEBSD) && (defined(SENDFILE_LINUX) || defined(SENDFILEV_SOLARIS) || defined(SENDFILE_HPUX))) || \
   (defined(SENDFILE_LINUX) && (defined(SENDFILEV_SOLARIS) || defined(SENDFILE_HPUX))) || \
@@ -423,6 +428,19 @@ extern int opt_a, opt_C, opt_d, opt_F, opt_l, opt_R;
 # define DEFAULT_FTP_PORT_S "2121"
 #endif
 
+/*
+ * Some operating systems (at least Solaris > 2.7 and FreeBSD) have strange
+ * troubles with reusing TCP ports, even when SO_REUSEADDR is enabled. 
+ * As a workaround, we try several unassigned privileged ports.
+ * The last way is to let the OS assign a port.
+ * For egress filtering, you can accept connections from ports <= 20
+ * to ports >= 1024.
+ */
+
+#define FTP_ACTIVE_SOURCE_PORTS { \
+    DEFAULT_FTP_DATA_PORT, 2U, 3U, 4U, 5U, 6U, 10U, 14U, 16U, 0U \
+}
+
 #ifndef MAXPATHLEN
 # ifdef PATH_MAX
 #  define MAXPATHLEN PATH_MAX
@@ -621,6 +639,12 @@ Your platform has a very large maximum path len, we should not trust it.
 # define S_IXUGO (S_IXUSR | S_IXGRP | S_IXOTH)
 #endif
 
+#ifdef ACCEPT_UNICODE_CONTROL_CHARS
+# define ISCTRLCODE(X) ((X) == 0x7f || ((unsigned char) (X)) < 32U)
+#else
+# define ISCTRLCODE(X) ((X) == 0x7f || !(((unsigned char) (X)) & 0x60))
+#endif
+    
 #ifndef HAVE_MUNMAP
 # define munmap(A, B) (0)
 #endif

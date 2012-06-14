@@ -24,6 +24,9 @@
 #include "ftpd.h"
 #include "bsd-glob.h"
 #include "getloadavg.h"
+#ifdef WITH_PRIVSEP
+# include "privsep.h"
+#endif
 
 #ifdef WITH_DMALLOC
 # include <dmalloc.h>
@@ -86,6 +89,14 @@ static void overlapcpy(register char *d, register const char *s)
     *d = 0;
 }
 
+static int safe_fd_isset(const int fd, const fd_set * const fds)
+{
+    if (fd == -1) {
+        return 0;
+    }
+    return FD_ISSET(fd, fds);
+}
+
 void simplify(char *subdir)
 {
     char *a;
@@ -146,7 +157,7 @@ int checkprintable(register const char *s)
     register unsigned char c;
     
     while ((c = (unsigned char) *s) != 0U) {
-        if ((c & ~31U) == 0U) {
+        if (ISCTRLCODE(c)) {
             ret--;
             break;
         }
@@ -617,7 +628,7 @@ static int checknamesanity(const char *name, int dot_ok)
     }
 #endif
     while (*namepnt != 0) {
-        if ((unsigned char) *namepnt < 32U || *namepnt == '\\') {
+        if (ISCTRLCODE(*namepnt) || *namepnt == '\\') {
             return -1;
         }
         if (dot_ok == 0) {
@@ -814,7 +825,7 @@ void stripctrl(char * const buf, size_t len)
     }
     do {
         len--;
-        if ((unsigned char) buf[len] < 32U &&
+        if (ISCTRLCODE(buf[len]) &&
             buf[len] != 0 && buf[len] != '\n') {
             buf[len] = '_';
         }
@@ -1129,21 +1140,7 @@ void douser(const char *username)
         if ((authresult.dir = strdup(pw->pw_dir)) == NULL) {
             die_mem();
         }
-#ifndef NON_ROOT_FTP
-        if (authresult.uid > (uid_t) 0) {
-# ifdef HAVE_SYS_FSUID_H
-            setfsgid(authresult.gid);
-            setfsuid(authresult.uid);
-# else
-            if (seteuid(authresult.uid)) {
-                goto cantsec;
-            }
-# endif
-        }
-#endif
-#ifdef USE_CAPABILITIES
-        drop_login_caps();
-#endif
+
 #ifdef THROTTLING
         if (throttling != 0) {
             addreply_noformat(0, MSG_BANDWIDTH_RESTRICTED);
@@ -1153,9 +1150,42 @@ void douser(const char *username)
                 throttling_bandwidth_dl = 0UL;
         }
 #endif
+
+#ifdef WITH_PRIVSEP
+# ifdef USE_CAPABILITIES
+        drop_login_caps();
+# endif
+#endif        
+
+#ifndef NON_ROOT_FTP
+        if (authresult.uid > (uid_t) 0) {
+# ifdef WITH_PRIVSEP
+            if (setuid(authresult.uid) != 0 || seteuid(authresult.uid) != 0) {
+                goto cantsec;
+            }
+# else
+#  ifdef HAVE_SYS_FSUID_H
+            setfsgid(authresult.gid);
+            setfsuid(authresult.uid);
+#  else
+            if (seteuid(authresult.uid) != 0) {
+                goto cantsec;
+            }
+#  endif
+# endif
+        }
+#endif
+
+#ifndef WITH_PRIVSEP
+# ifdef USE_CAPABILITIES
+        drop_login_caps();
+# endif
+#endif
+
 #ifndef MINIMAL
         dobanner(0);
 #endif
+
         if (broken_client_compat) {
             addreply_noformat(331, MSG_ANONYMOUS_ANY_PASSWORD);
         } else {
@@ -1518,7 +1548,7 @@ void dopass(char *password)
         _EXIT(EXIT_FAILURE);
     }
 # ifndef HAVE_SYS_FSUID_H
-    if (seteuid(authresult.uid)) {
+    if (seteuid(authresult.uid) != 0) {
         _EXIT(EXIT_FAILURE);
     }
 # endif
@@ -1617,19 +1647,34 @@ void dopass(char *password)
 # endif
 #endif
         if (chdir(wd) || chroot(wd)) {    /* should never fail */
-#ifndef HAVE_SYS_FSUID_H
-# ifndef NON_ROOT_FTP
-            seteuid(authresult.uid);
+#ifdef WITH_PRIVSEP
+            (void) setuid(authresult.uid);
+            (void) seteuid(authresult.uid);
+#else
+# ifndef HAVE_SYS_FSUID_H
+#  ifndef NON_ROOT_FTP
+            (void) seteuid(authresult.uid);
+#  endif
 # endif
 #endif
             die(421, LOG_ERR, MSG_CHROOT_FAILED);
         }
-#ifndef NON_ROOT_FTP
-# ifndef HAVE_SYS_FSUID_H
+#ifdef WITH_PRIVSEP
+# ifdef USE_CAPABILITIES
+        drop_login_caps();
+# endif
+        if (setuid(authresult.uid) != 0 || seteuid(authresult.uid) != 0) {
+            _EXIT(EXIT_FAILURE);
+        }
+        enablesignals();        
+#else
+# ifndef NON_ROOT_FTP
+#  ifndef HAVE_SYS_FSUID_H
         if (seteuid(authresult.uid) != 0) {
             _EXIT(EXIT_FAILURE);
         }
         enablesignals();
+#  endif
 # endif
 #endif
         chrooted = 1;
@@ -1655,8 +1700,10 @@ void dopass(char *password)
     } else {
         addreply(230, MSG_CURRENT_DIR_IS, wd);
     }
-#ifdef USE_CAPABILITIES
+#ifndef WITH_PRIVSEP
+# ifdef USE_CAPABILITIES
     drop_login_caps();
+# endif
 #endif
     logfile(LOG_INFO, MSG_IS_NOW_LOGGED_IN, account);
 # ifdef FTPWHO
@@ -1884,13 +1931,11 @@ static void keepalive(const int fd, int keep)
 
 void dopasv(int psvtype)
 {
-    socklen_t socksize;
+    struct sockaddr_storage dataconn;    /* my data connection endpoint */    
     unsigned long a = 0U;
     unsigned int p;
     int on;
-    struct sockaddr_storage dataconn;    /* my data connection endpoint */
     unsigned int firstporttried;
-    struct sockaddr_storage ctrlconn2;
 
     if (loggedin == 0) {
         addreply_noformat(530, MSG_NOT_LOGGED_IN);
@@ -1918,15 +1963,15 @@ void dopasv(int psvtype)
         error(421, "setsockopt");
         return;
     }
-    ctrlconn2 = ctrlconn;
+    dataconn = ctrlconn;
     for (;;) {
-        if (STORAGE_FAMILY(ctrlconn2) == AF_INET6) {
-            STORAGE_PORT6(ctrlconn2) = htons(p);
+        if (STORAGE_FAMILY(dataconn) == AF_INET6) {
+            STORAGE_PORT6(dataconn) = htons(p);
         } else {
-            STORAGE_PORT(ctrlconn2) = htons(p);
+            STORAGE_PORT(dataconn) = htons(p);
         }
-        if (bind(datafd, (struct sockaddr *) &ctrlconn2,
-                 STORAGE_LEN(ctrlconn2)) == 0) {
+        if (bind(datafd, (struct sockaddr *) &dataconn,
+                 STORAGE_LEN(dataconn)) == 0) {
             break;
         }
         p--;
@@ -1941,25 +1986,11 @@ void dopasv(int psvtype)
         }
     }
     alarm(idletime);
-    socksize = (socklen_t) sizeof dataconn;
-    if (listen(datafd, DEFAULT_BACKLOG_DATA) < 0 ||
-        getsockname(datafd, (struct sockaddr *) &dataconn, &socksize) < 0) {
+    if (listen(datafd, DEFAULT_BACKLOG_DATA) < 0) {
         (void) close(datafd);
         datafd = -1;
         error(425, MSG_GETSOCKNAME_DATA);
         return;
-    }
-    fourinsix(&dataconn);
-    if (checkvalidaddr(&dataconn) == 0) {
-        (void) close(datafd);
-        datafd = -1;
-        addreply_noformat(425, MSG_INVALID_IP);
-        return;
-    }
-    if (STORAGE_FAMILY(dataconn) == AF_INET6) {
-        p = (unsigned int) ntohs((unsigned short int) STORAGE_PORT6(dataconn));
-    } else {
-        p = (unsigned int) ntohs((unsigned short int) STORAGE_PORT(dataconn));
     }
     switch (psvtype) {
     case 0:
@@ -2017,29 +2048,96 @@ void doport(const char *arg)
     doport2(a, (p1 << 8) | p2);
 }
 
-/*
- * Some operating systems (at least Solaris > 2.7 and FreeBSD) have strange
- * troubles with reusing TCP ports, even when SO_REUSEADDR is enabled. 
- * As a workaround, we try several unassigned privileged ports.
- * The last way is to let the OS assign a port.
- * For egress filtering, you can accept connections from ports <= 20
- * to ports >= 1024.
- */
+#ifndef WITH_PRIVSEP
+
+static int doport3(const int protocol)
+{
+    struct sockaddr_storage dataconn;  /* his endpoint */    
+    
+# ifndef NON_ROOT_FTP
+    static const unsigned short portlist[] = FTP_ACTIVE_SOURCE_PORTS;
+    const unsigned short *portlistpnt = portlist;
+# else
+    static const unsigned short portlist[] = { 0U };
+    const unsigned short *portlistpnt = portlist;
+# endif
+    int on;
+    
+# ifndef NON_ROOT_FTP
+#  ifndef HAVE_SYS_FSUID_H
+    disablesignals();
+    seteuid((uid_t) 0);
+#  endif
+# endif    
+    if ((datafd = socket(protocol, SOCK_STREAM, IPPROTO_TCP)) == -1) {
+        data_socket_error:
+# ifndef NON_ROOT_FTP
+#  ifndef HAVE_SYS_FSUID_H
+        if (seteuid(authresult.uid) != 0) {
+            _EXIT(EXIT_FAILURE);
+        }
+        enablesignals();
+#  endif
+# endif
+        (void) close(datafd);
+        datafd = -1;
+        error(425, MSG_CANT_CREATE_DATA_SOCKET);
+        
+        return -1;
+    }
+    on = 1;
+    (void) setsockopt(datafd, SOL_SOCKET, SO_REUSEADDR,
+                      (char *) &on, sizeof on);
+    memcpy(&dataconn, &ctrlconn, sizeof dataconn);
+    for (;;) {
+        if (STORAGE_FAMILY(dataconn) == AF_INET6) {
+            STORAGE_PORT6(dataconn) = htons(*portlistpnt);
+        } else {
+            STORAGE_PORT(dataconn) = htons(*portlistpnt);
+        }
+        if (bind(datafd, (struct sockaddr *) &dataconn, 
+                 STORAGE_LEN(dataconn)) == 0) {
+            break;
+        }
+# ifdef USE_ONLY_FIXED_DATA_PORT
+        (void) sleep(1U);
+# else
+        if (*portlistpnt == (unsigned short) 0U) {
+            goto data_socket_error;
+        }
+        portlistpnt++;
+# endif
+    }
+# ifndef NON_ROOT_FTP
+#  ifndef HAVE_SYS_FSUID_H
+    if (seteuid(authresult.uid) != 0) {
+        _EXIT(EXIT_FAILURE);
+    }
+    enablesignals();
+#  endif
+# endif
+    
+    return 0;
+}
+
+#else
+
+/* Privilege-separated version of doport3() */
+
+static int doport3(const int protocol)
+{
+    if ((datafd = privsep_bindresport(protocol, ctrlconn)) == -1) {
+        error(425, MSG_CANT_CREATE_DATA_SOCKET);
+        
+        return -1;
+    }
+    return 0;
+}
+
+#endif
 
 void doport2(struct sockaddr_storage a, unsigned int p)
 {
-    struct sockaddr_storage dataconn;  /* his endpoint */
-    int on;
-#ifndef NON_ROOT_FTP
-    static const unsigned short portlist[] = { DEFAULT_FTP_DATA_PORT,
-            2U, 3U, 4U, 5U, 6U, 10U, 14U, 16U, 0U
-    };
-    const unsigned short *portlistpnt = portlist;
-#else
-    static const unsigned short portlist[] = { 0U };
-    const unsigned short *portlistpnt = portlist;
-#endif
-
     if (loggedin == 0) {
         addreply_noformat(530, MSG_NOT_LOGGED_IN);
         return;
@@ -2052,67 +2150,13 @@ void doport2(struct sockaddr_storage a, unsigned int p)
         (void) close(datafd);
         datafd = -1;
     }
-    if (p < 1024) {
+    if (p < 1024U) {
         addreply_noformat(501, MSG_BAD_PORT);
         return;
     }
-#ifndef NON_ROOT_FTP
-# ifndef HAVE_SYS_FSUID_H
-    disablesignals();
-    seteuid((uid_t) 0);
-# endif
-#endif
-    if (STORAGE_FAMILY(a) == AF_INET6) {
-        datafd = socket(PF_INET6, SOCK_STREAM, IPPROTO_TCP);
-    } else {
-        datafd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-    }
-    if (datafd == -1) {
-        data_socket_error:
-#ifndef NON_ROOT_FTP
-# ifndef HAVE_SYS_FSUID_H
-        if (seteuid(authresult.uid) != 0) {
-            _EXIT(EXIT_FAILURE);
-        }
-        enablesignals();
-# endif
-#endif
-        (void) close(datafd);
-        datafd = -1;
-        error(425, MSG_CANT_CREATE_DATA_SOCKET);
+    if (doport3(STORAGE_FAMILY(a) == AF_INET6 ? PF_INET6 : PF_INET) != 0) {
         return;
     }
-    on = 1;
-    setsockopt(datafd, SOL_SOCKET, SO_REUSEADDR, (char *) &on, sizeof on);
-    memcpy(&dataconn, &ctrlconn, sizeof dataconn);
-    for (;;) {
-        if (STORAGE_FAMILY(dataconn) == AF_INET6) {
-            STORAGE_PORT6(dataconn) = htons(*portlistpnt);
-        } else {
-            STORAGE_PORT(dataconn) = htons(*portlistpnt);
-        }
-        if (bind(datafd, (struct sockaddr *) &dataconn, 
-                 STORAGE_LEN(dataconn)) == 0) {
-#ifdef USE_ONLY_FIXED_DATA_PORT
-            sleep(1);
-            continue;
-#else           
-            break;
-#endif           
-        }
-        if (*portlistpnt == (unsigned short) 0U) {
-            goto data_socket_error;
-        }
-        portlistpnt++;
-    }
-#ifndef NON_ROOT_FTP
-# ifndef HAVE_SYS_FSUID_H
-    if (seteuid(authresult.uid) != 0) {
-        _EXIT(EXIT_FAILURE);
-    }
-    enablesignals();
-# endif
-#endif
     peerdataport = (unsigned short) p;
     if (addrcmp(&a, &peer) != 0) {
         char hbuf[NI_MAXHOST];
@@ -2220,7 +2264,7 @@ void opendata(void)
         }
         again:
         if (connect(datafd, (struct sockaddr *) &peer2,
-                    STORAGE_LEN(peer2)) !=0 ) {
+                    STORAGE_LEN(peer2)) != 0) {
             if ((errno == EAGAIN || errno == EINTR
 #ifdef EADDRINUSE
                  || errno == EADDRINUSE
@@ -2827,7 +2871,7 @@ void doretr(char *name)
 			    closedata();
                             addreply_noformat(426, MSG_ABORTED);
                             goto end;
-                        } else if (!(FD_ISSET(xferfd, &ws))) {
+                        } else if (!(safe_fd_isset(xferfd, &ws))) {
                             /* client presumably gone away */
 			    closedata();
                             die(421, LOG_INFO, MSG_TIMEOUT_DATA ,
@@ -2838,7 +2882,8 @@ void doretr(char *name)
                         (void) close(f);
                         if (xferfd != -1) {
 			    closedata();
-                            error(450, MSG_DATA_WRITE_FAILED);
+                            addreply_noformat(450, MSG_DATA_WRITE_FAILED);
+                            logfile(LOG_INFO, MSG_ABORTED);
                         }
                         goto end;
                     }
@@ -2901,7 +2946,7 @@ void doretr(char *name)
                 while ((w = write(xferfd, p + skip, (size_t) (left - skip))) <
                        (ssize_t) 0 && errno == EINTR);
                 if (w < (ssize_t) 0) {
-                    if (errno == EAGAIN) {
+                    if (errno == EAGAIN && xferfd != -1) {
                         /* wait idletime seconds for progress */
                         fd_set rs;
                         fd_set ws;
@@ -2921,7 +2966,7 @@ void doretr(char *name)
 			    closedata();
                             addreply_noformat(426, MSG_ABORTED);
                             goto end;
-                        } else if (!(FD_ISSET(xferfd, &ws))) {
+                        } else if (!(safe_fd_isset(xferfd, &ws))) {
                             /* client presumably gone away */
                             die(421, LOG_INFO, MSG_TIMEOUT_DATA ,
                                 (unsigned long) idletime);
@@ -2931,7 +2976,8 @@ void doretr(char *name)
                         (void) close(f);
                         if (xferfd != -1) {
 			    closedata();
-                            error(450, MSG_DATA_WRITE_FAILED);
+                            addreply_noformat(450, MSG_DATA_WRITE_FAILED);
+                            logfile(LOG_INFO, MSG_ABORTED);
                         }
                         goto end;
                     }
@@ -2945,7 +2991,8 @@ void doretr(char *name)
 
                     ended = get_usec_time();
                     transmitted += w;
-                    delay = (transmitted / (long double) throttling_bandwidth_dl)
+                    delay = (transmitted / 
+			     (long double) throttling_bandwidth_dl)
                         - (long double) (ended - started);
                     if (delay > (long double) MAX_THROTTLING_DELAY) {
                         started = get_usec_time();
@@ -2996,7 +3043,7 @@ void doretr(char *name)
                 w = doasciiwrite(xferfd, (const char *) p + skip,
                                  (size_t) (left - skip));
                 if (w < (ssize_t) 0) {
-                    if (errno == EAGAIN || errno == EINTR) {
+                    if (xferfd != -1 && (errno == EAGAIN || errno == EINTR)) {
                         /* wait idletime seconds for progress */
                         fd_set rs;
                         fd_set ws;
@@ -3016,7 +3063,7 @@ void doretr(char *name)
                             (void) close(f);
                             addreply_noformat(426, MSG_ABORTED);
                             goto end;
-                        } else if (!(FD_ISSET(xferfd, &ws))) {
+                        } else if (!(safe_fd_isset(xferfd, &ws))) {
                             /* client presumably gone away */
                             die(421, LOG_INFO, MSG_TIMEOUT_DATA ,
                                    (unsigned long) idletime);
@@ -3026,7 +3073,8 @@ void doretr(char *name)
                         (void) close(f);
                         if (xferfd != -1) {
 			    closedata();
-                            error(450, MSG_DATA_WRITE_FAILED);
+                            addreply_noformat(450, MSG_DATA_WRITE_FAILED);
+                            logfile(LOG_INFO, MSG_ABORTED);
                         }
                         goto end;
                     }
@@ -3070,9 +3118,9 @@ void dorest(const char *name)
     char *endptr;
 
     restartat = (off_t) strtoull(name, &endptr, 10);
-    if (*endptr) {
+    if (*endptr != 0 || restartat < (off_t) 0) {
         restartat = 0;
-        addreply_noformat(501, MSG_REST_NOT_NUMERIC "\r\n" MSG_REST_RESET);
+        addreply(501, MSG_REST_NOT_NUMERIC "\n" MSG_REST_RESET);
     } else {
         if (type == 1 && restartat != 0) {
 #ifdef STRICT_REST
@@ -3503,7 +3551,7 @@ void dostor(char *name, const int append, const int autorename)
         tv.tv_sec = idletime;
         tv.tv_usec = 0;
         select(xferfd + 1, &rs, NULL, NULL, &tv);
-        if (FD_ISSET(0, &rs) || !(FD_ISSET(xferfd, &rs))) {
+        if (FD_ISSET(0, &rs) || !(safe_fd_isset(xferfd, &rs))) {
             databroken:
 #ifdef QUOTAS
             (void) dostor_quota_update_close_f(overwrite, filesize,
@@ -3517,7 +3565,7 @@ void dostor(char *name, const int append, const int autorename)
             if (guest != 0) {
                 unlinkret = unlink(name);
             }            
-            if (!(FD_ISSET(xferfd, &rs))) { /* client presumably gone away */
+            if (!(safe_fd_isset(xferfd, &rs))) { /* client presumably gone away */
                 die(421, LOG_INFO, MSG_TIMEOUT_DATA , (unsigned long) idletime);                
             }
             addreply(0, "%s %s", name,
@@ -3697,7 +3745,7 @@ void dotype(const char *arg)
     replycode = 200;            /* bloody awful hack */
 
     if (!arg || !*arg) {
-        addreply_noformat(501, MSG_MISSING_ARG "\r\n" "A(scii) I(mage) L(ocal)");
+        addreply(501, MSG_MISSING_ARG "\n" "A(scii) I(mage) L(ocal)");
     } else if (tolower((unsigned char) *arg) == 'a')
         type = 1;
     else if (tolower((unsigned char) *arg) == 'i')
@@ -3876,7 +3924,11 @@ static void fortune(void)
         logfile(LOG_ERR, MSG_OPEN_FAILURE, fortunes_file);
         return;
     }
-    gl = (off_t) (rand() % (st.st_size - 1U));
+# ifdef HAVE_RANDOM
+    gl = (off_t) (random() % (st.st_size - 1U));
+# else
+    gl = (off_t) (rand() % (st.st_size - 1U));    
+# endif
     bufpnt = buf + gl;
     bufend = buf + st.st_size;
     while (bufpnt != buf) {
@@ -4073,8 +4125,8 @@ static void doit(void)
 # ifdef BORING_MODE
     addreply_noformat(0, MSG_WELCOME_TO " Pure-FTPd.");
 # else
-    addreply_noformat(0, "=(<*>)=-.:. (( " MSG_WELCOME_TO 
-                      " Pure-FTPd " VERSION " )) .:.-=(<*>)=-");
+    addreply_noformat(0, "--------- " MSG_WELCOME_TO 
+                      " Pure-FTPd " VERSION VERSION_PRIVSEP " ----------");
 # endif
 #else
     addreply_noformat(220, "FTP server ready.");
@@ -4234,7 +4286,29 @@ static void doit(void)
 #endif
 
     candownload = (signed char) ((maxload <= 0.0) || (load < maxload));
+
+    if (force_passive_ip_s != NULL) {
+        struct addrinfo hints, *res;
+        
+        memset(&hints, 0, sizeof hints);
+        hints.ai_family = AF_INET;
+        hints.ai_addr = NULL;
+        if (getaddrinfo(force_passive_ip_s, NULL, &hints, &res) != 0 ||
+            res->ai_family != AF_INET ||
+            res->ai_addrlen > sizeof force_passive_ip) {
+            die(421, LOG_ERR, MSG_ILLEGAL_FORCE_PASSIVE);            
+        }
+        memcpy(&force_passive_ip, res->ai_addr, res->ai_addrlen);
+    }
+    
+#ifdef WITH_PRIVSEP
+    if (privsep_init() != 0) {
+        die(421, LOG_ERR, "privsep_init");
+    }
+#endif
+    
     parser();
+    
 #ifdef BORING_MODE
     addreply(0, MSG_LOGOUT);
     logfile(LOG_INFO, MSG_LOGOUT);    
@@ -4912,8 +4986,8 @@ int main(int argc, char *argv[])
         }
 #endif
         case 'P': {
-            if (generic_aton(optarg, &force_passive_ip) != 0) {
-                die(421, LOG_ERR, MSG_CONF_ERR ": " MSG_ILLEGAL_FORCE_PASSIVE);
+            if ((force_passive_ip_s = strdup(optarg)) == NULL) {
+                die_mem();
             }
             break;
         }
@@ -5055,7 +5129,7 @@ int main(int argc, char *argv[])
             if (geteuid() == (uid_t) 0)
 #endif
             {
-                puts(PACKAGE " v" VERSION "\n");
+                puts(PACKAGE " v" VERSION VERSION_PRIVSEP "\n");
             }
 #ifndef NO_GETOPT_LONG
             {

@@ -113,7 +113,7 @@ int sfgets(void)
 #ifdef RFC_CONFORMANT_LINES
         }
 #endif
-        if (((unsigned char) cmd[scanned]) < 32U) {
+        if (ISCTRLCODE(cmd[scanned])) {
             if (cmd[scanned] == '\r') {
                 seen_r = 1;
             }

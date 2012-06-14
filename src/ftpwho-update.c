@@ -5,6 +5,9 @@
 # include "ftpwho-update_p.h"
 # include "ftpwho-update.h"
 # include "globals.h"
+# ifdef WITH_PRIVSEP
+#  include "privsep.h"
+# endif
 
 # ifdef WITH_DMALLOC
 #  include <dmalloc.h>
@@ -29,20 +32,30 @@ void ftpwho_exit(const int ret)
     if (mmap_fd != -1) {    
         (void) close(mmap_fd);
     }
+# ifdef WITH_PRIVSEP
     if (
-# ifndef NO_INETD
+# ifndef NO_INETD        
         standalone == 0 &&
 # endif
-        chrooted == 0 && scoreboardfile != NULL) {
-# ifndef NON_ROOT_FTP
-#  ifndef HAVE_SYS_FSUID_H        
-        (void) seteuid((uid_t) 0);
-#  else
-        (void) setfsuid((uid_t) 0);
+        scoreboardfile != NULL) {
+        (void) privsep_removeftpwhoentry();
+    }
+# else
+    if (
+#  ifndef NO_INETD
+        standalone == 0 &&
 #  endif
-# endif
+        chrooted == 0 && scoreboardfile != NULL) {
+#  ifndef NON_ROOT_FTP
+#   ifndef HAVE_SYS_FSUID_H        
+        (void) seteuid((uid_t) 0);
+#   else
+        (void) setfsuid((uid_t) 0);
+#   endif
+#  endif
         (void) unlink(scoreboardfile);
     }
+#endif
     _exit(ret);
 }
 

@@ -265,6 +265,10 @@ enabled.
 
     pure-config.pl rewrite.
 
+* Stefan Hornburg <racke@linuxia.de>
+
+    Debian maintainer.
+
 * Frank DENIS aka Jedi/Sector One <j@pureftpd.org> :
 
     Pure-FTPd project initiator and maintainer.

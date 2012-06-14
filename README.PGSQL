@@ -11,14 +11,14 @@ http://www.postgresql.org/ and binary packages are included in many major
 distributions. But if you choose a binary form, don't forget to also install
 the development packages if they are available separately.
 
-Then, configure Pure-FTPd with --with-pgsql and your favorite extra gadgets :
+Then, configure Pure-FTPd with --with-pgsql and your favorite extra gadgets:
 
 
     ./configure --with-pgsql --with-cookie --with-throttling --with-ratios
 
 
 If your PostgreSQL libraries are installed in a special path, you can specify
-it like this :
+it like this:
 
 
     ./configure --with-pgsql=/opt/pgsql
@@ -28,7 +28,7 @@ In this example, headers (like pgsql.h) will be searched in
 /opt/pgsql/include and /opt/pgsql/include/pgsql, while related libraries
 will be searched in /opt/pgsql/lib and /opt/pgsql/lib/pgsql .
 
-Then, install the server as usual :
+Then, install the server as usual:
 
 
                                  make install
@@ -44,7 +44,7 @@ PostgreSQL server. And as command-line options can be discovered by local users
 (with 'ps auxwww' for instance), it's more secure to use a configuration
 file for sensitive data. Keep it readable only by root (chmod 600) .
 
-Here's a sample configuration file :
+Here's a sample configuration file:
 
 PGSQLServer     localhost
 PGSQLPort       5432
@@ -64,7 +64,7 @@ Save the configuration file anywhere. Let's say /etc/pureftpd-pgsql.conf .
 
 Then, you have to run the pure-ftpd command with '-l pgsql:' (it's an 'ell'
 not a 'one') followed by the path of that configuration file. Here's an
-example with tcpserver :
+example with tcpserver:
 
 
 tcpserver -DHRl0 0 21 /usr/local/bin/pure-ftpd -l pgsql:/etc/pureftpd-pgsql.conf &
@@ -79,7 +79,7 @@ database, use -l pgsql:/etc/pureftpd-pgsql.conf -l unix
      
      
 Pure-FTPd is very flexible and users can be stored in any way in SQL tables.
-You just have to have fields with the following info :
+You just have to have fields with the following info:
 
 - The user's login.
 
@@ -94,7 +94,7 @@ name, looked up at run-time.
 
 - The home directory.
 
-Here's a dump of a simple table to handle this :
+Here's a dump of a simple table to handle this:
 
 CREATE TABLE users (
   User varchar(16) NOT NULL default '',
@@ -111,14 +111,14 @@ of values.
 Then, in the pureftpd-pgsql.conf configuration file, you have to provide SQL
 templates to fetch the needed info.
 
-Let's take the previous example :
+Let's take the previous example:
 
 PGSQLGetPW      SELECT Password FROM users WHERE User='\L'
 PGSQLGetUID     SELECT Uid FROM users WHERE User='\L'
 PGSQLGetGID     SELECT Gid FROM users WHERE User='\L'
 PGSQLGetDir     SELECT Dir FROM users WHERE User='\L'
 
-For each query :
+For each query:
 
 \L is replaced by the login of an user trying to authenticate.
 \I is replaced by the IP address the client connected to.
@@ -131,15 +131,15 @@ You can mix all of these to store info in various tables. For instance, with
 won't be the same account than joe@domain2 . And with \R, you can restrict
 one account to one specific address.
 
-Please note that a login can only contains common characters : A...Z, a...z,
+Please note that a login can only contains common characters: A...Z, a...z,
 0...9, -, ., _, space, :, @ and  and ' . For security purposes, other
 characters are forbidden.
 
 You can also remove uid and gid fields in your tables, and use default
 values instead (thus saving useless lookups) . Two directives are
-useful to serve that purpose : PGSQLDefaultUID and PGSQLDefaultGID.
+useful to serve that purpose: PGSQLDefaultUID and PGSQLDefaultGID.
 
-Obvious example :
+Obvious example:
 
 PGSQLDefaultUID 1000
 PGSQLDefaultGID 1000
@@ -155,24 +155,24 @@ Individual settings can be set for every user, using optional queries.
 - PGSQLGetQTAFS is the maximal number of files an user can store in his home
 directory.
 
-Example :
+Example:
 PGSQLGetQTAFS  SELECT QuotaFiles FROM users WHERE User='\L'
 
 - PGSQLGetQTASZ is the maximal disk usage, in Megabytes.
 
-Example :
+Example:
 PGSQLGetQTASZ  SELECT QuotaSize FROM users WHERE User='\L'
 
 - PGSQLGetRatioUL and PGSQLGetRatioDL are optional ratios.
 
-Example :
+Example:
 PGSQLGetRatioUL SELECT ULRatio FROM users WHERE User='\L'
 PGSQLGetRatioDL SELECT DLRatio FROM users WHERE User='\L'
 
 - PGSQLGetBandwidthUL and PGSQLGetBandwidthDL are optional upload and
 download bandwidth restrictions. Returned values should be in KB/s.
 
-Example :
+Example:
 PGSQLGetBandwidthUL SELECT ULBandwidth FROM users WHERE User='\L'
 PGSQLGetBandwidthDL SELECT DLBandwidth FROM users WHERE User='\L'
 
@@ -200,12 +200,12 @@ data types (eg. binary blobs instead of plain text) are fetched with SQL
 queries.
 
 
-Hint :
+Hint:
 
 PostgreSQL supports views and it's common practice to define a new DB
 user, e.g., ftpd, and a view of the 'real' user database with just the
 bits that the server needs. E.g., if you have virtual domains you
-could use :
+could use:
 
 create view vftpd as select u.vuser, u.domain, u.passwd, d.uid, d.gid,
 '/virtual/' || u.domain || '/' || u.vuser || '/./' as homedir

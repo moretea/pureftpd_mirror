@@ -11,6 +11,9 @@ bin_PROGRAMS = \
 	pure-pw \
 	pure-pwconvert
 
+noinst_PROGRAMS = \
+	ptracetest
+
 pure_ftpd_LDADD = \
 	../puredb/src/libpuredb_read.a @LDAP_SSL_LIBS@ @GETLOADAVG_LIBS@
 
@@ -107,7 +110,10 @@ pure_ftpd_SOURCES = \
 	ftpwho-read.h \
 	ftpwho-read.c \
 	getloadavg.h \
-	getloadavg.c
+	getloadavg.c \
+	privsep.h \
+	privsep_p.h \
+	privsep.c
 
 pure_mrtginfo_CFLAGS = -DIN_PURE_MRTGINFO=1
 
@@ -196,6 +202,9 @@ pure_authd_SOURCES = \
 	fakesnprintf.c \
 	mysnprintf.c \
 	mysnprintf.h
+
+ptracetest_SOURCES = \
+	ptracetest.c
 
 EXTRA_DIST = \
 	messages_check.pl
