@@ -465,6 +465,7 @@ Your platform has a very large maximum path len, we should not trust it.
 #define GLOB_TIMEOUT 17                   /* Max user time for a 'ls' to complete */
 #define MAX_CPU_TIME (17 * 60)           /* Max allowed CPU time per session */
 #define MAX_SESSION_XFER_IDLE (24 * 60 * 60)   /* Max duration of a transfer */
+#define MAX_USER_LENGTH 32U
 
 #ifdef LOG_FTP
 # define DEFAULT_FACILITY LOG_FTP

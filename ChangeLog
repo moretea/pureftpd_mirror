@@ -1,3 +1,47 @@
+* Version 1.0.15:
+    New translation : Turkish, contributed by Mehmet Cokcevik
+<dns@netline.com.tr> .
+    PostgreSQL documentation templates have been fixed - At least User
+is a reserved keyword that needs quotes. Thanks to Henrik Edlund
+<henrik@edlund.org> .
+    The maximal length of an account has been bumped a bit (42 chars),
+and that size is now consistent accross functions through the
+MAX_USER_LENGTH macro. Thanks to Darth Vader (freddyke) for suggesting
+this.
+    The comment about the location of the config file in the RedHat
+init script was synced with the new location.
+    Tokens in the configuration file are now case independant.
+    Automatic creation of home directories was fixed. Thanks to 
+Anthony DeRobertis for the fix.
+    A typo in quota handling was fixed.
+    Cable & Wireless NL is now WideXS, and their mirror seems to be
+working again.
+    Always fill descriptors 0/1 in order to make pure-uploadscript
+actually work when daemonizing. Thanks to Joerg Pulz
+<Joerg.Pulz@frm2.tum.de> for pointing this out.
+    Don't open pipes with O_NDELAY, some systems don't like it at all.
+As a side effect, the server will now wait until pure-uploadscript is
+actually started before accepting connections, and this is a _good_ thing.
+    The server load is not displayed any more, by popular request.
+    The version number isn't displayed any more as well.
+    GNU's getopt_long() has been replaced by an OpenBSD derivative.
+    --without-longoptions has been removed. We keep the old macros and
+#ifdef though, just in case we want to improve the minimal mode later.
+    New unofficial macro : DISPLAY_FILES_IN_UTC_TIME to display directory
+listings with UTC times.
+    The danish translation was updated - Lyberth.
+    pure-pw now returns error codes.
+    WIN32_ANON_DIR can override the default anonymous FTP directory on
+Win32.
+    Fix "pure-pw usermod -y" by introducing has_per_user_max.
+    New subcommand : "pure-pw list", that summarizes available
+accounts in a puredb.
+    Enlarge TCP window as it was a long time ago. It brings better
+performances on BSD systems. Define NO_TCP_LARGE_WINDOW to disable.
+    Try to early detect timeouts by checking whether select() returns 0.
+    Don't try to reduce capabilities if we obviously can't because the
+server has not been started by root.
+    Pure-FTPd is now 100% covered by the BSD license.
 
 * Version 1.0.14:
     Use random() if available, not rand() for fortune cookies.
@@ -18,7 +62,7 @@ just created.
     Add "ptracetest".
     Enable __EXTENSIONS__ and _XPG4_2 on Solaris in ./configure.ac
     Also check whether a client has gone away by testing xferfd, and
-introduce safe_fd_isset() that just works like SAFE_FD_ISSET() but doesn't
+introduce safe_fd_isset() that just works like FD_ISSET() but doesn't
 choke when the descriptor is -1. It fixes bus errors on FreeBSD.
     Add force_passive_ip_s in order to store the argument of -P.
 Passive IP addresses are now resolved in doit() for every new

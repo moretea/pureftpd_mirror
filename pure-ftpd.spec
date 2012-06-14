@@ -1,5 +1,5 @@
 %define name       pure-ftpd
-%define version    1.0.14
+%define version    1.0.15
 %define release    1
 %define builddir   $RPM_BUILD_DIR/%{name}-%{version}
 %define no_install_post_compress_docs    1
@@ -27,6 +27,7 @@
 %define con_boring 0
 %define con_privsep 0
 %define con_sysquotas 0
+
 #dont change these. Use --define instead. See below.
 %define prefixdef  /usr/local
 %define sysconfdef /etc
@@ -75,7 +76,7 @@ Packager:          Frank DENIS <j@pureftpd.org>
 URL:               http://www.pureftpd.org/
 Source:            ftp://ftp.pureftpd.org/pub/pure-ftpd/releases/%{name}-%{version}.tar.gz
 Group:             System Environment/Daemons
-License:           GPL
+License:           BSD
 Provides:     	   ftp-server
 BuildRoot:         %{_tmppath}/%{name}-%{version}
 Summary:           Lightweight, fast and secure FTP server

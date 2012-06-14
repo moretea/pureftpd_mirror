@@ -138,3 +138,11 @@ compiled with quotas, puredb, throttling, ftpwho and virtualchroot.
 
   URL : http://webmin.thirdpartymodules.com/?page=Search&action=search&searchval=pure-ftpd
   
+* FTP-Config (author: Gritsch Gabriel)
+
+  This MacOS X software includes a precompiled Pure-FTPd binary and a
+powerful yet very simple graphical interface to configure the server.
+
+  URL : http://gritsch.themac.de/ftp-config_web/index_en.html
+        http://www.versiontracker.com/dyn/moreinfo/macosx/19713
+

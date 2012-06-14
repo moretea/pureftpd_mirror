@@ -1,6 +1,6 @@
 
                               .:. PURE-FTPD .:.
-                       Documentation for version 1.0.14
+                       Documentation for version 1.0.15
 
 
 
@@ -12,12 +12,12 @@ based upon Troll-FTPd.
 
 Unlike other popular FTP servers, it's designed to be secure in default
 configuration, has no known buffer overflow, it is really trivial to set up
-and it is especially designed for modern kernels. It was successfully
-ported to Linux, FreeBSD, NetBSD, OpenBSD, MicroBSD, BSDi, Solaris, Darwin,
+and it is especially designed for modern kernels. It was successfully ported
+to Linux, FreeBSD, NetBSD, OpenBSD, ISOS, EkkoBSD, BSDi, Solaris, Darwin,
 Tru64, Irix and HPUX.
 
 Features include chroot()ed and/or virtual chroot()ed home directories,
-virtual domains, built-in 'ls', anti-warez system, bounded ports for
+virtual domains, built-in 'ls', anti-warez system, configurable ports for
 passive downloads, FXP protocol, bandwidth throttling, ratios,
 LDAP / MySQL / PostgreSQL-based authentication, fortune files, Apache-like
 log files, fast standalone mode, text / HTML / XML real-time status report,
@@ -29,10 +29,10 @@ virtual users, virtual quotas, privilege separation and more.
 
 Many people new to Unix are running Pure-FTPd because they find it easy to
 install. But that software is also used on highly loaded production servers,
-especially for hosting services. Cable & Wireless NL switched from BSD FTPd
-(more than 3000 domains per machine), Cable & Wireless France is also using
-Pure-FTPd, and many hosting services are running it successfully on all
-their colocated servers.
+especially for hosting services. WideXS switched from BSD FTPd (more than 3000
+domains per machine), Cable & Wireless France is also using Pure-FTPd, and
+many hosting services are running it successfully on all their colocated
+servers.
 
 The Spanish National Research Network successfully switched their public FTP
 server to Pure-FTPd, running on a Solaris box.
@@ -52,7 +52,7 @@ and flexible SQL support.
 
 In its current form, Pure-FTPd uses some OS-specific system calls. And altough
 some portability work has been done in order to ease its port to other
-operating systems, only Linux FreeBSD, NetBSD, OpenBSD, MicroBSD, BSDi,
+operating systems, only Linux FreeBSD, NetBSD, OpenBSD, ISOS, EkkoBSD, BSDi,
 Darwin, Solaris, Tru64, Irix and HPUX are known to work, other operating
 systems may need some tweaks. With Linux, any modern distribution should be
 ok.
@@ -195,17 +195,17 @@ feature. If OpenLDAP is installed in a custom location, you can use the
 --with-ldap=<directory> syntax. See the README.LDAP file for more info about
 LDAP and Pure-FTPd.
 
---with-minimal: to efficiently use features of modern FTP clients,
-Pure-FTPd implements the basics of the FTP protocol, with many extensions
-(SITE IDLE, SITE CHMOD, MLSD, ...) . Using the --with-minimal directive,
-these extensions won't be compiled in. Also, there will be no standalone
-server, no lookup for user/group names, no humor, no ASCII support and no
-alternative long options. But the executable file size will be smaller than
-in a default installation. You need at least GCC 3.0 to compile with this
-option. Regular expressions are compiled in. If you still want to reduce the
-size, use --without-globbing in conjunction with --with-minimal. If you are
-building an embedded system, use this. In all other cases, to avoid
-complaints from customers (especially with Windows clients), forget this.
+--with-minimal: to efficiently use features of modern FTP clients, Pure-FTPd
+implements the basics of the FTP protocol, with many extensions (SITE IDLE,
+SITE CHMOD, MLSD, ...) . Using the --with-minimal directive, these extensions
+won't be compiled in. Also, there will be no standalone server, no lookup for
+user/group names, no humor and no ASCII support. But the executable file size
+will be smaller than in a default installation. You need at least GCC 3.0 to
+compile with this option. Regular expressions are compiled in. If you still
+want to reduce the size, use --without-globbing in conjunction with
+--with-minimal. If you are building an embedded system, use this. In all other
+cases, to avoid complaints from customers (especially with Windows clients),
+forget this.
 
 --with-mysql: use the native MySQL support for users database. When this
 option is enabled, system accounts can be bypassed. MySQL client libraries
@@ -336,13 +336,6 @@ Pure-FTPd, so that both inetd-like and standalone mode are supported.
 
 --without-iplogging: don't log any IP address to protect confidentiality,
 especially for political servers.
-
---without-longoptions: remove support for long options. By default,
-GNU-style options can be used and mixed with short command-line options. For
-instance, you can use '--maxclientsperip=12' instead of '-C 12' . Longer,
-but clearer. If you compile the server with '--without-longoptions', long
-options won't be available any more. '-C 12' will work, but not
-the '--maxclientsperip=12' alias. But it will save 1.2 Kb of executable code.
 
 --without-nonalnum: paranoid file name checking: only allow basic
 alphanumeric characters. Never enable this switch blindly, or your customers
@@ -633,7 +626,7 @@ Here are the recognised switches:
 - '-1': log the PID of each session in syslog output.
 
 - '-4': only listen to IPv4 connections. YOU HAVE TO ENABLE THIS ON OPENBSD,
-NETBSD, MICROBSD AND FREEBSD 5.X IF YOUR NETWORK IS NOT 100% IPV6!
+NETBSD, ISOS, EKKOBSD AND FREEBSD 5.X IF YOUR NETWORK IS NOT 100% IPV6!
 
 - '-a <gid>': Authenticated users will be granted access to their home
 directory and nothing else (chroot) . This is especially useful for users
@@ -765,8 +758,7 @@ display directory listings, your NAT gateway sucks. Use '-N' as a workaround.
 
 - '-o': Write all uploaded files to '/var/run/pure-ftpd.upload.pipe' so
 that the 'pure-uploadscript' program can run. Don't enable that option if
-you don't use 'pure-uploadscript'. There will be no sensitive performance
-bottleneck it will crunch two extra file descriptors per client.
+you don't actually use 'pure-uploadscript'.
 
 - '-O <format>:<log file>': Record all file transfers into a specific log
 file, in an alternative format. Currently, three formats are supported: CLF
@@ -1421,9 +1413,11 @@ IMPORTANT:
 YOU MUST START PURE-FTPD _FIRST_, AND _THEN_ START PURE-UPLOADSCRIPT.
 THE REVERSE ORDER WON'T WORK.
 
-For security and efficiency purposes, the server never launches any external
-program. It's why there is a separate daemon, that reads new uploads pushed
-into a named pipe by the server.
+For security purposes, the server never launches any external program. It's
+why there is a separate daemon, that reads new uploads pushed into a named
+pipe by the server. Uploads are processed synchronously and sequencially.
+It's why on loaded or untrusted servers, it might be a bad idea to use
+pure-uploadscript with lenghty or cpu-intensive scripts.
 
 The easiest way to run pure-uploadscript is 'pure-uploadscript -r <script>':
 
@@ -1600,7 +1594,7 @@ following option when you run the server:
 
 - To use MySQL databases, add this:
 
-                     -l mysql:/path/to/ldap_config_file
+                     -l mysql:/path/to/mysql_config_file
 
 (read README.MySQL for more info about MySQL databases)
 
@@ -1691,7 +1685,7 @@ Some old broken operating systems may allow the ptrace() system call
 on processes that revoked privileges. On these platforms, enabling
 privilege separation is a bad idea if untrusted users also have shell
 access. Use the src/ptracetest program to check this. At least
-Solaris, MicroBSD, OpenBSD, FreeBSD and Linux are known to be safe.
+Solaris, ISOS, EkkoBSD, OpenBSD, FreeBSD and Linux are known to be safe.
 
 
 ------------------------ OPTIMIZING FOR HIGH LOAD ------------------------
@@ -1839,14 +1833,14 @@ is a safe bet.
 
 Pure-FTPd home page is: http://www.pureftpd.org/ .
 
-Pure-FTPd mailing-list:
+Pure-FTPd mailing-lists:
                          http://www.pureftpd.org/ml/
 
 You can also fetch the latest snapshots by CVS:
 
-cvs -d:pserver:anonymous@cvs.pureftpd.sourceforge.net:/cvsroot/pureftpd login
+cvs -d:pserver:anonymous@cvs.pureftpd.org:/cvsroot/pureftpd login
 (hit return without entering any password)
-cvs -z3 -d:pserver:anonymous@cvs.pureftpd.sourceforge.net:/cvsroot/pureftpd co pureftpd
+cvs -z3 -d:pserver:anonymous@cvs.pureftpd.org:/cvsroot/pureftpd co pureftpd
 cd pureftpd
 ./autogen.sh
 
@@ -1863,12 +1857,15 @@ Pre-built Solaris binary packages are available from the same location.
 MacOS X packages are available from Fink:
 http://fink.sourceforge.net/pdb/package.php/pure-ftpd/
 
+Gentoo Linux emerging : emerge pure-ftpd
+
 Latest releases and regular snapshots are always available from:
 
   ftp://ftp.pureftpd.org/pub/pure-ftpd/         (a link to a fast mirror)
   ftp://ftp.fr.pureftpd.org/pub/pure-ftpd/      (master, slow)
   ftp://ftp2.fr.pureftpd.org/pub/mirrors/ftp.fr.pureftpd.org/pub/pure-ftpd/ (T-Online, fast)
   ftp://ftp3.fr.pureftpd.org/pub/pure-ftpd/     (OAV / Cable&Wireless FR, fast)
+  ftp://ftp.nl.pureftpd.org/pub/pure-ftpd/      (WideXS NL, fast)  
   ftp://ftp.dk.pureftpd.org/mirrors/pure-ftpd/  (Sunsite DK mirror, fast)
   ftp://ftp.cn.pureftpd.org/pub/pureftpd/pure-ftpd/ (Chinese mirror)
 

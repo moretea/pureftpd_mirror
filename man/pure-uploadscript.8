@@ -27,7 +27,7 @@ Display available options.
 \fB\-r\fR <\fIprogram to run\fP>
 Tell what program/script to run. It has to be \fIan absolute filename\fR, the \fBPATH\fR environment variable is ignored.
 The first argument of that program will be the \fIunquoted\fR name of the newly uploaded file.
-Environnement variables aren't cleared. So don't put sensitive data in them before calling pure\-uploadscript if you switch uid.
+Environment variables aren't cleared. So don't put sensitive data in them before calling pure\-uploadscript if you switch uid.
 .TP 
 \fB\-u\fR <\fIuid\fP>
 Switch the user ID to <\fIuid\fP>.
@@ -61,7 +61,7 @@ The full user name, or the virtual user name (127 chars max) .
 .TP 
 \- The pipe can only be created and opened by root. It must have perms 600, with uid 0, or it will be ignored.
 .TP 
-\- The argument passed to an external program/script is always an exact absolute path name. It doesn't get fooled by \fBchroot()\fRed environements, and by absolute or relative paths added to the STOR command.
+\- The argument passed to an external program/script is always an exact absolute path name. It doesn't get fooled by \fBchroot()\fRed environments, and by absolute or relative paths added to the STOR command.
 .TP 
 \- UID and GID are set just after parsing command\-line options, and \fBpure\-uploadscript\fR never gets back supervisor privileges.
 .TP 

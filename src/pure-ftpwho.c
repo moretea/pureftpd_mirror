@@ -15,12 +15,11 @@ int main(void)
 # include "ftpd.h"
 # include "dynamic.h"
 # include "ftpwho-update.h"
-# if !defined(NO_GETOPT_LONG) && !defined(HAVE_GETOPT_LONG)
-#  include "gnu-getopt.h"
+
+# ifndef HAVE_GETOPT_LONG
+#  include "bsd-getopt_long.h"
 # else
-#  ifdef HAVE_GETOPT_H
-#    include <getopt.h>
-#  endif
+#  include <getopt.h>
 # endif
 
 # ifdef WITH_DMALLOC

@@ -246,9 +246,14 @@ static int listfile(const FileInfo * const fi,  const char *name)
         st.st_mode |= S_IFDIR;
     }  /* Hack to please some Windows client that dislike ../ -> ../ */
 #endif
-    t = localtime((time_t *) & st.st_mtime);
-    if (!t) {
-        die(421, LOG_ERR, "localtime()");
+#ifdef DISPLAY_FILES_IN_UTC_TIME
+    t = gmtime((time_t *) &st.st_mtime);
+#else
+    t = localtime((time_t *) &st.st_mtime);
+#endif
+    if (t == NULL) {
+        logfile(LOG_ERR, "{gm,local}gtime() for [%s]", name);
+        return 0;
     }
     if (opt_F) {
         if (S_ISLNK(st.st_mode))

@@ -81,14 +81,14 @@ pure_ftpd_SOURCES = \
 	messages_sv.h \
 	messages_no.h \
 	messages_ru.h \
+	messages_tr.h \
 	messages_zh_cn.h \
 	messages_zh_tw.h \
 	ftpwho-update.c \
 	ftpwho-update.h \
 	ftpwho-update_p.h \
-	gnu-getopt.c \
-	gnu-getopt1.c \
-	gnu-getopt.h \
+	bsd-getopt_long.c \
+	bsd-getopt_long.h \
 	upload-pipe.c \
 	upload-pipe.h \
 	ipv4stack.c \
@@ -131,9 +131,8 @@ pure_ftpwho_SOURCES = \
 	ftpd.h \
 	syslognames.h \
 	ftpwho-update.h \
-	gnu-getopt.c \
-	gnu-getopt1.c \
-	gnu-getopt.h \
+	bsd-getopt_long.c \
+	bsd-getopt_long.h \
 	fakesnprintf.h \
 	fakesnprintf.c \
 	mysnprintf.c \
@@ -147,9 +146,8 @@ pure_uploadscript_SOURCES = \
 	ftpd.h \
 	syslognames.h \
 	ftpwho-update.h \
-	gnu-getopt.c \
-	gnu-getopt1.c \
-	gnu-getopt.h \
+	bsd-getopt_long.c \
+	bsd-getopt_long.h \
 	fakesnprintf.h \
 	fakesnprintf.c \
 	mysnprintf.c \
@@ -169,7 +167,9 @@ pure_quotacheck_SOURCES = \
 	fakesnprintf.h \
 	fakesnprintf.c \
 	mysnprintf.c \
-	mysnprintf.h
+	mysnprintf.h \
+	bsd-getopt_long.c \
+	bsd-getopt_long.h
 
 pure_pw_LDADD = \
 	../puredb/src/libpuredb_write.a
@@ -181,7 +181,9 @@ pure_pw_SOURCES = \
 	fakesnprintf.h \
 	fakesnprintf.c \
 	mysnprintf.c \
-	mysnprintf.h
+	mysnprintf.h \
+	bsd-getopt_long.c \
+	bsd-getopt_long.h
 
 pure_pwconvert_SOURCES = \
 	pure-pwconvert.c \
@@ -195,9 +197,8 @@ pure_authd_SOURCES = \
 	pure-authd.c \
 	pure-authd_p.h \
 	ftpd.h \
-	gnu-getopt.c \
-	gnu-getopt1.c \
-	gnu-getopt.h \
+	bsd-getopt_long.c \
+	bsd-getopt_long.h \
 	fakesnprintf.h \
 	fakesnprintf.c \
 	mysnprintf.c \

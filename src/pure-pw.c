@@ -10,12 +10,11 @@
 #elif defined(HAVE_SGTTY_H)
 # include <sgtty.h>
 #endif
-#if !defined(NO_GETOPT_LONG) && !defined(HAVE_GETOPT_LONG)
-# include "gnu-getopt.h"
+
+#ifndef HAVE_GETOPT_LONG
+# include "bsd-getopt_long.h"
 #else
-# ifdef HAVE_GETOPT_H
-#  include <getopt.h>
-# endif
+# include <getopt.h>
 #endif
 
 #ifdef WITH_DMALLOC
@@ -191,9 +190,11 @@ static void help(void)
          "\n"
          "pure-pw mkdb    [<puredb database file> [-f <passwd file>]]\n"
          "\n"
+         "pure-pw list    [-f <passwd file>]\n"
+         "\n"
          "-d <home directory> : chroot user (recommended)\n"
          "-D <home directory> : don't chroot user\n"
-	 "-y 0 : unlimited number of concurrent sessions\n"
+	 "-<option> '' : set this option to unlimited\n"
          "-m : also update the " DEFAULT_PW_DB " database\n"
          "For a 1:10 ratio, use -q 1 -Q 10\n"
          "To allow access only between 9 am and 6 pm, use -z 0900-1800\n"
@@ -362,6 +363,7 @@ static int parse_pw_line(char *line, PWInfo * const pwinfo)
     pwinfo->time_begin = pwinfo->time_end = 0U;
     pwinfo->uid = (uid_t) 0;
     pwinfo->gid = (gid_t) 0;
+    pwinfo->has_per_user_max = 0;
     pwinfo->per_user_max = 0U;
     
     if ((line = my_strtok2(line, *PW_LINE_SEP)) == NULL || *line == 0) {   /* account */
@@ -430,7 +432,10 @@ static int parse_pw_line(char *line, PWInfo * const pwinfo)
         return 0;
     }
     if (*line != 0) {
-	pwinfo->per_user_max = (unsigned int) strtoull(line, NULL, 10);
+	pwinfo->per_user_max = (unsigned int) strtoul(line, NULL, 10);
+        if (pwinfo->per_user_max > 0U) {
+            pwinfo->has_per_user_max = 1;
+        }
     }
     if ((line = my_strtok2(NULL, *PW_LINE_SEP)) == NULL) {   /* files quota */
         return 0;
@@ -633,7 +638,7 @@ static int add_new_pw_line(FILE * const fp2, const PWInfo * const pwinfo)
     if (fprintf(fp2, PW_LINE_SEP) < 0) {    
         return -1;
     }
-    if (pwinfo->per_user_max > 0U) {
+    if (pwinfo->has_per_user_max != 0) {
 	if (fprintf(fp2, "%u", pwinfo->per_user_max) < 0) {
 	    return -1;
 	}
@@ -746,8 +751,42 @@ static char *do_get_passwd(void)
     return pwd;
 }
 
-static void do_useradd(const char * const file,
-                       const PWInfo * const pwinfo_)
+static int do_list(const char * const file)
+{
+    FILE *fp;
+    PWInfo pwinfo;
+    char line[LINE_MAX];    
+    
+    if (file == NULL) {
+        fprintf(stderr, "missing file to list accounts\n");
+        return PW_ERROR_MISSING_PASSWD_FILE;
+    }
+    if ((fp = fopen(file, "r")) == NULL) {
+        perror("Unable to open the passwd file");
+        return PW_ERROR_MISSING_PASSWD_FILE;        
+    }
+    while (fgets(line, (int) sizeof line - 1U, fp) != NULL) {
+        strip_lf(line);
+        if (*line == 0 || *line == PW_LINE_COMMENT) {
+            continue;
+        }
+        if (parse_pw_line(line, &pwinfo) != 0) {
+            fprintf(stderr, "Warning: invalid line [%s]\n", line);
+            continue;
+        }
+        if (isatty(1)) {
+            printf("%-19s %-39s %-19s\n", pwinfo.login, pwinfo.home, pwinfo.gecos);
+        } else {
+            printf("%s\t%s\t%s\n", pwinfo.login, pwinfo.home, pwinfo.gecos);            
+        }
+    }
+    fclose(fp);
+
+    return 0;
+}
+
+static int do_useradd(const char * const file,
+                      const PWInfo * const pwinfo_)
 {
     char *file2;
     FILE *fp2;
@@ -755,19 +794,19 @@ static void do_useradd(const char * const file,
     
     if (pwinfo.login == NULL || *(pwinfo.login) == 0) {
         fprintf(stderr, "Missing login\n");
-        return;
+        return PW_ERROR_MISSING_LOGIN;
     }
     if (file == NULL) {
         fprintf(stderr, "Missing passwd file\n");
-        return;
+        return PW_ERROR_MISSING_PASSWD_FILE;
     }
     if (pwinfo.uid <= (uid_t) 0 || pwinfo.gid <= (gid_t) 0) {
         fprintf(stderr, "You must give (non-root) uid and gid\n");
-        return;
+        return PW_ERROR_USERADD_NOT_ROOT;
     }
     if (pwinfo.home == NULL) {
         fprintf(stderr, "Missing home directory\n");        
-        return;
+        return PW_ERROR_USERADD_MISSING_HOME_DIR;
     }
     if (pwinfo.gecos == NULL) {
         if ((pwinfo.gecos = strdup("")) == NULL) {
@@ -776,7 +815,7 @@ static void do_useradd(const char * const file,
     }           
     if ((pwinfo.pwd = do_get_passwd()) == NULL) {
         fprintf(stderr, "Error with entering password - aborting\n");        
-        return;
+        return PW_ERROR_ENTER_PASSWD_PW_ERROR;
     }
     {
         char *cleartext = pwinfo.pwd;
@@ -795,7 +834,7 @@ static void do_useradd(const char * const file,
                 "and that [%s] can be written.\n", 
                 pwinfo.login, file2);
         free(file2);        
-        return;
+        return PW_ERROR_USER_ALREADY_EXIST;
     }    
     if (add_new_pw_line(fp2, &pwinfo) != 0) {
         fprintf(stderr, "Unable to append a line\n");
@@ -814,17 +853,19 @@ static void do_useradd(const char * const file,
         goto bye2;
     }
     free(file2);
-    return;
+    return 0;
     
     bye:
     fclose(fp2);
     bye2:
     unlink(file2);
     free(file2);
+    
+    return PW_ERROR_UNEXPECTED_ERROR;
 }
 
-static void do_usermod(const char * const file,
-                       const PWInfo *pwinfo)
+static int do_usermod(const char * const file,
+                      const PWInfo *pwinfo)
 {
     char *file2;
     FILE *fp2;
@@ -833,17 +874,17 @@ static void do_usermod(const char * const file,
 
     if (pwinfo->login == NULL || *(pwinfo->login) == 0) {
         fprintf(stderr, "Missing login\n");
-        return;
+        return PW_ERROR_MISSING_LOGIN;
     }
     if (file == NULL) {
         fprintf(stderr, "Missing passwd file\n");
-        return;
+        return PW_ERROR_MISSING_PASSWD_FILE;
     }
     if (fetch_pw_account(file, &fetched_info, line, sizeof line,
                          pwinfo->login) != 0) {
         fprintf(stderr, "Unable to fetch info about user [%s] in file [%s]\n",
                 pwinfo->login, file);
-        return;
+        return PW_ERROR_UNABLE_TO_FETCH;
     }
     if (pwinfo->pwd != NULL) {
         char *cleartext = pwinfo->pwd;
@@ -934,8 +975,13 @@ static void do_usermod(const char * const file,
         fetched_info.time_begin = pwinfo->time_begin;
         fetched_info.time_end = pwinfo->time_end;
     }
-    if (pwinfo->per_user_max > 0U) {
-	fetched_info.per_user_max = pwinfo->per_user_max;
+    if (pwinfo->has_per_user_max != 0) {
+        if (pwinfo->has_per_user_max < 0) {
+            fetched_info.has_per_user_max = 0;            
+        } else {
+            fetched_info.has_per_user_max = pwinfo->has_per_user_max;
+            fetched_info.per_user_max = pwinfo->per_user_max;
+        }
     }
     if ((file2 = newpasswd_filename(file)) == NULL) {
         no_mem();
@@ -945,7 +991,7 @@ static void do_usermod(const char * const file,
                 "Check that [%s] already exists,\n"
                 "and that [%s] can be written.\n", pwinfo->login, file2);
         free(file2);
-        return;
+        return PW_ERROR_USER_ALREADY_EXIST;
     }    
     if (add_new_pw_line(fp2, &fetched_info) != 0) {
         fprintf(stderr, "Unable to append a line\n");
@@ -964,28 +1010,30 @@ static void do_usermod(const char * const file,
         goto bye2;
     }
     free(file2);
-    return;
+    return 0;
     
     bye:
     fclose(fp2);
     bye2:
     unlink(file2);
-    free(file2);    
+    free(file2);
+    
+    return PW_ERROR_UNEXPECTED_ERROR;
 }
 
-static void do_userdel(const char * const file,
-                       const PWInfo * const pwinfo)
+static int do_userdel(const char * const file,
+                      const PWInfo * const pwinfo)
 {
     char *file2;
     FILE *fp2;
     
     if (pwinfo->login == NULL || *(pwinfo->login) == 0) {
         fprintf(stderr, "Missing login\n");
-        return;
+        return -1;
     }
     if (file == NULL) {
         fprintf(stderr, "Missing passwd file\n");
-        return;
+        return PW_ERROR_MISSING_PASSWD_FILE;
     }    
     if ((file2 = newpasswd_filename(file)) == NULL) {
         no_mem();
@@ -995,7 +1043,7 @@ static void do_userdel(const char * const file,
                 "Check that [%s] already exists,\n"
                 "and that [%s] can be written.\n", pwinfo->login, file2);
         free(file2);
-        return;
+        return PW_ERROR_USER_ALREADY_EXIST;
     }
     fflush(fp2);
 #ifdef HAVE_FILENO
@@ -1010,14 +1058,16 @@ static void do_userdel(const char * const file,
         goto bye2;
     }
     free(file2);
-    return;
+    return 0;
     
     bye2:
     unlink(file2);
     free(file2);
+    
+    return PW_ERROR_UNEXPECTED_ERROR;
 }
 
-static void do_show(const char * const file, const PWInfo * const pwinfo)
+static int do_show(const char * const file, const PWInfo * const pwinfo)
 {
     PWInfo fetched_info;
     struct passwd *pwd;
@@ -1028,17 +1078,17 @@ static void do_show(const char * const file, const PWInfo * const pwinfo)
     
     if (pwinfo->login == NULL || *(pwinfo->login) == 0) {
         fprintf(stderr, "Missing login\n");
-        return;
+        return PW_ERROR_MISSING_LOGIN;
     }
     if (file == NULL) {
         fprintf(stderr, "Missing passwd file\n");
-        return;
+        return PW_ERROR_MISSING_PASSWD_FILE;
     }
     if (fetch_pw_account(file, &fetched_info, line, sizeof line,
                          pwinfo->login) != 0) {
         fprintf(stderr, "Unable to fetch info about user [%s] in file [%s]\n",
                 pwinfo->login, file);
-        return;
+        return PW_ERROR_UNABLE_TO_FETCH;
     }
     if ((pwd = getpwuid(fetched_info.uid)) != NULL && pwd->pw_name != NULL) {
         pwd_name = pwd->pw_name;
@@ -1090,28 +1140,33 @@ static void do_show(const char * const file, const PWInfo * const pwinfo)
            SHOW_IFEN(fetched_info.has_time, fetched_info.time_begin),
            SHOW_IFEN(fetched_info.has_time, fetched_info.time_end),
            SHOW_STATE(fetched_info.has_time),
-	   fetched_info.per_user_max, SHOW_STATE(fetched_info.per_user_max));
+	   SHOW_IFEN(fetched_info.has_per_user_max, fetched_info.per_user_max),
+           SHOW_STATE(fetched_info.per_user_max));
+    
+    return 0;
 }
 
-static void do_passwd(const char * const file,
-                      PWInfo * const pwinfo)
+static int do_passwd(const char * const file,
+                     PWInfo * const pwinfo)
 {
     if (pwinfo->login == NULL || *(pwinfo->login) == 0) {
         fprintf(stderr, "Missing login\n");
-        return;
+        return PW_ERROR_MISSING_LOGIN;
     }
     if (file == NULL) {
         fprintf(stderr, "Missing passwd file\n");
-        return;
+        return PW_ERROR_MISSING_PASSWD_FILE;
     }
     if ((pwinfo->pwd = do_get_passwd()) == NULL) {
         fprintf(stderr, "Error with entering password - aborting\n");        
-        return;
+        return PW_ERROR_ENTER_PASSWD_PW_ERROR;
     }    
     do_usermod(file, pwinfo);
+    
+    return 0;
 }
 
-static void do_mkdb(const char *dbfile, const char * const file)
+static int do_mkdb(const char *dbfile, const char * const file)
 {
     FILE *fp;
     char *index_dbfile;
@@ -1120,6 +1175,7 @@ static void do_mkdb(const char *dbfile, const char * const file)
     size_t sizeof_data_dbfile;
     char *s;
     PureDBW dbw;
+    int ret = PW_ERROR_UNEXPECTED_ERROR;
     char line[LINE_MAX];
     
     if (dbfile == NULL || *dbfile == 0) {
@@ -1133,11 +1189,11 @@ static void do_mkdb(const char *dbfile, const char * const file)
     }
     if (file == NULL) {
         fprintf(stderr, "Missing passwd file\n");
-        return;
+        return PW_ERROR_MISSING_PASSWD_FILE;
     }    
     if ((fp = fopen(file, "r")) == NULL) {
         perror("Unable to open the passwd file");
-        return;
+        return PW_ERROR_MISSING_PASSWD_FILE;
     }
     sizeof_index_dbfile = strlen(dbfile) + sizeof NEWPASSWD_INDEX_SUFFIX;
     if ((index_dbfile = ALLOCA(sizeof_index_dbfile)) == NULL) {
@@ -1175,12 +1231,16 @@ static void do_mkdb(const char *dbfile, const char * const file)
     }
     if (puredbw_close(&dbw) != 0) {
         perror("Unable to close the database");
+    } else {
+        ret = 0;
     }
     err:
     puredbw_free(&dbw);
     ALLOCA_FREE(index_dbfile);
     ALLOCA_FREE(data_dbfile);    
     fclose(fp);
+    
+    return ret;
 }
 
 static void init_zrand(void)
@@ -1201,11 +1261,12 @@ static void init_zrand(void)
 
 int main(int argc, char *argv[])
 {
-    int fodder;    
     const char *action;
     char *file = NULL;
     char *dbfile = NULL;
     PWInfo pwinfo;
+    int fodder;
+    int ret = 0;
     int with_chroot = 1;
     int with_mkdb = 0;
         
@@ -1242,6 +1303,7 @@ int main(int argc, char *argv[])
     pwinfo.has_dl_ratio = 0;
     pwinfo.has_time = 0;
     pwinfo.time_begin = pwinfo.time_end = 0U;
+    pwinfo.has_per_user_max = 0;
     pwinfo.per_user_max = 0U;
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__)
     pwinfo.uid = (uid_t) 42U;
@@ -1275,25 +1337,29 @@ int main(int argc, char *argv[])
         case 'D' :
             with_chroot = 0;
         case 'd' : {
+            char *optarg_copy;
             size_t sizeof_home;
             size_t optarg_len;
             
+            if ((optarg_copy = strdup(optarg)) == NULL) {
+                no_mem();
+            }
             again:
-            optarg_len = strlen(optarg);
+            optarg_len = strlen(optarg_copy);
             if (optarg_len < (size_t) 1U) {
                 fprintf(stderr, "home directory is missing\n");
                 exit(EXIT_FAILURE);
             }
-            if (optarg[optarg_len - 1U] == '/') {
+            if (optarg_copy[optarg_len - 1U] == '/') {
                 optarg_len--;
-                optarg[optarg_len] = 0;
+                optarg_copy[optarg_len] = 0;
                 goto again;
             }
             sizeof_home = optarg_len + sizeof "/./";
             if ((pwinfo.home = malloc(sizeof_home)) == NULL) {
                 no_mem();
             }
-            snprintf(pwinfo.home, sizeof_home, "%s%s", optarg,
+            snprintf(pwinfo.home, sizeof_home, "%s%s", optarg_copy,
                      with_chroot != 0 ? "/./" : "");
             filter_pw_line_sep(pwinfo.home);            
             break;
@@ -1435,7 +1501,11 @@ int main(int argc, char *argv[])
             break;
         }
 	case 'y' : {
-	    pwinfo.per_user_max = (unsigned int) strtoul(optarg, NULL, 10);
+	    if ((pwinfo.per_user_max = (unsigned int) strtoul(optarg, NULL, 10)) <= 0U) {
+                pwinfo.has_per_user_max = -1;
+            } else {
+                pwinfo.has_per_user_max = 1;
+            }
 	    break;
 	}
         case 'z' : {
@@ -1469,19 +1539,19 @@ int main(int argc, char *argv[])
     (void) umask(0177);
     init_zrand();
     if (strcasecmp(action, "useradd") == 0) {
-        do_useradd(file, &pwinfo);
+        ret = do_useradd(file, &pwinfo);
         if (with_mkdb != 0) {
-            do_mkdb(dbfile, file);
+            ret |= do_mkdb(dbfile, file);
         }
     } else if (strcasecmp(action, "usermod") == 0) {
-        do_usermod(file, &pwinfo);
+        ret = do_usermod(file, &pwinfo);
         if (with_mkdb != 0) {
-            do_mkdb(dbfile, file);
+            ret |= do_mkdb(dbfile, file);
         }        
     } else if (strcasecmp(action, "userdel") == 0) {
-        do_userdel(file, &pwinfo);
+        ret = do_userdel(file, &pwinfo);
         if (with_mkdb != 0) {
-            do_mkdb(dbfile, file);
+            ret |= do_mkdb(dbfile, file);
         }        
     } else if (strcasecmp(action, "passwd") == 0) {
         do_passwd(file, &pwinfo);
@@ -1489,13 +1559,16 @@ int main(int argc, char *argv[])
             do_mkdb(dbfile, file);
         }        
     } else if (strcasecmp(action, "show") == 0) {
-        do_show(file, &pwinfo);
+        ret = do_show(file, &pwinfo);
     } else if (strcasecmp(action, "mkdb") == 0) {
-        do_mkdb(pwinfo.login, file);
+        ret = do_mkdb(pwinfo.login, file);
+    } else if (strcasecmp(action, "list") == 0) {
+        ret = do_list(file);
     } else {
+        ret = PW_ERROR_UNEXPECTED_ERROR;
         help();
     }
                
-    return 0;
+    return ret;
 }
 

@@ -524,6 +524,9 @@
 /* swedish */
 #undef MESSAGES_SV
 
+/* turkish */
+#undef MESSAGES_TR
+
 /* simplified chinese */
 #undef MESSAGES_ZH_CN
 

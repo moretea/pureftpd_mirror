@@ -45,6 +45,16 @@
 # define MAX_PASSWD_CHANGE_TRIES 3
 #endif
 
+#define PW_ERROR_MISSING_LOGIN (1 << 0)
+#define PW_ERROR_MISSING_PASSWD_FILE (1 << 1)
+#define PW_ERROR_USER_ALREADY_EXIST (1 << 2)
+#define PW_ERROR_ENTER_PASSWD_PW_ERROR (1 << 3)
+#define PW_ERROR_UNABLE_TO_FETCH (1 << 4)
+#define PW_ERROR_USERADD_NOT_ROOT (1 << 5)
+#define PW_ERROR_USERADD_MISSING_HOME_DIR (1 << 6)
+#define PW_ERROR_MKDB_UNABLE_TO_OPEN_PASSWD (1 << 7)
+#define PW_ERROR_UNEXPECTED_ERROR 0xff
+
 typedef struct PWInfo_ {
     char *login;
     char *pwd;
@@ -71,6 +81,7 @@ typedef struct PWInfo_ {
     unsigned int time_begin;
     unsigned int time_end;
     int has_time;
+    int has_per_user_max;
     unsigned int per_user_max;
 } PWInfo;
 

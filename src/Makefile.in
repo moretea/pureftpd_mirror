@@ -199,14 +199,14 @@ pure_ftpd_SOURCES = \
 	messages_sv.h \
 	messages_no.h \
 	messages_ru.h \
+	messages_tr.h \
 	messages_zh_cn.h \
 	messages_zh_tw.h \
 	ftpwho-update.c \
 	ftpwho-update.h \
 	ftpwho-update_p.h \
-	gnu-getopt.c \
-	gnu-getopt1.c \
-	gnu-getopt.h \
+	bsd-getopt_long.c \
+	bsd-getopt_long.h \
 	upload-pipe.c \
 	upload-pipe.h \
 	ipv4stack.c \
@@ -251,9 +251,8 @@ pure_ftpwho_SOURCES = \
 	ftpd.h \
 	syslognames.h \
 	ftpwho-update.h \
-	gnu-getopt.c \
-	gnu-getopt1.c \
-	gnu-getopt.h \
+	bsd-getopt_long.c \
+	bsd-getopt_long.h \
 	fakesnprintf.h \
 	fakesnprintf.c \
 	mysnprintf.c \
@@ -268,9 +267,8 @@ pure_uploadscript_SOURCES = \
 	ftpd.h \
 	syslognames.h \
 	ftpwho-update.h \
-	gnu-getopt.c \
-	gnu-getopt1.c \
-	gnu-getopt.h \
+	bsd-getopt_long.c \
+	bsd-getopt_long.h \
 	fakesnprintf.h \
 	fakesnprintf.c \
 	mysnprintf.c \
@@ -292,7 +290,9 @@ pure_quotacheck_SOURCES = \
 	fakesnprintf.h \
 	fakesnprintf.c \
 	mysnprintf.c \
-	mysnprintf.h
+	mysnprintf.h \
+	bsd-getopt_long.c \
+	bsd-getopt_long.h
 
 
 pure_pw_LDADD = \
@@ -306,7 +306,9 @@ pure_pw_SOURCES = \
 	fakesnprintf.h \
 	fakesnprintf.c \
 	mysnprintf.c \
-	mysnprintf.h
+	mysnprintf.h \
+	bsd-getopt_long.c \
+	bsd-getopt_long.h
 
 
 pure_pwconvert_SOURCES = \
@@ -322,9 +324,8 @@ pure_authd_SOURCES = \
 	pure-authd.c \
 	pure-authd_p.h \
 	ftpd.h \
-	gnu-getopt.c \
-	gnu-getopt1.c \
-	gnu-getopt.h \
+	bsd-getopt_long.c \
+	bsd-getopt_long.h \
 	fakesnprintf.h \
 	fakesnprintf.c \
 	mysnprintf.c \
@@ -355,9 +356,8 @@ ptracetest_OBJECTS = $(am_ptracetest_OBJECTS)
 ptracetest_LDADD = $(LDADD)
 ptracetest_DEPENDENCIES =
 ptracetest_LDFLAGS =
-am_pure_authd_OBJECTS = pure-authd.$(OBJEXT) gnu-getopt.$(OBJEXT) \
-	gnu-getopt1.$(OBJEXT) fakesnprintf.$(OBJEXT) \
-	mysnprintf.$(OBJEXT)
+am_pure_authd_OBJECTS = pure-authd.$(OBJEXT) bsd-getopt_long.$(OBJEXT) \
+	fakesnprintf.$(OBJEXT) mysnprintf.$(OBJEXT)
 pure_authd_OBJECTS = $(am_pure_authd_OBJECTS)
 pure_authd_LDADD = $(LDADD)
 pure_authd_DEPENDENCIES =
@@ -372,7 +372,7 @@ am_pure_ftpd_OBJECTS = pure_ftpd-daemons.$(OBJEXT) \
 	pure_ftpd-bsd-realpath.$(OBJEXT) pure_ftpd-mysnprintf.$(OBJEXT) \
 	pure_ftpd-caps.$(OBJEXT) pure_ftpd-ftp_parser.$(OBJEXT) \
 	pure_ftpd-dynamic.$(OBJEXT) pure_ftpd-ftpwho-update.$(OBJEXT) \
-	pure_ftpd-gnu-getopt.$(OBJEXT) pure_ftpd-gnu-getopt1.$(OBJEXT) \
+	pure_ftpd-bsd-getopt_long.$(OBJEXT) \
 	pure_ftpd-upload-pipe.$(OBJEXT) pure_ftpd-ipv4stack.$(OBJEXT) \
 	pure_ftpd-altlog.$(OBJEXT) pure_ftpd-crypto.$(OBJEXT) \
 	pure_ftpd-crypto-md5.$(OBJEXT) pure_ftpd-crypto-sha1.$(OBJEXT) \
@@ -382,9 +382,8 @@ am_pure_ftpd_OBJECTS = pure_ftpd-daemons.$(OBJEXT) \
 pure_ftpd_OBJECTS = $(am_pure_ftpd_OBJECTS)
 pure_ftpd_DEPENDENCIES = ../puredb/src/libpuredb_read.a
 pure_ftpd_LDFLAGS =
-am_pure_ftpwho_OBJECTS = pure-ftpwho.$(OBJEXT) gnu-getopt.$(OBJEXT) \
-	gnu-getopt1.$(OBJEXT) fakesnprintf.$(OBJEXT) \
-	mysnprintf.$(OBJEXT) ipv4stack.$(OBJEXT)
+am_pure_ftpwho_OBJECTS = pure-ftpwho.$(OBJEXT) bsd-getopt_long.$(OBJEXT) \
+	fakesnprintf.$(OBJEXT) mysnprintf.$(OBJEXT) ipv4stack.$(OBJEXT)
 pure_ftpwho_OBJECTS = $(am_pure_ftpwho_OBJECTS)
 pure_ftpwho_LDADD = $(LDADD)
 pure_ftpwho_DEPENDENCIES =
@@ -398,7 +397,7 @@ pure_mrtginfo_LDADD = $(LDADD)
 pure_mrtginfo_DEPENDENCIES =
 pure_mrtginfo_LDFLAGS =
 am_pure_pw_OBJECTS = pure-pw.$(OBJEXT) fakesnprintf.$(OBJEXT) \
-	mysnprintf.$(OBJEXT)
+	mysnprintf.$(OBJEXT) bsd-getopt_long.$(OBJEXT)
 pure_pw_OBJECTS = $(am_pure_pw_OBJECTS)
 pure_pw_DEPENDENCIES = ../puredb/src/libpuredb_write.a
 pure_pw_LDFLAGS =
@@ -409,7 +408,8 @@ pure_pwconvert_LDADD = $(LDADD)
 pure_pwconvert_DEPENDENCIES =
 pure_pwconvert_LDFLAGS =
 am_pure_quotacheck_OBJECTS = pure-quotacheck.$(OBJEXT) \
-	fakesnprintf.$(OBJEXT) mysnprintf.$(OBJEXT)
+	fakesnprintf.$(OBJEXT) mysnprintf.$(OBJEXT) \
+	bsd-getopt_long.$(OBJEXT)
 pure_quotacheck_OBJECTS = $(am_pure_quotacheck_OBJECTS)
 pure_quotacheck_LDADD = $(LDADD)
 pure_quotacheck_DEPENDENCIES =
@@ -421,8 +421,8 @@ pure_statsdecode_LDADD = $(LDADD)
 pure_statsdecode_DEPENDENCIES =
 pure_statsdecode_LDFLAGS =
 am_pure_uploadscript_OBJECTS = pure-uploadscript.$(OBJEXT) \
-	gnu-getopt.$(OBJEXT) gnu-getopt1.$(OBJEXT) \
-	fakesnprintf.$(OBJEXT) mysnprintf.$(OBJEXT)
+	bsd-getopt_long.$(OBJEXT) fakesnprintf.$(OBJEXT) \
+	mysnprintf.$(OBJEXT)
 pure_uploadscript_OBJECTS = $(am_pure_uploadscript_OBJECTS)
 pure_uploadscript_LDADD = $(LDADD)
 pure_uploadscript_DEPENDENCIES =
@@ -431,17 +431,17 @@ pure_uploadscript_LDFLAGS =
 DEFAULT_INCLUDES =  -I. -I$(srcdir) -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
-@AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/fakesnprintf.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/gnu-getopt.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/gnu-getopt1.Po ./$(DEPDIR)/ipv4stack.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/mysnprintf.Po ./$(DEPDIR)/ptracetest.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/pure-authd.Po \
+@AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/bsd-getopt_long.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/fakesnprintf.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/ipv4stack.Po ./$(DEPDIR)/mysnprintf.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/ptracetest.Po ./$(DEPDIR)/pure-authd.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/pure-ftpwho.Po ./$(DEPDIR)/pure-pw.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/pure-pwconvert.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/pure-quotacheck.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/pure-statsdecode.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/pure-uploadscript.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/pure_ftpd-altlog.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/pure_ftpd-bsd-getopt_long.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/pure_ftpd-bsd-glob.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/pure_ftpd-bsd-realpath.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/pure_ftpd-caps.Po \
@@ -458,8 +458,6 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@	./$(DEPDIR)/pure_ftpd-ftpwho-read.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/pure_ftpd-ftpwho-update.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/pure_ftpd-getloadavg.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/pure_ftpd-gnu-getopt.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/pure_ftpd-gnu-getopt1.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/pure_ftpd-ipv4stack.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/pure_ftpd-log_extauth.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/pure_ftpd-log_ldap.Po \
@@ -587,9 +585,8 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bsd-getopt_long.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fakesnprintf.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gnu-getopt.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gnu-getopt1.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ipv4stack.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mysnprintf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ptracetest.Po@am__quote@
@@ -601,6 +598,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pure-statsdecode.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pure-uploadscript.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pure_ftpd-altlog.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pure_ftpd-bsd-getopt_long.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pure_ftpd-bsd-glob.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pure_ftpd-bsd-realpath.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pure_ftpd-caps.Po@am__quote@
@@ -617,8 +615,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pure_ftpd-ftpwho-read.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pure_ftpd-ftpwho-update.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pure_ftpd-getloadavg.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pure_ftpd-gnu-getopt.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pure_ftpd-gnu-getopt1.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pure_ftpd-ipv4stack.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pure_ftpd-log_extauth.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pure_ftpd-log_ldap.Po@am__quote@
@@ -1081,49 +1077,27 @@ pure_ftpd-ftpwho-update.obj: ftpwho-update.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(pure_ftpd_CFLAGS) $(CFLAGS) -c -o pure_ftpd-ftpwho-update.obj `if test -f 'ftpwho-update.c'; then $(CYGPATH_W) 'ftpwho-update.c'; else $(CYGPATH_W) '$(srcdir)/ftpwho-update.c'; fi`
 
-pure_ftpd-gnu-getopt.o: gnu-getopt.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(pure_ftpd_CFLAGS) $(CFLAGS) -MT pure_ftpd-gnu-getopt.o -MD -MP -MF "$(DEPDIR)/pure_ftpd-gnu-getopt.Tpo" \
-@am__fastdepCC_TRUE@	  -c -o pure_ftpd-gnu-getopt.o `test -f 'gnu-getopt.c' || echo '$(srcdir)/'`gnu-getopt.c; \
-@am__fastdepCC_TRUE@	then mv "$(DEPDIR)/pure_ftpd-gnu-getopt.Tpo" "$(DEPDIR)/pure_ftpd-gnu-getopt.Po"; \
-@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/pure_ftpd-gnu-getopt.Tpo"; exit 1; \
+pure_ftpd-bsd-getopt_long.o: bsd-getopt_long.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(pure_ftpd_CFLAGS) $(CFLAGS) -MT pure_ftpd-bsd-getopt_long.o -MD -MP -MF "$(DEPDIR)/pure_ftpd-bsd-getopt_long.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o pure_ftpd-bsd-getopt_long.o `test -f 'bsd-getopt_long.c' || echo '$(srcdir)/'`bsd-getopt_long.c; \
+@am__fastdepCC_TRUE@	then mv "$(DEPDIR)/pure_ftpd-bsd-getopt_long.Tpo" "$(DEPDIR)/pure_ftpd-bsd-getopt_long.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/pure_ftpd-bsd-getopt_long.Tpo"; exit 1; \
 @am__fastdepCC_TRUE@	fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gnu-getopt.c' object='pure_ftpd-gnu-getopt.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/pure_ftpd-gnu-getopt.Po' tmpdepfile='$(DEPDIR)/pure_ftpd-gnu-getopt.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='bsd-getopt_long.c' object='pure_ftpd-bsd-getopt_long.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/pure_ftpd-bsd-getopt_long.Po' tmpdepfile='$(DEPDIR)/pure_ftpd-bsd-getopt_long.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(pure_ftpd_CFLAGS) $(CFLAGS) -c -o pure_ftpd-gnu-getopt.o `test -f 'gnu-getopt.c' || echo '$(srcdir)/'`gnu-getopt.c
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(pure_ftpd_CFLAGS) $(CFLAGS) -c -o pure_ftpd-bsd-getopt_long.o `test -f 'bsd-getopt_long.c' || echo '$(srcdir)/'`bsd-getopt_long.c
 
-pure_ftpd-gnu-getopt.obj: gnu-getopt.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(pure_ftpd_CFLAGS) $(CFLAGS) -MT pure_ftpd-gnu-getopt.obj -MD -MP -MF "$(DEPDIR)/pure_ftpd-gnu-getopt.Tpo" \
-@am__fastdepCC_TRUE@	  -c -o pure_ftpd-gnu-getopt.obj `if test -f 'gnu-getopt.c'; then $(CYGPATH_W) 'gnu-getopt.c'; else $(CYGPATH_W) '$(srcdir)/gnu-getopt.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv "$(DEPDIR)/pure_ftpd-gnu-getopt.Tpo" "$(DEPDIR)/pure_ftpd-gnu-getopt.Po"; \
-@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/pure_ftpd-gnu-getopt.Tpo"; exit 1; \
+pure_ftpd-bsd-getopt_long.obj: bsd-getopt_long.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(pure_ftpd_CFLAGS) $(CFLAGS) -MT pure_ftpd-bsd-getopt_long.obj -MD -MP -MF "$(DEPDIR)/pure_ftpd-bsd-getopt_long.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o pure_ftpd-bsd-getopt_long.obj `if test -f 'bsd-getopt_long.c'; then $(CYGPATH_W) 'bsd-getopt_long.c'; else $(CYGPATH_W) '$(srcdir)/bsd-getopt_long.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv "$(DEPDIR)/pure_ftpd-bsd-getopt_long.Tpo" "$(DEPDIR)/pure_ftpd-bsd-getopt_long.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/pure_ftpd-bsd-getopt_long.Tpo"; exit 1; \
 @am__fastdepCC_TRUE@	fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gnu-getopt.c' object='pure_ftpd-gnu-getopt.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/pure_ftpd-gnu-getopt.Po' tmpdepfile='$(DEPDIR)/pure_ftpd-gnu-getopt.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='bsd-getopt_long.c' object='pure_ftpd-bsd-getopt_long.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/pure_ftpd-bsd-getopt_long.Po' tmpdepfile='$(DEPDIR)/pure_ftpd-bsd-getopt_long.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(pure_ftpd_CFLAGS) $(CFLAGS) -c -o pure_ftpd-gnu-getopt.obj `if test -f 'gnu-getopt.c'; then $(CYGPATH_W) 'gnu-getopt.c'; else $(CYGPATH_W) '$(srcdir)/gnu-getopt.c'; fi`
-
-pure_ftpd-gnu-getopt1.o: gnu-getopt1.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(pure_ftpd_CFLAGS) $(CFLAGS) -MT pure_ftpd-gnu-getopt1.o -MD -MP -MF "$(DEPDIR)/pure_ftpd-gnu-getopt1.Tpo" \
-@am__fastdepCC_TRUE@	  -c -o pure_ftpd-gnu-getopt1.o `test -f 'gnu-getopt1.c' || echo '$(srcdir)/'`gnu-getopt1.c; \
-@am__fastdepCC_TRUE@	then mv "$(DEPDIR)/pure_ftpd-gnu-getopt1.Tpo" "$(DEPDIR)/pure_ftpd-gnu-getopt1.Po"; \
-@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/pure_ftpd-gnu-getopt1.Tpo"; exit 1; \
-@am__fastdepCC_TRUE@	fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gnu-getopt1.c' object='pure_ftpd-gnu-getopt1.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/pure_ftpd-gnu-getopt1.Po' tmpdepfile='$(DEPDIR)/pure_ftpd-gnu-getopt1.TPo' @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(pure_ftpd_CFLAGS) $(CFLAGS) -c -o pure_ftpd-gnu-getopt1.o `test -f 'gnu-getopt1.c' || echo '$(srcdir)/'`gnu-getopt1.c
-
-pure_ftpd-gnu-getopt1.obj: gnu-getopt1.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(pure_ftpd_CFLAGS) $(CFLAGS) -MT pure_ftpd-gnu-getopt1.obj -MD -MP -MF "$(DEPDIR)/pure_ftpd-gnu-getopt1.Tpo" \
-@am__fastdepCC_TRUE@	  -c -o pure_ftpd-gnu-getopt1.obj `if test -f 'gnu-getopt1.c'; then $(CYGPATH_W) 'gnu-getopt1.c'; else $(CYGPATH_W) '$(srcdir)/gnu-getopt1.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv "$(DEPDIR)/pure_ftpd-gnu-getopt1.Tpo" "$(DEPDIR)/pure_ftpd-gnu-getopt1.Po"; \
-@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/pure_ftpd-gnu-getopt1.Tpo"; exit 1; \
-@am__fastdepCC_TRUE@	fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gnu-getopt1.c' object='pure_ftpd-gnu-getopt1.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/pure_ftpd-gnu-getopt1.Po' tmpdepfile='$(DEPDIR)/pure_ftpd-gnu-getopt1.TPo' @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(pure_ftpd_CFLAGS) $(CFLAGS) -c -o pure_ftpd-gnu-getopt1.obj `if test -f 'gnu-getopt1.c'; then $(CYGPATH_W) 'gnu-getopt1.c'; else $(CYGPATH_W) '$(srcdir)/gnu-getopt1.c'; fi`
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(pure_ftpd_CFLAGS) $(CFLAGS) -c -o pure_ftpd-bsd-getopt_long.obj `if test -f 'bsd-getopt_long.c'; then $(CYGPATH_W) 'bsd-getopt_long.c'; else $(CYGPATH_W) '$(srcdir)/bsd-getopt_long.c'; fi`
 
 pure_ftpd-upload-pipe.o: upload-pipe.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(pure_ftpd_CFLAGS) $(CFLAGS) -MT pure_ftpd-upload-pipe.o -MD -MP -MF "$(DEPDIR)/pure_ftpd-upload-pipe.Tpo" \

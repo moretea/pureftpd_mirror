@@ -20,7 +20,7 @@ the user's remote IP address.
 
 3) pure-authd spawns an authentication program. It can be anything,
 including a shell script. The program is given the collected info (login,
-password, IP addresses, etc.) as environment variables.
+password, IP addresses, etc) as environment variables.
 
 4) The authentication program replies (to the standard output) with the
 user's home directory, quota, ratio, bandwidth, and if authentication was
@@ -46,7 +46,9 @@ AUTHD_LOCAL_PORT
 AUTHD_REMOTE_IP
 
 They are self-explanatory. Previous global environment variables aren't
-cleared when the script is called.
+cleared when the script is called. The content of these variables is
+_not_ quoted. If you are using shell scripts to process them, don't
+forget the quotes.
 
 The program must respond on the standard output with lines like:
 
@@ -84,7 +86,7 @@ The absolute path to the home directory. Can contain /./ for a chroot jail.
 
 When the command 'cd ~user' is issued, it's handy to go to that user's home
 directory, as expected in a shell environment. But fetching account info can
-be an expensive operation for non\-system accounts. If xxx is 0, 'cd ~user'
+be an expensive operation for non-system accounts. If xxx is 0, 'cd ~user'
 will expand to the system user home directory. If xxx is 1, 'cd ~user' won't
 expand. You should use 1 in most cases with external authentication, when
 your FTP users don't match system users. You can also set xxx to 1 if you're
