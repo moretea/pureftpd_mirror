@@ -1,4 +1,9 @@
 
+* Version 1.0.16c:
+ - The PAM backend and the CGI mode were accidentally broken in version
+1.0.16b. This version fixes both issues.
+ - The Norwegian translation has been updated.
+
 * Version 1.0.16b:
  - The server now properly compiles with SSL/TLS on RedHat 9 systems.
  - pure-ftpwho now outputs nice-looking XHTML 1.1 conformant code, an XSS

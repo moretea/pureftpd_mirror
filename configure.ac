@@ -1,7 +1,7 @@
 dnl AM_ACLOCAL_INCLUDE(m4)
 
 AC_PREREQ(2.57)
-AC_INIT(pure-ftpd, 1.0.16b, bugs@pureftpd.org)
+AC_INIT(pure-ftpd, 1.0.16c, bugs@pureftpd.org)
 AC_CONFIG_SRCDIR(src/ftpd.c)
 AM_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE([1.6 dist-bzip2])
@@ -56,7 +56,11 @@ AC_CHECK_HEADERS(unistd.h string.h strings.h sys/param.h ioctl.h sys/ioctl.h)
 AC_CHECK_HEADERS(sys/vfs.h sys/statvfs.h sys/sendfile.h sys/uio.h sys/fsuid.h)
 AC_CHECK_HEADERS(sys/time.h sys/resource.h sys/capability.h)
 AC_CHECK_HEADERS(shadow.h getopt.h stddef.h)
-AC_CHECK_HEADERS(netinet/in_systm.h netinet/in.h sys/mount.h sys/pstat.h)
+AC_CHECK_HEADERS(netinet/in_systm.h netinet/in.h sys/pstat.h)
+AC_CHECK_HEADERS(sys/mount.h, [], [],
+[#ifdef HAVE_SYS_PARAM_H
+# include <sys/param.h>
+#endif])
 AC_CHECK_HEADERS(fcntl.h sys/fcntl.h sys/loadavg.h sys/ptrace.h)
 AC_CHECK_HEADERS(security/pam_appl.h security/pam_misc.h security/pam_filter.h)
 AC_CHECK_HEADERS(sgtty.h termio.h)
@@ -391,7 +395,14 @@ if test "x$with_pam" = "xyes" ; then
     AC_MSG_CHECKING([whether pam_strerror takes only one argument])
     AC_TRY_COMPILE([
 #include <stdio.h>
-#include <stdlib.h>
+#ifdef STDC_HEADERS
+# include <stdlib.h>
+# include <stddef.h>
+#else
+# if HAVE_STDLIB_H
+#  include <stdlib.h>
+# endif
+#endif
 #include <security/pam_appl.h>
         ], 
         [(void)pam_strerror((pam_handle_t *)NULL, -1)],
@@ -1065,11 +1076,18 @@ fi
 
 AC_MSG_CHECKING(default TCP send buffer size)
 AC_TRY_RUN([
-#include <stdlib.h>
+#include <stdio.h>
+#ifdef STDC_HEADERS
+# include <stdlib.h>
+# include <stddef.h>
+#else
+# if HAVE_STDLIB_H
+#  include <stdlib.h>
+# endif
+#endif
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
 #endif
-#include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -1092,11 +1110,18 @@ AC_DEFINE_UNQUOTED(CONF_TCP_SO_SNDBUF, $CONF_TCP_SO_SNDBUF, [default TCP send bu
 
 AC_MSG_CHECKING(default TCP receive buffer size)
 AC_TRY_RUN([
-#include <stdlib.h>
+#include <stdio.h>
+#ifdef STDC_HEADERS
+# include <stdlib.h>
+# include <stddef.h>
+#else
+# if HAVE_STDLIB_H
+#  include <stdlib.h>
+# endif
+#endif
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
 #endif
-#include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>

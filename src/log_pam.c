@@ -67,32 +67,33 @@ static int PAM_conv(int num_msg,
     size_t size = (size_t) 0U;
 
     (void) appdata_ptr;
+    *resp = NULL;
     for (count = 0; count < num_msg; count++) {
         switch (msg[count]->msg_style) {
         case PAM_PROMPT_ECHO_ON:
             GET_MEM;
             memset(&reply[replies], 0, sizeof reply[replies]);
-            if ((reply[replies++].resp = strdup(PAM_username)) == NULL) {
+            if ((reply[replies].resp = strdup(PAM_username)) == NULL) {
 #ifdef PAM_BUF_ERR
                 reply[replies].resp_retcode = PAM_BUF_ERR;
 #endif
                 PAM_error = 1;
                 return PAM_CONV_ERR;                
             }
-            reply[replies].resp_retcode = PAM_SUCCESS;
+            reply[replies++].resp_retcode = PAM_SUCCESS;
             /* PAM frees resp */
             break;
         case PAM_PROMPT_ECHO_OFF:
             GET_MEM;
             memset(&reply[replies], 0, sizeof reply[replies]);            
-            if ((reply[replies++].resp = strdup(PAM_password)) == NULL) {
+            if ((reply[replies].resp = strdup(PAM_password)) == NULL) {
 #ifdef PAM_BUF_ERR
                 reply[replies].resp_retcode = PAM_BUF_ERR;
 #endif                
                 PAM_error = 1;                
                 return PAM_CONV_ERR;
             }
-            reply[replies].resp_retcode = PAM_SUCCESS;            
+            reply[replies++].resp_retcode = PAM_SUCCESS;            
             /* PAM frees resp */
             break;
         case PAM_TEXT_INFO:
