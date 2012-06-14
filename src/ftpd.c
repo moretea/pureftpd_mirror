@@ -1884,7 +1884,7 @@ void dopass(char *password)
             throttling_bandwidth_ul = 0UL;
     }
 #endif
-#if !defined(MINIMAL) && defined(HAVE_GETGROUPS)
+#if !defined(MINIMAL) && defined(HAVE_GETGROUPS) && defined(DISPLAY_GROUPS)
 # ifdef SAFE_GETGROUPS_0
     ngroups = getgroups(0, NULL);
     if (ngroups > ngroups_max) {
@@ -4715,7 +4715,8 @@ void doopts(char *args)
         (void) cmdopts;
     }
 # ifdef WITH_RFC2640
-    if (strncasecmp("utf8 ", args, 5) == 0) {
+    if (strncasecmp("utf8 ", args, 5) == 0 ||
+        strncasecmp("utf-8 ", args, 6) == 0) {
         if (cmdopts == NULL || *cmdopts == 0) {
             addreply_noformat(501, "OPTS UTF8: " MSG_MISSING_ARG);          
         } else if (strncasecmp(cmdopts, "on", sizeof "on" - 1U) == 0) {
