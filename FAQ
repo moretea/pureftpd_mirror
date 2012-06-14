@@ -93,7 +93,7 @@ Binary packages are compiled with this feature turned on.
 
 Unfortunately, no. Server-side gzip/tar creation is not a present nor a
 planned feature. It has been responsible of severe security flaws in Wu-ftpd
-and BSD ftpd, it can take a lot of server resource (denial-of-service), and
+and BSD ftpd, it can take a lot of server resource (denial-of-service) and
 it's a pain to set up (chrooted environment => need to add /etc /lib /bin
 directories, /dev on some platforms, etc) .
 
@@ -107,11 +107,11 @@ as .bash_history, .profile, .ssh ...) EVEN if they are owned by the user ?
 
 Yes. '-x' (--prohibitdotfileswrite) denies write/delete/chmod/rename of
 dot-files, even if they are owned by the user. They can be listed, though,
-because security through obscurity is dumb, and software shouldn't lie to
+because security through obscurity is dumb and software shouldn't lie to
 you. But users can't change the content of these files.
 
 Alternatively, you can use '-X' (--prohibitdotfilesread) to also prevent
-users from READING these files, and going into directories that begin with
+users from READING these files and going into directories that begin with
 "." .
 
 
@@ -264,7 +264,7 @@ then launch it again:
                          
 
 
-* OpenBSD, NetBSD, ISOS and EkkoBSD.
+* OpenBSD, NetBSD, ISOS, EkkoBSD, MacOS X and FreeBSD 5.
 
 -> I'm trying to run Pure-FTPd on OpenBSD. The daemon is running, but I
 can't connect: nobody answers on port 21.
@@ -272,7 +272,7 @@ can't connect: nobody answers on port 21.
 Intentionally, OpenBSD refuses to listen for IPv4 and IPv6 connections on a
 single socket. By defaut, Pure-FTPd will only listen to IPv6 connections on
 OpenBSD. The same thing applies to recent releases of NetBSD, ISOS,
-EkkoBSD and FreeBSD 5.
+EkkoBSD, MacOS X and FreeBSD 5.
 To listen to IPv4 addresses, you must run pure-ftpd with the '-4' switch:
 /usr/local/sbin/pure-ftpd -4 &
 
@@ -297,11 +297,11 @@ On the server side, here's how to manage FTP-over-SSH accounts:
 /bin/false) .
 
 2) To create a FTP-over-SSH account, create a system account with /dev/null
-as a home directory, and /usr/bin/false as a shell. You don't need a
+as a home directory and /usr/bin/false as a shell. You don't need a
 dedicated uid: the same uid can be reused for every FTP-over-SSH account.
 
 3) Create a virtual user account for that user (either with PureDB, SQL or
-LDAP) . Give that virtual user a real home directory, and only allow
+LDAP) . Give that virtual user a real home directory and only allow
 connections coming from 127.0.0.1 (all FTP-over-SSH sessions will come from
 localhost, due to SSH tunneling) .
 
@@ -383,7 +383,7 @@ IE does a very strange trick to detect whether an FTP server does accept
 anonymous connections or not. Basically, it connects to the server and logs
 in as 'anonymous'. But if you say 'no' at this point, it drops the
 connections with an error. You have to say 'ok, anonymous users are
-allowed', and then, when a dummy password ('IE@') is sent, you say 'ah
+allowed' and then, when a dummy password ('IE@') is sent, you say 'ah
 ehm... finally... no... anonymous users aren't allowed' . Silly. To play
 that game, you must run pure-ftpd with the -E (non-anonymous server) and -b
 (compatibility with broken clients) flags. Then, the magic popup will show
@@ -418,7 +418,7 @@ And in ~/tmp/passfile, have something like:
 john's password
 john's password
 
-If you really need to avoid a temporary file, and if nobody but you can log
+If you really need to avoid a temporary file and if nobody but you can log
 on the machine, you can always do this:
 
 (echo blahblah; echo blahblah) | pure-pw useradd john -d /tmp/john -u ftpuser
@@ -470,7 +470,7 @@ that John is caged in /home/john/ .
 -> Does Pure-FTPd run on Windows?
 
 Yes, there's a port available from http://www.pureftpd.org/windows/ .
-But the server is developped on Unix, and the Win32 version should be
+But the server is developped on Unix and the Win32 version should be
 considered experimental and unsupported.
 
 
@@ -494,7 +494,7 @@ order to have it work as any user:
 transfer, so that the change takes place immediately?
 
 Unfortunately, no. Or at least not at pure-ftpd level. Doing so would need
-to re-read user's parameters all the time, and it would be horribly slow.
+to re-read user's parameters all the time and it would be horribly slow.
 Other mechanisms would work, like signals to interrupt transfers, re-read
 parameters, then resume. But it would introduce a lot of complexity to the
 code.
@@ -693,13 +693,13 @@ links. Symbolic links have to be already there to be followed. Or if your
 users can create symbolic links through Perl or PHP scripts, your hosting
 platform is really badly configured. People can install any web file
 browser, they don't need FTP to look at your system files. Recompile PHP
-without POSIX functions, and run all Perl scripts chrooted.
+without POSIX functions and run all Perl scripts chrooted.
 
 
 
 * How to start Pure-FTPd in background.
 
--> I start 'pure-ftpd' from an X terminal, and the server properly
+-> I start 'pure-ftpd' from an X terminal and the server properly
 answers. However, as soon as I close the terminal, the server stops.
 
 This is a shell dependent issue. Your shell is configured to close all
@@ -728,7 +728,7 @@ So you get what you asked for. If no file is called '-la', you get nothing.
 If you want to play with regular expressions and switches, you should
 type 'dir' (which is translated to 'LIST') instead. 'dir -la' is ok.
 
-This is a bit illogical, and that brain damage is specific to
+This is a bit illogical and that brain damage is specific to
 Microsoft's command-line FTP client.
 
 If you really want 'ls' to parse options, you can start pure-ftpd with
@@ -799,7 +799,7 @@ iptables -t mangle -A OUTPUT -p tcp \
   ---------------------------- Cut here ----------------------------
   
 3) Make sure that you have the 'tc' command installed. If your Linux distro
-doesn't ship 'ip' and 'tc' commands, it really sucks, and you must install a
+doesn't ship 'ip' and 'tc' commands, it really sucks and you must install a
 package called 'iproute2' to get them.
 
 4) Start Pure-FTPd with the passive port range you assigned:
@@ -819,7 +819,7 @@ support was compiled in your Linux kernel.
 
 Keep in mind that the NTFS filesystem is still an experimental beast in
 Linux. Some basic operations are not implemented yet. Fortunately, a big
-effort is being made, and Linux 2.5 has a new NTFS implementation that fully
+effort is being made and Linux 2.5 has a new NTFS implementation that fully
 works with Pure-FTPd (try ./configure --without-sendfile, though) . And it
 is more reliable and really faster than the old one. And even more
 fortunately, the new NTFS implementation has been backported to recent 2.4.x
@@ -829,20 +829,36 @@ kernels. Have a look at http://linux-ntfs.sf.net/ .
 
 * Slowdowns and lags.
 
--> Some users complains that transfering large files doesn't work.
-Transfers are starting as expected, with a decent rate. But then, the
-speed dramatically decreases, there are some serious lags, and they
-often must disconnect (or the client force them to do it, after a
-timeout) . The server is behind a firewall that filters incoming ICMP,
-but let FTP ports in.
+-> Some users complains that transfering large files doesn't work. Transfers
+are starting as expected, with a decent rate. But then, the speed dramatically
+decreases, there are some serious lags and they often must disconnect (or the
+client force them to do it, after a timeout) . The server is behind a firewall
+that filters incoming ICMP, but let FTP ports in.
 
-Don't, don't, don't filter ICMP. At least not blindly without
-understanding what you are filtering. ICMP is part of the TCP/IP
-specifications. Filtering it can have nasty side effects with no real
-win. If you even filter ICMP types 3 and 4, your firewall is
-definitely broken, and this is probably why you have such troubles
-with transfers of large files.
+Don't, don't, don't filter ICMP. At least not blindly without understanding
+what you are filtering. ICMP is part of the TCP/IP specifications. Filtering
+it can have nasty side effects with no real win. If you even filter ICMP types
+3 and 4, your firewall is definitely broken and this is probably why you have
+such troubles with transfers of large files.
 
 Please read these documents about ICMP filtering :
 http://alive.znep.com/~marcs/mtu/
 http://home.earthlink.net/~jaymzh666/mss/
+
+
+
+* Firewalls and SSL/TLS.
+
+-> My client is behind a stateful firewall doing applicative filtering (like
+IPTables with ip_conntrack_ftp or ip_nat_ftp) . Connections to an SSL/TLS
+enabled server does't work. Authentication works, but I'm unable to download
+files nor list directories.
+
+First, try to force your client to use the passive mode. In active mode, the
+server has to connect to the client (or the NAT gateway) on a dynamic port
+that is negociated on the connection socket. But when SSL/TLS is used, that
+connection socket is encrypted, therefore no man-in-the middle can see what
+ports will be used to transfer data, including the firewall. There are some
+proposals to work around this problem, but neither popular clients nor common
+firewalls are aware of these tricks. Therefore, use the passive mode or switch
+to SSH.

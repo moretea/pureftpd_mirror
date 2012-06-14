@@ -27,6 +27,9 @@
 #ifdef WITH_PRIVSEP
 # include "privsep.h"
 #endif
+#ifdef WITH_TLS
+# include "tls.h"
+#endif
 
 #ifdef WITH_DMALLOC
 # include <dmalloc.h>
@@ -534,7 +537,7 @@ void addreply(const int code, const char * const line, ...)
     register char *b;
     va_list ap;
     int last;
-    char buf[MAXPATHLEN + 50U];
+    char buf[MAX_SERVER_REPLY_LEN];
 
     if (code != 0) {
         replycode = code;
@@ -574,8 +577,19 @@ void doreply(void)
     CORK_ON(1);
     do {
         nextentry = scannedentry->next;
-	printf("%3d%c%s\r\n", replycode, nextentry == NULL ? ' ' : '-',
-	       scannedentry->line);
+#ifdef WITH_TLS
+        if (tls_cnx != NULL) {
+            char buf[MAX_SERVER_REPLY_LEN];
+            
+            snprintf(buf, sizeof buf, "%3d%c%s\r\n", replycode, 
+                     nextentry == NULL ? ' ' : '-', scannedentry->line);
+            SSL_write(tls_cnx, buf, strlen(buf));            
+        } else
+#endif
+        {
+            printf("%3d%c%s\r\n", replycode, nextentry == NULL ? ' ' : '-',
+                   scannedentry->line);
+        }
         if (logging > 1) {
             logfile(LOG_DEBUG, "%3d%c%s", replycode, 
                     nextentry == NULL ? ' ' : '-', scannedentry->line);
@@ -1030,7 +1044,7 @@ void douser(const char *username)
     if (anon_only <= 0 && username != NULL && *username != 0 &&
         strcasecmp(username, "ftp") && strcasecmp(username, "anonymous")) {
         strncpy(account, username, sizeof(account) - 1);
-        account[sizeof(account) - 1] = 0;
+        account[sizeof(account) - (size_t) 1U] = 0;
         addreply(331, MSG_USER_OK, account);
         loggedin = 0;
     } else if (anon_only < 0) {           /* anonymous, but -E */
@@ -1042,7 +1056,7 @@ void douser(const char *username)
         }
     } else {
 #ifdef WITH_VIRTUAL_HOSTS
-        char name[MAXPATHLEN + 1U];
+        char name[MAXPATHLEN];
         char hbuf[NI_MAXHOST];
 #endif
         if (chrooted != 0) {
@@ -1050,11 +1064,11 @@ void douser(const char *username)
         }
 	
 #ifdef PER_USER_LIMITS
-    if (per_anon_max > 0U && ftpwho_read_count("ftp") >= per_anon_max) {
-        addreply(421, MSG_PERUSER_MAX, (unsigned long) per_anon_max);
-        doreply();
-        _EXIT(1);
-    }
+        if (per_anon_max > 0U && ftpwho_read_count("ftp") >= per_anon_max) {
+            addreply(421, MSG_PERUSER_MAX, (unsigned long) per_anon_max);
+            doreply();
+            _EXIT(1);
+        }
 #endif	
         
 #ifdef NON_ROOT_FTP
@@ -1062,7 +1076,7 @@ void douser(const char *username)
             static struct passwd pw_;
             char s[MAXPATHLEN + 1U];            
             
-            if (getcwd(s, sizeof s) == NULL) {
+            if (getcwd(s, sizeof s - (size_t) 1U) == NULL) {
                 cantsec:
                 die(421, LOG_ERR, MSG_UNABLE_SECURE_ANON);
             }
@@ -1130,7 +1144,8 @@ void douser(const char *username)
         
             if ((root_directory = malloc(rd_len)) == NULL ||
                 chdir(name) || chroot(name) || chdir("/") ||
-                SNCHECK(snprintf(root_directory, rd_len, "%s:/", hbuf), rd_len)) {
+                SNCHECK(snprintf(root_directory, rd_len, "%s:/", hbuf),
+                        rd_len)) {
                 goto cantsec;
             }
             logfile(LOG_INFO, MSG_ANONYMOUS_LOGGED_VIRTUAL ": %s", hbuf);
@@ -1195,13 +1210,13 @@ void douser(const char *username)
         }
         dot_write_ok = 0;
         dot_read_ok = dot_read_anon_ok;
-        strncpy(account, "ftp", sizeof account - 1U);
+        strncpy(account, "ftp", sizeof account - (size_t) 1U);
         account[(sizeof account) - 1U] = 0;
 #ifdef FTPWHO
         if (shm_data_cur != NULL) {
             ftpwho_lock();
             strncpy(shm_data_cur->account, account,
-                    sizeof shm_data_cur->account - 1U);
+                    sizeof shm_data_cur->account - (size_t) 1U);
             shm_data_cur->account[sizeof shm_data_cur->account - 1U] = 0;
             ftpwho_unlock();
             state_needs_update = 1;
@@ -1212,7 +1227,7 @@ void douser(const char *username)
         user_quota_size = user_quota_files = ULONG_LONG_MAX;
 #endif
     }
-    if (getcwd(wd, sizeof wd) == NULL) {
+    if (getcwd(wd, sizeof wd - (size_t) 1U) == NULL) {
         wd[0] = '/';
         wd[1] = 0;
     }
@@ -1458,6 +1473,7 @@ void dopass(char *password)
         logfile(LOG_WARNING, MSG_AUTH_FAILED_LOG, account);
         randomsleep:
         tapping++;
+        usleep2((unsigned long) (zrand() % PASSWD_FAILURE_DELAY));        
         usleep2(tapping * PASSWD_FAILURE_DELAY);
         return;
     }
@@ -1537,7 +1553,7 @@ void dopass(char *password)
             }
         }
     }
-    if (getcwd(wd, sizeof wd) == NULL) {
+    if (getcwd(wd, sizeof wd - (size_t) 1U) == NULL) {
         wd[0] = '/';
         wd[1] = 0;
     }
@@ -1712,14 +1728,14 @@ void dopass(char *password)
     if (shm_data_cur != NULL) {
         ftpwho_lock();
         strncpy(shm_data_cur->account, account,
-                sizeof shm_data_cur->account - 1U);
+                sizeof shm_data_cur->account - (size_t) 1U);
         shm_data_cur->account[sizeof shm_data_cur->account - 1U] = 0;
         ftpwho_unlock();
         state_needs_update = 1;
     }
 # endif
     loggedin = 1;
-    if (getcwd(wd, sizeof wd) == NULL) {
+    if (getcwd(wd, sizeof wd - (size_t) 1U) == NULL) {
         wd[0] = '/';
         wd[1] = 0;
     }
@@ -1758,7 +1774,7 @@ void docwd(const char *dir)
             gohome:
             strncpy(buffer, chrooted != 0 ? "/" : authresult.dir,
                     sizeof buffer);
-            buffer[sizeof buffer - 1U] = 0;
+            buffer[sizeof buffer - (size_t) 1U] = 0;
             where = buffer;
         } else {                   /* cd ~user or cd ~user/ */
             char *bufpnt = buffer;
@@ -1834,7 +1850,7 @@ void docwd(const char *dir)
     failures = 0UL;
     dobanner(1);
 #endif
-    if (getcwd(wd, sizeof wd) == NULL) {
+    if (getcwd(wd, sizeof wd - (size_t) 1U) == NULL) {
         if (*dir == '/') {
             if (SNCHECK(snprintf(wd, sizeof wd, "%s", dir), sizeof wd)) { /* already checked */
                 _EXIT(EXIT_FAILURE);
@@ -2591,7 +2607,7 @@ static void displayrate(const char *word, off_t size,
         )
     {
         char *alloca_filename_real;
-        const size_t sizeof_filename_real = MAXPATHLEN + 32U;
+        const size_t sizeof_filename_real = MAXPATHLEN + VHOST_PREFIX_MAX_LEN;
         char *resolved_path;
         const size_t sizeof_resolved_path = MAXPATHLEN + 1U;
 
@@ -2600,6 +2616,7 @@ static void displayrate(const char *word, off_t size,
         }
         resolved_path[sizeof_resolved_path - 1U] = 0;
         if (realpath(name, resolved_path) == NULL) {
+            (void) unlink(name);            
             free(resolved_path);
             logfile(LOG_ERR, "realpath() failure : [%s] => [%s]",
                     name, strerror(errno));            
@@ -3227,6 +3244,12 @@ void dofeat(void)
     " REST STREAM" CRLF \
     " MLST type*;size*;sizd*;modify*;UNIX.mode*;UNIX.uid*;UNIX.gid*;unique*;" CRLF \
     " MLSD"
+    
+# ifdef WITH_TLS
+#  define FEAT_TLS CRLF " AUTH TLS" CRLF " PBSZ" CRLF " PROT"
+# else
+#  define FEAT_TLS ""
+# endif
 # ifdef DEBUG
 #  define FEAT_DEBUG CRLF " XDBG"
 # else
@@ -3247,7 +3270,7 @@ void dofeat(void)
 # define FEAT_ESTP CRLF " ESTP"
 #endif
     
-    char feat[] = FEAT FEAT_DEBUG FEAT_TVFS FEAT_ESTP FEAT_PASV FEAT_ESTA;
+    char feat[] = FEAT FEAT_DEBUG FEAT_TVFS FEAT_ESTP FEAT_PASV FEAT_ESTA FEAT_TLS;
 
     if (disallow_passive != 0) {
         feat[sizeof FEAT FEAT_DEBUG FEAT_TVFS FEAT_ESTP] = 0;
@@ -3291,7 +3314,7 @@ static int tryautorename(char * const name)
 {
     unsigned int gc = 0U;
     int f;
-    char name2[MAXPATHLEN + 1U];
+    char name2[MAXPATHLEN];
 
     if ((f = open(name, O_CREAT | O_EXCL | O_WRONLY,
                   (mode_t) (0777 & ~u_mask))) != -1) {
@@ -3313,8 +3336,8 @@ static int tryautorename(char * const name)
         /* O_EXCL avoids races - great */
         if ((f = open(name2, O_CREAT | O_EXCL | O_WRONLY,
                       (mode_t) (0777 & ~u_mask))) != -1) {
-            strncpy(name, name2, MAXPATHLEN);   /* no +1 needed, check next line */
-            name[MAXPATHLEN] = 0;   /* useless, but paranoid */
+            strncpy(name, name2, MAXPATHLEN - (size_t) 1U);
+            name[MAXPATHLEN - (size_t) 1U] = 0;   /* useless, but paranoid */
             return f;
         }
         switch (errno) {
@@ -4022,6 +4045,12 @@ static void set_signals_client(void)
     sa.sa_handler = sigurg;
     (void) sigaction(SIGURG, &sa, NULL);
 #endif
+#if defined(WITH_TLS) && defined(SIGIO)
+# ifndef SIGURG
+    sa.sa_handler = sigurg;
+# endif
+    (void) sigaction(SIGIO, &sa, NULL);
+#endif
     sa.sa_handler = SIG_IGN;
     (void) sigaction(SIGPIPE, &sa, NULL);
     sa.sa_handler = SIG_DFL;
@@ -4118,16 +4147,34 @@ static void doit(void)
         die(421, LOG_ERR, MSG_GETPEERNAME ": %s" , strerror(errno));
     }
     fourinsix(&peer);
-    if (checkvalidaddr(&peer) == 0
-#ifndef DONT_LOG_IP
-        ||
-        getnameinfo((struct sockaddr *) &peer, STORAGE_LEN(peer), host,
-                    sizeof host, NULL, (size_t) 0U,
-                    resolve_hostnames != 0 ? 0 : NI_NUMERICHOST) != 0
-#endif
-        ) {
+    if (checkvalidaddr(&peer) == 0) {
         die(425, LOG_ERR, MSG_INVALID_IP);
     }
+#ifndef DONT_LOG_IP
+    for (;;) {
+        int eai;
+        
+        if ((eai = getnameinfo
+             ((struct sockaddr *) &peer, STORAGE_LEN(peer), host,
+              sizeof host, NULL, (size_t) 0U, 
+              resolve_hostnames != 0 ? 0 : NI_NUMERICHOST)) == 0) {
+            break;
+        }
+        /* 
+         * getnameinfo() is lousy on MacOS X Panther and returns EAI_NONAME
+         * when no name is found instead of filling the buffer with the IP.
+         */
+# ifdef EAI_NONAME
+        if (eai == EAI_NONAME && resolve_hostnames != 0 &&
+           getnameinfo
+            ((struct sockaddr *) &peer, STORAGE_LEN(peer), host,
+             sizeof host, NULL, (size_t) 0U, NI_NUMERICHOST) == 0) {
+            break;
+        }
+# endif
+        die(425, LOG_ERR, MSG_INVALID_IP);        
+    }
+#endif
 #ifndef DONT_LOG_IP
     dns_sanitize(host);
 #else
@@ -4142,7 +4189,7 @@ static void doit(void)
     addreply_noformat(0, MSG_WELCOME_TO " Pure-FTPd.");
 # else
     addreply_noformat(0, "--------- " MSG_WELCOME_TO 
-                      " Pure-FTPd" VERSION_PRIVSEP " ----------");
+                      " Pure-FTPd" VERSION_PRIVSEP VERSION_TLS " ----------");
 # endif
 #else
     addreply_noformat(220, "FTP server ready.");
@@ -4508,8 +4555,7 @@ static void standalone_server(void)
                     if (getnameinfo((struct sockaddr *) &sa,
                                     STORAGE_LEN(sa), hbuf,
                                     sizeof hbuf, NULL, (size_t) 0U,
-                                    resolve_hostnames != 0 ?
-                                    0 : NI_NUMERICHOST) == 0) {
+                                    NI_NUMERICHOST) == 0) {
                         logfile(LOG_WARNING, MSG_MAX_USERS_IP ": [%s]",
                                 (unsigned long) maxip, hbuf);
                     }
@@ -4834,6 +4880,15 @@ int main(int argc, char *argv[])
             }
             break;	    
         }	    
+#endif
+#ifdef WITH_TLS
+        case 'Y': {            
+            if ((enforce_tls_auth = atoi(optarg)) < 0 ||
+                enforce_tls_auth > 2) {
+                die(421, LOG_ERR, MSG_CONF_ERR ": TLS");
+            }
+            break;
+        }            
 #endif
         case 'e': {
             anon_only = 1;
@@ -5234,6 +5289,11 @@ int main(int argc, char *argv[])
         logfile(LOG_ERR, MSG_ALIASES_BROKEN_FILE);
     }
 #endif
+#ifdef WITH_TLS
+    if (enforce_tls_auth > 0) {
+        (void) tls_init_library();
+    }
+#endif
 #if !defined(NO_STANDALONE) && !defined(NO_INETD)
     if (check_standalone() != 0) {
         standalone_server();
@@ -5275,6 +5335,9 @@ int main(int argc, char *argv[])
     unlink(pid_file);
 #endif
     closelog();
+#ifdef WITH_TLS
+    tls_free_library();
+#endif    
 #ifdef FTPWHO
     _EXIT(EXIT_SUCCESS);
 #endif

@@ -43,6 +43,7 @@
 #define DIRSCAN_FAILURE_DELAY (100000UL)  /* Delay after each chdir failure */
 #define ASCII_CHUNKSIZE 65536U
 #define BANNER_MAXLINES 100
+#define MAX_SERVER_REPLY_LEN (MAXPATHLEN + (size_t) 50U)
 
 #ifndef NO_STANDALONE
 static volatile sig_atomic_t stop_server;
@@ -94,6 +95,9 @@ static const char *GETOPT_OPTIONS =
 #ifdef PER_USER_LIMITS
     "y:"
 #endif
+#ifdef WITH_TLS
+    "Y:"
+#endif    
     "zZ";
 
 #ifndef NO_GETOPT_LONG    
@@ -165,6 +169,9 @@ static struct option long_options[] = {
 # ifdef PER_USER_LIMITS
     { "peruserlimits", 1, NULL, 'y' },
 # endif
+# ifdef WITH_TLS
+    { "tls", 1, NULL, 'Y' },
+# endif
     { "allowdotfiles", 0, NULL, 'z' },
     { "customerproof", 0, NULL, 'Z' },
     { NULL, 0, NULL, 0 }
@@ -188,6 +195,12 @@ static const AltLogPrefixes altlogprefixes[] = {
 # define VERSION_PRIVSEP " [privsep]"
 #else
 # define VERSION_PRIVSEP ""
+#endif
+
+#ifdef WITH_TLS
+# define VERSION_TLS " [TLS]"
+#else
+# define VERSION_TLS ""
 #endif
 
 #ifndef HAVE_SYS_FSUID_H

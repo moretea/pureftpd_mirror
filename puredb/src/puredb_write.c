@@ -6,6 +6,23 @@
 #include "puredb_p.h"
 #include "puredb_write.h"
 
+#ifndef HAVE_STRDUP
+static char *strdup(const char *str)
+{
+    char *newstr;
+    size_t str_len_1;
+    
+    if (str == NULL ||
+        (str_len_1 = strlen(str) + (size_t) 1U) <= (size_t) 0U ||
+        (newstr = malloc(str_len_1)) == NULL) {
+        return NULL;
+    }
+    memcpy(newstr, str, str_len_1);
+    
+    return newstr;
+}
+#endif
+
 static puredb_u32_t puredbw_hash(const char * const msg, size_t len)
 {
     puredb_u32_t j = (puredb_u32_t) 5381U;

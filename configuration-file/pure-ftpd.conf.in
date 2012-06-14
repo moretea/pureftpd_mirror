@@ -11,9 +11,6 @@
 #
 # @prefix@/sbin/pure-config.pl @prefix@/etc/pure-ftpd.conf
 #
-# RPM binary files use another configuration file by default :
-# /etc/sysconfig/pure-ftpd
-#
 # Please don't forget to have a look at documentation at
 # http://www.pureftpd.org/documentation.html for a complete list of
 # options.
@@ -375,7 +372,7 @@ MaxDiskUsage               99
 
 # Set to 'yes' if you don't want your users to rename files.
 
-#NoRename yes
+#NoRename                  yes
 
 
 
@@ -385,8 +382,7 @@ MaxDiskUsage               99
 # with silly issues. If you're sure all your users have some basic Unix
 # knowledge, this feature is useless. If you're a hosting service, enable it.
 
-CustomerProof yes
-
+CustomerProof              yes
 
 
 
@@ -397,4 +393,19 @@ CustomerProof yes
 # For instance, 3:20 means that the same authenticated user can have 3 active
 # sessions max. And there are 20 anonymous sessions max.
 
-# PerUserLimits 3:20
+# PerUserLimits            3:20
+
+
+
+# This option can accept three values :
+# 0 : disable SSL/TLS encryption layer (default).
+# 1 : accept both traditional and encrypted sessions.
+# 2 : refuse connections that don't use SSL/TLS security mechanisms,
+#     including anonymous sessions.
+# Do _not_ uncomment this blindly. Be sure that :
+# 1) Your server has been compiled with SSL/TLS support (--with-tls),
+# 2) A valid certificate is in place,
+# 3) Only compatible clients will log in.
+
+# TLS                      1
+

@@ -214,3 +214,7 @@
 #define MSG_ALIASES_LIST "Sint disponibile urmatoarele aliasuri: "
 #define MSG_PERUSER_MAX "Nu pot accepta mai mult de %lu conexiuni de la acelasi utilizator"
 #define MSG_IPV6_OK "Conexiunile IPv6 sint acceptate de catre acest server"
+#define MSG_TLS_INFO "SSL/TLS: Am activat %s cu %s, criptare cu %d biti"
+#define MSG_TLS_WEAK "SSL/TLS: Sistem de criptare prea slab"
+#define MSG_TLS_NEEDED "Sesiunile in text clar nu sint acceptate pe acest server.\n" \
+    "Reconectati-va utilizind mecanismele de securitate SSL/TLS."

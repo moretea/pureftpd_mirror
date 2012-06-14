@@ -1,7 +1,7 @@
 dnl AM_ACLOCAL_INCLUDE(m4)
 
 AC_PREREQ(2.50)
-AC_INIT(pure-ftpd, 1.0.15, bugs@pureftpd.org)
+AC_INIT(pure-ftpd, 1.0.16a, bugs@pureftpd.org)
 AC_CONFIG_SRCDIR(src/ftpd.c)
 AM_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE([1.6 dist-bzip2])
@@ -54,6 +54,7 @@ AC_CHECK_HEADERS(stdarg.h varargs.h)
 AC_CHECK_HEADERS(windows.h io.h)
 AC_CHECK_HEADERS(crypt.h)
 AC_CHECK_HEADERS(utime.h)
+AC_CHECK_HEADERS(openssl/ssl.h)
 AC_SYS_POSIX_TERMIOS
 
 if test "x$ac_cv_sys_posix_termios" = "xyes"; then
@@ -310,7 +311,7 @@ AC_ARG_WITH(boring,
 AC_ARG_WITH(brokenrealpath,
 [AC_HELP_STRING([--with-brokenrealpath],[If your libc has a broken realpath() call])],
 [ if test "x$withval" = "xyes" ; then
-    AC_DEFINE(BROKEN_REALPATH,,[realpath() is broken])
+    AC_DEFINE(USE_BUILTIN_REALPATH,,[realpath() is broken])
   fi ])
 
 AC_ARG_WITH(probe-random-dev,
@@ -697,7 +698,7 @@ AC_ARG_WITH(welcomemsg,
   fi ])
 
 AC_ARG_WITH(uploadscript,
-[AC_HELP_STRING([--with-uploadscript],[Allow running an external script after an upload])],
+[AC_HELP_STRING([--with-uploadscript],[Allow running an external script after an upload (experimental)])],
 [ if test "x$withval" = "xyes" ; then
       AC_DEFINE(WITH_UPLOAD_SCRIPT,,[with uploadscript])
   fi ])
@@ -721,7 +722,7 @@ AC_ARG_WITH(diraliases,
   fi ])
 
 AC_ARG_WITH(nonroot,
-[AC_HELP_STRING([--with-nonroot],[Non-root FTP (experimental)])],
+[AC_HELP_STRING([--with-nonroot],[Non-root FTP])],
 [ if test "x$withval" = "xyes" ; then
       AC_DEFINE(NON_ROOT_FTP,,[with nonroot])
       AC_DEFINE(WITH_VIRTUAL_CHROOT)
@@ -729,7 +730,7 @@ AC_ARG_WITH(nonroot,
   fi ])
 
 AC_ARG_WITH(peruserlimits,
-[AC_HELP_STRING([--with-peruserlimits],[Support per-user concurrency limits (experimental)])],
+[AC_HELP_STRING([--with-peruserlimits],[Support per-user concurrency limits])],
 [ if test "x$withval" = "xyes" ; then
       AC_DEFINE(PER_USER_LIMITS,,[with per-user limits])
       AC_DEFINE(FTPWHO)
@@ -920,6 +921,69 @@ AC_MSG_RESULT(yes)
 AC_DEFINE(SAFE_GETGROUPS_0,,[Define is getgroups(0, NULL) works on your system])
 ],
 AC_MSG_RESULT(no)
+)
+
+AC_MSG_CHECKING(whether realpath likes unreadable directories)
+AC_TRY_RUN([
+#include <stdio.h>
+#ifdef STDC_HEADERS
+# include <stdlib.h>
+# include <stddef.h>
+#else
+# if HAVE_STDLIB_H
+#  include <stdlib.h>
+# endif
+#endif
+#include <sys/types.h>
+#include <sys/stat.h>
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
+#ifdef HAVE_LIMITS_H
+# include <limits.h>
+#endif
+#ifdef HAVE_SYS_PARAM_H
+# include <sys/param.h>
+#endif
+
+#ifndef MAXPATHLEN
+# define MAXPATHLEN PATH_MAX
+#endif
+
+int main(void)
+{
+    char x[MAXPATHLEN];
+    
+    if (mkdir("x", 0300) != 0) {
+        return 1;
+    }
+    if (mkdir("x/y", 0300) != 0) {
+        rmdir("x");
+        return 2;
+    }    
+    if (chdir("x") != 0) {
+        rmdir("x/y");    
+        rmdir("x");
+        return 3;
+    }
+    if (realpath("y", x) == NULL) {
+        rmdir("y");
+        rmdir("../x");
+        return 4;
+    }
+    rmdir("y");
+    rmdir("../x");
+    
+    return 0;    
+}
+],
+[
+AC_MSG_RESULT(yes)
+AC_DEFINE(REALPATH_IGNORES_UNREADABLE_DIRECTORIES,,
+[Define if realpath() works on unreadable directories])
+],
+AC_MSG_RESULT(no)
+AC_DEFINE(USE_BUILTIN_REALPATH)
 )
 
 AC_MSG_CHECKING(whether you already have a standard MD5 implementation)
@@ -1150,6 +1214,21 @@ AC_ARG_WITH(privsep,
 
 if test "x$with_privsep" = "xyes" && test "x$non_root_ftp" = "xyes" ; then
   AC_MSG_ERROR(Privilege separation is incompatible with non-root.)
+fi
+
+AC_ARG_WITH(tls,
+[AC_HELP_STRING([--with-tls],[Enable SSL/TLS support (experimental, needs OpenSSL)])],
+[ if test "x$withval" = "xyes" ; then
+    with_tls="yes"
+  fi ])
+
+if test "x$with_tls" = "xyes" ; then
+  if test "x$ac_cv_header_openssl_ssl_h" != "xyes" ; then
+    AC_MSG_ERROR(OpenSSL headers not found.)  
+  fi
+  AC_CHECK_LIB(crypto, DH_new)
+  AC_CHECK_LIB(ssl, SSL_accept)
+  AC_DEFINE(WITH_TLS,,[Enable TLS])
 fi
 
 if test "x$sysconfdir" = 'xNONE' || test "x$sysconfdir" = 'x'; then

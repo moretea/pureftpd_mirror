@@ -39,7 +39,7 @@ pure\-quotacheck \-u john \-d /home/john
 Frank DENIS <j@pureftpd.org>
 .SH "SECURITY"
 pure\-quotacheck switches real and effective uids/gids as soon as possible. Root privileges are never given back.
-.br 
+.br
 pure\-quotacheck refuses to scan directories with uid = 0 (root) or gid = 0 (wheel/root) .
 .br 
 pure\-quotacheck performs a chroot() call to the home directory. It never traverses parent directories.
@@ -63,6 +63,7 @@ pure\-quotacheck never scans the same inode/device pair twice.
 .BR "pure-quotacheck(8)"
 .BR "pure-authd(8)"
 
-.BR "RFC 959" ,
-.BR "RFC 2228" " and"
+.BR "RFC 959",
+.BR "RFC 2228",
+.BR "RFC 2389" " and"
 .BR "RFC 2428" .

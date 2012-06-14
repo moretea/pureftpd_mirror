@@ -1,6 +1,5 @@
 #! /bin/sh
-# Please have a TMP or TMPDIR environment variable if you don't trust /tmp,
-# or don't run this as root.
+# Please have a TMP or TMPDIR environment variable if you don't trust /tmp.
 
 export PATH=/usr/local/bin:/usr/local/sbin:$PATH
 
@@ -86,12 +85,13 @@ $dialog \
 'with-quotas' "Support .ftpquota files" on \
 'with-welcomemsg' "welcome.msg files backward compatibility" off \
 'with-largefile' "Support for files > 2 Gb (slower)" off \
-'with-uploadscript' "Allow running pure-uploadscript after upload" on \
+'with-uploadscript' "Allow running scripts after upload (experimental)" on \
 'with-virtualhosts' "Allow a distinct content for each IP address" on \
 'with-virtualchroot' "Follow symlinks outside a chroot jail" off \
 'with-diraliases' "Support directory aliases" on \
 'with-peruserlimits' "Support per-user concurrency limits" on \
 'with-privsep' "Enable privilege separation" off \
+'with-tls' "Support SSL/TLS security layer (experimental)" off \
 2> $tmp
 
 cfgline='';

@@ -98,8 +98,12 @@ char *fakegetcwd(char *dir, size_t size)
 static int fakexlate(char *curdirtmp, size_t sizeof_curdirtmp, const char *dir)
 {
     char *sl;     
+    size_t curdirlen;
     
-    strcpy(curdirtmp, curdir);        /* flawfinder: ignore - safe */
+    if ((curdirlen = strlen(curdir)) >= sizeof_curdirtmp) {
+        return -1;
+    }
+    memcpy(curdirtmp, curdir, curdirlen + (size_t) 1U);
     simplify(curdirtmp);
     loop:
     if (dir[0] == '.' && dir[1] == '.' &&
@@ -158,6 +162,7 @@ static int fakexlate(char *curdirtmp, size_t sizeof_curdirtmp, const char *dir)
 int fakechdir(const char *dir)
 {
     char curdirtmp[MAXPATHLEN];
+    size_t curdirtmplen;
     
     if (chroot_base == NULL) {
         return chdir(dir);
@@ -168,7 +173,10 @@ int fakechdir(const char *dir)
     if (chdir(curdirtmp) != 0) {
         return -1;
     }
-    strcpy(curdir, curdirtmp);        /* flawfinder: ignore - safe */
+    if ((curdirtmplen = strlen(curdirtmp)) >= sizeof curdir) {
+        return -1;
+    }
+    memcpy(curdir, curdirtmp, curdirtmplen + (size_t) 1U);
     
     return 0;
 }

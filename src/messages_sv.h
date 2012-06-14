@@ -214,3 +214,7 @@
 #define MSG_ALIASES_LIST "Följande alias är tillgängliga :"
 #define MSG_PERUSER_MAX "Jag kan inte acceptera fler än %lu anslutningar från en och samma användare"
 #define MSG_IPV6_OK "IPv6 anslutningar är också välkomna till denna server"
+#define MSG_TLS_INFO "SSL/TLS: Använder %s med %s, %d bitars kryptering"
+#define MSG_TLS_WEAK "SSL/TLS: Krypteringen är för svag"
+#define MSG_TLS_NEEDED "Tyvärr är sessioner i klartext inte tillåtna på denna server.\n" \
+    "Vänligen återanslut och använd SSL/TLS för ökad säkerhet."

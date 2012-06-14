@@ -65,6 +65,7 @@ my %numeric_switch_for = (
 	MaxClientsPerIP		=> "-C",
 	MaxLoad			=> "-m",
 	MinUID			=> "-u",
+	TLS			=> "-Y",
 );
 
 my %numpairb_switch_for = (

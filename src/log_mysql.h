@@ -12,11 +12,7 @@
 #define MYSQL_TRANSACTION_START "set autocommit=0"
 #define MYSQL_TRANSACTION_END "COMMIT"
 
-/*
- * According to libmysql/password.c (3.23), 17 should be enough.
- * But add some gap, just in case they decide to improve the function.
- */ 
-#define MYSQL_CRYPT_LEN 65
+#define MYSQL_CRYPT_LEN 17U
 
 void pw_mysql_parse(const char * const file);
 

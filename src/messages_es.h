@@ -214,3 +214,7 @@
 #define MSG_ALIASES_LIST "Los siguientes alias están disponibles :"
 #define MSG_PERUSER_MAX "No puedo aceptar más de %lu conexiones del mismo usuario"
 #define MSG_IPV6_OK "Las conexiones IPv6 también son bienvenidas en este servidor"
+#define MSG_TLS_INFO "SSL/TLS: Activado %s con %s, %d bits de cifrado"
+#define MSG_TLS_WEAK "SSL/TLS: Cifrado demasiado débil"
+#define MSG_TLS_NEEDED "Lo siento. No se aceptan sesiones sin cifrar en este servidor.\n" \
+    "Por favor, vuelva a conectar utilizando mecanismos de seguridad SSL/TLS."

@@ -47,7 +47,9 @@ void pw_unix_check(AuthResult * const result,
         return;
     }
 #ifdef USE_SHADOW
-    if (!strcmp(pw.pw_passwd, "x") && 
+    if ((((pw.pw_passwd)[0] == 'x' && (pw.pw_passwd)[1] == 0) ||
+         ((pw.pw_passwd)[0] == '#' && (pw.pw_passwd)[1] == '#' &&
+          strcmp(pw.pw_passwd + 2, account) == 0)) &&
         (spw = getspnam(account)) != NULL && spw->sp_pwdp != NULL) {
         cpwd = spw->sp_pwdp[0] == '@' ? NULL : spw->sp_pwdp;
         if (spw->sp_expire > 0 || spw->sp_max > 0) {

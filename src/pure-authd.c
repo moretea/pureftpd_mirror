@@ -376,15 +376,17 @@ static void process(const int clientfd)
 
 int listencnx(void)
 {
+    struct sockaddr_un *saddr;    
     int clientfd;
     int ret = -1;
-    struct sockaddr_un *saddr;
+    const size_t socketpath_len = strlen(socketpath);
         
-    if ((saddr = malloc(sizeof(*saddr) + strlen(socketpath) + 1U)) == NULL) {
+    if ((saddr = malloc(sizeof(*saddr) + socketpath_len + 
+                        (size_t) 1U)) == NULL) {
         perror("No more memory to listen to anything");
         goto bye;
     }
-    strcpy(saddr->sun_path, socketpath);   /* flawfinder: ignore - safe */
+    memcpy(saddr->sun_path, socketpath, socketpath_len + (size_t) 1U);
     saddr->sun_family = AF_UNIX;
     (void) unlink(socketpath);
     (void) umask(077);    

@@ -46,21 +46,24 @@ int getnameinfo(const struct sockaddr *sa_, socklen_t salen,
              gethostbyaddr((const char *) &(sa->sin_addr),
                            sizeof sa->sin_addr, AF_INET)) != NULL &&
             he->h_name != NULL && *he->h_name != 0) {
-            if (strlen(he->h_name) >= hostlen) {
+            size_t h_name_len;
+            
+            if ((h_name_len = strlen(he->h_name)) >= hostlen) {
                 goto resolve_numeric_ip;
             }
-            strcpy(host, he->h_name);   /* flawfinder: ignore - secure, see above */
+            memcpy(host, he->h_name, h_name_len + (size_t) 1U);
         } else {
             char *numeric_ip;
+            size_t numeric_ip_len;
             
             resolve_numeric_ip:
             if ((numeric_ip = inet_ntoa(sa->sin_addr)) == NULL) {
                 return EAI_SYSTEM;
             }
-            if (strlen(numeric_ip) >= hostlen) {
+            if ((numeric_ip_len = strlen(numeric_ip)) >= hostlen) {
                 return EAI_FAIL;
             }
-            strcpy(host, numeric_ip);  /* flawfinder: ignore - secure, see above */
+            memcpy(host, numeric_ip, numeric_ip_len + (size_t) 1U);
         }
     }    
     return 0;

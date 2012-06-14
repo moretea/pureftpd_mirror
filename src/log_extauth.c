@@ -15,13 +15,16 @@ static signed char auth_finalized;
 
 void pw_extauth_parse(const char * const file)
 {
-    if (file == NULL || *file == 0) {
+    size_t file_len;
+    
+    if (file == NULL || (file_len = strlen(file)) <= (size_t) 0U) {
         return;
     }
-    if ((saddr = malloc(sizeof(*saddr) + strlen(file) + 1U)) == NULL) {
+    if ((saddr = malloc(sizeof(*saddr) + file_len + 
+                        (size_t) 1U)) == NULL) {
         die_mem();
     }
-    strcpy(saddr->sun_path, file);   /* flawfinder: ignore - safe */
+    memcpy(saddr->sun_path, file, file_len + (size_t) 1U);
     saddr->sun_family = AF_UNIX;    
 }
 

@@ -214,3 +214,7 @@
 #define MSG_ALIASES_LIST "Jsou dostupné nasledující aliasy:"
 #define MSG_PERUSER_MAX "Nemohu akceptovat víc ne¾ %lu pøipojení stejného u¾ivatele"
 #define MSG_IPV6_OK "Na tento server se lze rovnì¾ pøipojovat pou¾itím IPv6 protokolu"
+#define MSG_TLS_INFO "SSL/TLS: Enabled %s with %s, %d secret bits cipher"
+#define MSG_TLS_WEAK "SSL/TLS: Cipher too weak"
+#define MSG_TLS_NEEDED "Sorry, cleartext sessions are not accepted on this server.\n" \
+    "Please reconnect using SSL/TLS security mechanisms."

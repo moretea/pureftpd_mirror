@@ -16,6 +16,7 @@ EXTRA_DIST = \
 	README.Virtual-Users \
 	README.Authentication-Modules \
 	README.Windows \
+	README.TLS \
 	pureftpd.schema \
 	pureftpd-ldap.conf \
 	pureftpd-mysql.conf \

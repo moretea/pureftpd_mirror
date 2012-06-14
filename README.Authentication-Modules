@@ -15,7 +15,7 @@ Here's how they are working:
 
 2) The FTP server connects to a local separate daemon, called 'pure-authd'.
 Data transmitted to that daemon is: user's login, user's password, the IP
-address that user connected to, the local port that user connected to, and
+address that user connected to, the local port that user connected to and
 the user's remote IP address.
 
 3) pure-authd spawns an authentication program. It can be anything,
@@ -23,7 +23,7 @@ including a shell script. The program is given the collected info (login,
 password, IP addresses, etc) as environment variables.
 
 4) The authentication program replies (to the standard output) with the
-user's home directory, quota, ratio, bandwidth, and if authentication was
+user's home directory, quota, ratio, bandwidth and if authentication was
 successful or not.
 
 5) pure-authd relays this info to pure-ftpd.
@@ -121,7 +121,7 @@ The maximal authorized number of concurrent sessions.
           
           
 Here's a very basic example. Our sample authentication program will only
-accept user 'john' with any password, and return a fixed home directory and
+accept user 'john' with any password and return a fixed home directory and
 uid/gid.
 
 #! /bin/sh

@@ -81,7 +81,7 @@
 #define MSG_PROBABLY_DENIED "(ou alors t'as essayer de me faire un coup de pute)"
 #define MSG_GLOB_READ_ERROR "Ca me fait chier d'evaluer %s"
 #define MSG_GLOB_NO_MATCH "Tu sors ca d'ou ? Y a pas de %s dans %s"
-#define MSG_CHMOD_FAILED "Va te faire enculer, et touche pas a %s"
+#define MSG_CHMOD_FAILED "Va te faire enculer et touche pas a %s"
 #define MSG_CHMOD_SUCCESS "Un chmod sur %s c'est little player quand meme"
 #define MSG_CHMOD_TOTAL_FAILURE "Ahah comment t'as trop l'air d'un con sur ce coup-la"
 #define MSG_ANON_CANT_DELETE "Tu touches pas a ce putain de fichier ou je te butte"
@@ -214,3 +214,7 @@
 #define MSG_ALIASES_LIST "Si t'as la flemme, tu peux utiliser ces raccourcis :"
 #define MSG_PERUSER_MAX "T'es deja la %lu fois, j'en ai marre de voir ta gueule"
 #define MSG_IPV6_OK "Si t'es pas un batard, tu peux te connecter en IPv6."
+#define MSG_TLS_INFO "SSL/TLS: Direct, le scarla il deale du %s (%s) en %d bits !"
+#define MSG_TLS_WEAK "SSL/TLS: C'est quoi ce chiffrement de tafiole ?"
+#define MSG_TLS_NEEDED "Ecoute-moi connard : t'as 10 secondes pour configurer\n" \
+    "ton client de merde en SSL/TLS. En attendant, degage."

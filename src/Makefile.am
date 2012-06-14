@@ -113,7 +113,9 @@ pure_ftpd_SOURCES = \
 	getloadavg.c \
 	privsep.h \
 	privsep_p.h \
-	privsep.c
+	privsep.c \
+	tls.h \
+	tls.c
 
 pure_mrtginfo_CFLAGS = -DIN_PURE_MRTGINFO=1
 

@@ -24,7 +24,7 @@
 static char *hexify(char * const result, const unsigned char *digest,
                     const size_t size_result, size_t size_digest)
 {
-    static const char hexchars[16] = "0123456789abcdef";
+    static const char * const hexchars = "0123456789abcdef";
     register char *result_pnt = result;
 
     /* 
@@ -52,7 +52,7 @@ static char *hexify(char * const result, const unsigned char *digest,
 static char *base64ify(char * const result, const unsigned char *digest,
                        const size_t size_result, size_t size_digest)     
 {
-    static const char b64chars[64] =
+    static const char * const b64chars =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     char *result_pnt = result;
     
