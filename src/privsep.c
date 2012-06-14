@@ -96,7 +96,7 @@ int privsep_recvfd(const int psfd)
     struct iovec vec;
     const size_t sizeof_buf = CMSG_SPACE(sizeof *fdptr);
     size_t sizeof_buf_ = sizeof_buf;
-    PrivSepCmd fodder = 0;
+    PrivSepCmd fodder = PRIVSEPCMD_NONE;
     ssize_t received;
     
     if (sizeof_buf_ < sizeof *cmsg) {
@@ -184,8 +184,8 @@ int privsep_removeftpwhoentry(void)
 }
 # endif
 
-int privsep_privpart_bindresport(const int psfd, 
-                                 const PrivSepQuery * const query)
+static int privsep_privpart_bindresport(const int psfd,
+                                        const PrivSepQuery * const query)
 {
     static const in_port_t portlist[] = FTP_ACTIVE_SOURCE_PORTS;
     const in_port_t *portlistpnt = portlist;    
@@ -261,6 +261,7 @@ static int privsep_privpart_waitcmd(const int psfd)
     default:
         return -1;
     }
+    /* NOTREACHED */
     return 0;
 }
 
