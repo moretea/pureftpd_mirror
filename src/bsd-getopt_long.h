@@ -88,10 +88,10 @@ struct pure_option {
 int pure_getopt_long(int nargc, char * const *nargv, const char *options,
                      const struct pure_option *long_options, int *idx);
 
-int pure_pure_getopt_long_only(int nargc, char * const *nargv,
-                               const char *options,
-                               const struct pure_option *long_options,
-                               int *idx);
+int pure_getopt_long_only(int nargc, char * const *nargv,
+                          const char *options,
+                          const struct pure_option *long_options,
+                          int *idx);
 
 int pure_getopt(int nargc, char * const *nargv, const char *options);
 

@@ -1,4 +1,12 @@
 
+* Version 1.0.20:
+ - On MacOS X Panther and Tiger, clients were sometimes rejected when they has
+no reverse DNS entry and DNS resolution was enabled. This has been fixed.
+Thanks to Yann Thomas Gerard <inside@parasiterecords.com> .
+ - The command-line parser was broken on FreeBSD and Solaris in version
+1.0.19. This has also been fixed.
+   People running other operating systems don't need to upgrade.
+
 * Version 1.0.19:
  - A workaround for pure-ftpwho not working on OpenBSD has been added.
  - Real disk space is no more shown.

@@ -1,4 +1,9 @@
 
+* Version 1.0.20:
+    MacOS X Panther and Tiger sometimes returns EAI_SYSTEM (errno=ENOENT)
+when a host is not found.
+    The BSD getopt() update has been partly reverted.
+
 * Version 1.0.19:
     Until OpenBSD has UBC, we need to explicitely call msync() to
 synchronize data written by mmap() and read by read().

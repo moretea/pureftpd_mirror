@@ -1,7 +1,7 @@
 dnl AM_ACLOCAL_INCLUDE(m4)
 
 AC_PREREQ(2.58)
-AC_INIT([pure-ftpd],[1.0.19],[bugs@pureftpd.org])
+AC_INIT([pure-ftpd],[1.0.20],[bugs@pureftpd.org])
 AC_CONFIG_SRCDIR(src/ftpd.c)
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([1.6 dist-bzip2])

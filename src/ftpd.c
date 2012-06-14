@@ -4301,10 +4301,12 @@ static void doit(void)
         }
         /* 
          * getnameinfo() is lousy on MacOS X Panther and returns EAI_NONAME
-         * when no name is found instead of filling the buffer with the IP.
+         * or EAI_SYSTEM (errno=ENOENT) when no name is found instead of
+         * filling the buffer with the IP.
          */
-# ifdef EAI_NONAME
-        if (eai == EAI_NONAME && resolve_hostnames != 0 &&
+# if defined(EAI_NONAME) && defined(EAI_SYSTEM)
+        if ((eai == EAI_NONAME || eai == EAI_SYSTEM) &&
+            resolve_hostnames != 0 &&
            getnameinfo
             ((struct sockaddr *) &peer, STORAGE_LEN(peer), host,
              sizeof host, NULL, (size_t) 0U, NI_NUMERICHOST) == 0) {
@@ -4875,11 +4877,11 @@ int main(int argc, char *argv[])
 #ifdef BANNER_ENVIRON
 # ifdef COOKIE
     {
-    const char *a;
-    
-    if ((a = getenv("BANNER")) != NULL && *a != 0) {
-        fortunes_file = strdup(a);
-    }
+        const char *a;
+        
+        if ((a = getenv("BANNER")) != NULL && *a != 0) {
+            fortunes_file = strdup(a);
+        }
     }
 # endif
 #endif

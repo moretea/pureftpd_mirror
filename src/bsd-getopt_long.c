@@ -76,11 +76,11 @@ const char    *pure_optarg;        /* argument associated with option */
 
 # define FLAG_PERMUTE    0x01    /* permute non-options to the end of argv */
 # define FLAG_ALLARGS    0x02    /* treat non-options as args to option "-1" */
-# define FLAG_LONGONLY    0x04    /* operate as pure_pure_getopt_long_only */
+# define FLAG_LONGONLY   0x04    /* operate as pure_getopt_long_only */
 
 /* return values */
-# define    BADCH        (int)'?'
-# define    BADARG        ((*options == ':') ? (int)':' : (int)'?')
+# define    BADCH       (int)'?'
+# define    BADARG      ((*options == ':') ? (int)':' : (int)'?')
 # define    INORDER     (int)1
 
 # define    EMSG        ""
@@ -99,12 +99,12 @@ static int nonopt_start = -1; /* first non option argument (for permute) */
 static int nonopt_end = -1;   /* first option after non options (for permute) */
 
 /* Error messages */
-static const char *recargchar = "option requires an argument -- %c";
-static const char *recargstring = "option requires an argument -- %s";
-static const char *ambig = "ambiguous option -- %.*s";
-static const char *noarg = "option doesn't take an argument -- %.*s";
-static const char *illoptchar = "unknown option -- %c";
-static const char *illoptstring = "unknown option -- %s";
+static const char *recargchar = "option requires an argument -- %c\n";
+static const char *recargstring = "option requires an argument -- %s\n";
+static const char *ambig = "ambiguous option -- %.*s\n";
+static const char *noarg = "option doesn't take an argument -- %.*s\n";
+static const char *illoptchar = "unknown option -- %c\n";
+static const char *illoptstring = "unknown option -- %s\n";
 
 /*
  * Compute the greatest common divisor of a and b.
@@ -371,11 +371,14 @@ static int pure_getopt_internal(int nargc, char * const *nargv,
         }
         if (nonopt_start != -1 && nonopt_end == -1)
             nonopt_end = pure_optind;
-        
-        /* If we have "-" do nothing, if "--" we are done. */
-        
+
+        /*
+         * Check for "--" or "--foo" with no long options
+         * but if pure_place is simply "-" leave it unmolested.
+         */
+
         if (pure_place[1] != '\0' && *++pure_place == '-' &&
-            pure_place[1] == '\0') {
+            (pure_place[1] == '\0' || long_options == NULL)) {
             pure_optind++;
             pure_place = EMSG;
             /*
@@ -396,7 +399,7 @@ static int pure_getopt_internal(int nargc, char * const *nargv,
      * Check long options if:
      *  1) we were passed some
      *  2) the arg is not just "-"
-     *  3) either the arg starts with -- we are pure_pure_getopt_long_only()
+     *  3) either the arg starts with -- we are pure_getopt_long_only()
      */
     if (long_options != NULL && pure_place != nargv[pure_optind] &&
         (*pure_place == '-' || (flags & FLAG_LONGONLY))) {
@@ -414,14 +417,15 @@ static int pure_getopt_internal(int nargc, char * const *nargv,
         }
     }
     
-    if ((optchar = (int)*pure_place++) == (int)':' ||
-        (oli = strchr(options, optchar)) == NULL) {
-        /*
-         * If the user specified "-" and '-' isn't listed in
-         * options, return -1 (non-option) as per POSIX.
-         * Otherwise, it is an unknown option character (or :').
-         */
-        if (optchar == (int) '-' && *pure_place == '\0')
+    if ((optchar = (int) *pure_place++) == ':' ||
+        optchar == '-' && *pure_place != '\0' ||        
+        (oli = strchr(options, optchar)) == NULL) { 
+         /*
+          * If the user specified "-" and '-' isn't listed in
+          * options, return -1 (non-option) as per POSIX.
+          * Otherwise, it is an unknown option character (or :').
+          */
+        if (optchar == '-' && *pure_place == '\0')
             return -1;
         if (!*pure_place)
             ++pure_optind;
@@ -462,16 +466,8 @@ static int pure_getopt_internal(int nargc, char * const *nargv,
                     fprintf(stderr, recargchar, optchar);
                 pure_optopt = optchar;
                 return BADARG;
-            } else if (!(flags & FLAG_PERMUTE)) {
-                /* 
-                 * If permutation is disabled, we can accept an
-                 * optional arg separated by whitespace so long
-                 * as it does not start with a dash (-).
-                 */
-                 if (pure_optind + 1 < nargc && pure_optind + 1 > 0 &&
-                     *nargv[pure_optind + 1] != '-') {
-                     pure_optarg = nargv[++pure_optind];
-                 }
+            } else {
+                pure_optarg = nargv[pure_optind];
             }
         }
         pure_place = EMSG;
@@ -511,10 +507,10 @@ int pure_getopt_long(int nargc, char * const *nargv, const char *options,
 }
 
 /*
- * pure_pure_getopt_long_only --
+ * pure_getopt_long_only --
  *    Parse argc/argv argument vector.
  */
-int pure_pure_getopt_long_only(int nargc, char * const *nargv,
+int pure_getopt_long_only(int nargc, char * const *nargv,
                                const char *options,
                                const struct pure_option *long_options,
                                int *idx)
