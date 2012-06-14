@@ -1495,12 +1495,11 @@ void douser(const char *username)
             if (seteuid(authresult.uid) != 0) {
                 goto cantsec;
             }
+#  ifdef USE_CAPABILITIES
+            drop_login_caps();
+#  endif            
 # endif
         }
-#endif
-        
-#ifdef USE_CAPABILITIES
-        drop_login_caps();
 #endif
         
 #ifndef MINIMAL
@@ -1865,11 +1864,7 @@ void dopass(char *password)
         wd[1] = 0;
     }
 #ifndef NON_ROOT_FTP
-    if (setgid(authresult.gid) ||
-        setegid(authresult.gid)) {
-        _EXIT(EXIT_FAILURE);
-    }
-    if (seteuid(authresult.uid) != 0) {
+    if (setgid(authresult.gid) || setegid(authresult.gid)) {
         _EXIT(EXIT_FAILURE);
     }
 #endif
@@ -1889,9 +1884,6 @@ void dopass(char *password)
         userchroot = 1;
     }
 #endif
-    if ((userchroot == 0 || chrooted != 0) && setuid(authresult.uid) != 0) {
-        _EXIT(EXIT_FAILURE);
-    }
     if (loggedin == 0) {
         candownload = 1;        /* real users can always download */
     }
@@ -1963,39 +1955,9 @@ void dopass(char *password)
     }
 #endif
     if (userchroot != 0 && chrooted == 0) {
-#ifndef NON_ROOT_FTP
-        disablesignals();
-        if (seteuid((uid_t) 0) != 0) {
-            _EXIT(EXIT_FAILURE);
-        }
-#endif
         if (chdir(wd) || chroot(wd)) {    /* should never fail */
-#ifndef WITHOUT_PRIVSEP
-            (void) setuid(authresult.uid);
-            (void) seteuid(authresult.uid);
-#else
-# ifndef NON_ROOT_FTP
-            (void) seteuid(authresult.uid);
-# endif
-#endif
             die(421, LOG_ERR, MSG_CHROOT_FAILED);
         }
-#ifndef WITHOUT_PRIVSEP
-        if (setuid(authresult.uid) != 0 || seteuid(authresult.uid) != 0) {
-            _EXIT(EXIT_FAILURE);
-        }
-        enablesignals();        
-#else
-# ifndef NON_ROOT_FTP
-        if (seteuid(authresult.uid) != 0) {
-            _EXIT(EXIT_FAILURE);
-        }
-        enablesignals();
-# endif
-#endif
-#ifdef USE_CAPABILITIES
-        drop_login_caps();
-#endif        
         chrooted = 1;
 #ifdef RATIOS
         if (ratio_for_non_anon == 0) {
@@ -2031,6 +1993,23 @@ void dopass(char *password)
         addreply(230, MSG_CURRENT_DIR_IS, wd);
 #endif
     }
+    
+#ifndef NON_ROOT_FTP
+    disablesignals();
+# ifndef WITHOUT_PRIVSEP
+    if (setuid(authresult.uid) != 0 || seteuid(authresult.uid) != 0) {
+        _EXIT(EXIT_FAILURE);
+    }
+# else
+    if (seteuid(authresult.uid) != 0) {
+        _EXIT(EXIT_FAILURE);
+    }
+#  ifdef USE_CAPABILITIES
+    drop_login_caps();
+#  endif
+# endif
+    enablesignals();
+#endif
     logfile(LOG_INFO, MSG_IS_NOW_LOGGED_IN, account);
 #ifdef FTPWHO
     if (shm_data_cur != NULL) {
@@ -2643,11 +2622,6 @@ void opendata(void)
 #endif
     }
     xferfd = fd;
-#ifdef WITH_TLS
-    if (data_protection_level == CPL_PRIVATE) {
-        tls_init_data_session(fd, passive);
-    }
-#endif
     alarm(MAX_SESSION_XFER_IDLE);
 }
 
@@ -3487,7 +3461,7 @@ void doretr(char *name)
     if (xferfd == -1) {
         (void) close(f);
         goto end;
-    }    
+    }
 #ifndef DISABLE_HUMOR
     if ((time(NULL) % 100) == 0) {
         addreply_noformat(0, MSG_WINNER);
@@ -3497,6 +3471,11 @@ void doretr(char *name)
         addreply(0, MSG_KBYTES_LEFT, (double) ((st.st_size - restartat) / 1024.0));
     }
     doreply();
+# ifdef WITH_TLS
+    if (data_protection_level == CPL_PRIVATE) {
+        tls_init_data_session(xferfd, passive);
+    }
+# endif    
     state_needs_update = 1;
     setprocessname("pure-ftpd (DOWNLOAD)");
 
@@ -4395,6 +4374,11 @@ void dostor(char *name, const int append, const int autorename)
         goto end;
     }
     doreply();
+# ifdef WITH_TLS
+    if (data_protection_level == CPL_PRIVATE) {
+        tls_init_data_session(xferfd, passive);
+    }
+# endif    
     state_needs_update = 1;
     setprocessname("pure-ftpd (UPLOAD)");
     filesize = restartat;
@@ -5706,6 +5690,7 @@ int pureftpd_start(int argc, char *argv[], const char *home_directory_)
                         die_mem();
                     }
                 }
+                *struck = ',';
                 if (struck[1] != 0) {
                     if ((standalone_port = strdup(struck + 1)) == NULL) {
                         die_mem();
