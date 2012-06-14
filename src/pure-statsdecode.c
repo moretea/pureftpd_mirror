@@ -69,13 +69,16 @@ int main(int argc, char *argv[])
                        tm->tm_sec);
             }
         } else {
-            putchar(c);
+            if (c == '\n' || !ISCTRLCODE(c)) {
+                putchar(c);
+            }
         }
         if (c == '\n') {
             fflush(fp);
             instamp = 0;
         }        
     }
+    fclose(fp);
     
     return 0;
 }

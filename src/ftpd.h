@@ -315,28 +315,6 @@ typedef enum {
 } ChannelProtectionLevel;
 
 int pureftpd_start(int argc, char *argv[], const char *home_directory);
-
-#ifdef __IPHONE__
-void pureftpd_register_login_callback(void (*callback)(void *user_data),
-                                      void *user_data);
-
-void pureftpd_register_logout_callback(void (*callback)(void *user_data),
-                                       void *user_data);
-
-void pureftpd_register_log_callback(void (*callback)(int crit,
-                                                     const char *message,
-                                                     void *user_data),
-                                    void *user_data);
-
-void pureftpd_register_simple_auth_callback(int (*callback)(const char *account,
-                                                            const char *password,
-                                                            void *user_data),
-                                            void *user_data);
-
-int pureftpd_shutdown(void);
-int pureftpd_enable(void);
-int pureftpd_disable(void);
-#endif
 int safe_write(const int fd, const void *buf_, size_t count);
 #ifdef WITH_TLS
 int secure_safe_write(void * const tls_fd, const void *buf_, size_t count);
@@ -379,7 +357,7 @@ void dostou(void);
 void dofeat(void);
 void domlst(const char * const file);
 void dositetime(void);
-int ul_check_free_space(const char *name);
+int ul_check_free_space(const char *name, const double min_space);
 void mappedtov4(struct sockaddr_storage *ss);
 void disablesignals(void);
 void getnames(void);
@@ -509,9 +487,6 @@ the server may be insecure if a wrong value is set here.
 Your platform has a very large MAXPATHLEN, we should not trust it.
 #endif
 
-#ifdef __IPHONE__
-# define DEFAULT_MAX_USERS 1
-#endif
 #ifndef DEFAULT_MAX_USERS    
 # define DEFAULT_MAX_USERS 50
 #endif

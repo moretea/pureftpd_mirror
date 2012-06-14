@@ -1,7 +1,7 @@
 dnl AM_ACLOCAL_INCLUDE(m4)
 
 AC_PREREQ(2.61)
-AC_INIT([pure-ftpd],[1.0.27],[bugs at pureftpd dot org])
+AC_INIT([pure-ftpd],[1.0.28],[bugs at pureftpd dot org])
 AC_CONFIG_SRCDIR(src/ftpd.c)
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([1.9 dist-bzip2])
@@ -1371,7 +1371,7 @@ AC_CONFIG_FILES(Makefile src/Makefile pam/Makefile man/Makefile
 gui/Makefile configuration-file/Makefile contrib/Makefile m4/Makefile
 configuration-file/pure-ftpd.conf configuration-file/pure-config.pl
 configuration-file/pure-config.py puredb/Makefile puredb/src/Makefile
-iphone/Makefile pure-ftpd.spec
+pure-ftpd.spec
 man/pure-ftpd.8 man/pure-ftpwho.8 man/pure-mrtginfo.8 man/pure-uploadscript.8
 man/pure-statsdecode.8 man/pure-quotacheck.8 man/pure-pw.8 man/pure-pwconvert.8
 man/pure-authd.8)
