@@ -554,11 +554,19 @@ void parser(void)
                 }
                 goto wayout;
             } else if (!strcmp(cmd, "dele")) {
+#  ifdef WITH_EXTAUTHORIZATION
+              if (authresult.can_dele == 1) {
+#  endif
                 if (*arg != 0) {
                     dodele(arg);
                 } else {
                     addreply_noformat(501, MSG_NO_FILE_NAME);
                 }
+#  ifdef WITH_EXTAUTHORIZATION
+              } else {
+                addreply_noformat(550, MSG_DELE_FAILED);
+              }
+#  endif
             } else if (!strcmp(cmd, "stor")) {
                 arg = revealextraspc(arg);
                 if (*arg != 0) {
@@ -603,18 +611,34 @@ void parser(void)
 #endif
 #ifndef DISABLE_MKD_RMD
             } else if (!strcmp(cmd, "mkd") || !strcmp(cmd, "xmkd")) {
+#  ifdef WITH_EXTAUTHORIZATION
+              if (authresult.can_mkd == 1) {
+#  endif
                 arg = revealextraspc(arg);
                 if (*arg != 0) {
                     domkd(arg);
                 } else {
                     addreply_noformat(501, MSG_NO_DIRECTORY_NAME);
                 }
+#  ifdef WITH_EXTAUTHORIZATION
+              } else {
+                addreply_noformat(550, MSG_MKD_FAILURE);
+              }
+#  endif
             } else if (!strcmp(cmd, "rmd") || !strcmp(cmd, "xrmd")) {
+#  ifdef WITH_EXTAUTHORIZATION
+              if (authresult.can_rmd == 1) {
+#  endif
                 if (*arg != 0) {
                     dormd(arg);
                 } else {
                     addreply_noformat(550, MSG_NO_DIRECTORY_NAME);
                 }
+#  ifdef WITH_EXTAUTHORIZATION
+              } else {
+                addreply_noformat(550, MSG_RMD_FAILURE);
+              }
+#  endif
 #endif
 #ifndef MINIMAL
             } else if (!strcmp(cmd, "stat")) {

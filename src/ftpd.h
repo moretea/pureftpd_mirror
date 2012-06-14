@@ -294,6 +294,11 @@ typedef struct AuthResult_ {
 #ifdef PER_USER_LIMITS
     unsigned int per_user_max;
 #endif
+#ifdef WITH_EXTAUTHORIZATION
+    char can_mkd;
+    char can_rmd;
+    char can_dele;
+#endif
 } AuthResult;
 
 typedef struct PureFileInfo_ {

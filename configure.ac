@@ -447,6 +447,12 @@ AC_ARG_WITH(extauth,
     AC_DEFINE(WITH_EXTAUTH,,[with extauth (*BETA*)])
   fi ])
 
+AC_ARG_WITH(extauthorization,
+            [AS_HELP_STRING(--with-extauthorization, Also send authorization requests to the external authentication module)],
+[ if test "x$withval" = "xyes" ; then
+    AC_DEFINE(WITH_EXTAUTHORIZATION,,[with extauthorization (*BETA*)])
+  fi ])
+
 AC_ARG_WITH(pam,
 [AS_HELP_STRING(--with-pam,Enable PAM support (default=disabled))],
 [ if test "x$withval" = "xyes" ; then

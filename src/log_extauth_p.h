@@ -35,6 +35,11 @@ static void callback_reply_ratio_upload(const char *str, AuthResult * const resu
 static void callback_reply_ratio_download(const char *str, AuthResult * const result);
 static void callback_reply_per_user_max(const char *str, AuthResult * const result);
 static void callback_reply_end(const char *str, AuthResult * const result);
+#ifdef WITH_EXTAUTHORIZATION
+static void callback_reply_can_mkd(const char *str, AuthResult * const result);
+static void callback_reply_can_rmd(const char *str, AuthResult * const result);
+static void callback_reply_can_dele(const char *str, AuthResult * const result);
+#endif
 
 static ExtauthCallBack extauth_callbacks[] = {
     { EXTAUTH_REPLY_AUTH_OK, callback_reply_auth_ok },
@@ -50,6 +55,11 @@ static ExtauthCallBack extauth_callbacks[] = {
     { EXTAUTH_REPLY_RATIO_DOWNLOAD, callback_reply_ratio_download },
     { EXTAUTH_REPLY_PER_USER_MAX, callback_reply_per_user_max },    
     { EXTAUTH_REPLY_END, callback_reply_end },
+#ifdef WITH_EXTAUTHORIZATION
+    { EXTAUTH_CAN_MKD,  callback_reply_can_mkd },
+    { EXTAUTH_CAN_RMD,  callback_reply_can_rmd },
+    { EXTAUTH_CAN_DELE, callback_reply_can_dele },
+#endif
     { NULL, callback_reply_end }
 };
 

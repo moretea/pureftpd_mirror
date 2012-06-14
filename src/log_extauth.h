@@ -36,6 +36,12 @@ void pw_extauth_exit(void);
 #define EXTAUTH_REPLY_PER_USER_MAX "per_user_max" EXTAUTH_KEYWORD_SEP
 #define EXTAUTH_REPLY_END "end"
 
+#ifdef WITH_EXTAUTHORIZATION
+#define EXTAUTH_CAN_MKD  "can_mkd"  EXTAUTH_KEYWORD_SEP
+#define EXTAUTH_CAN_RMD  "can_rmd"  EXTAUTH_KEYWORD_SEP
+#define EXTAUTH_CAN_DELE "can_dele" EXTAUTH_KEYWORD_SEP
+#endif
+
 #endif
 
 #endif

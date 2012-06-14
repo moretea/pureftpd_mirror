@@ -151,6 +151,24 @@ static void callback_reply_end(const char *str, AuthResult * const result)
     auth_finalized |= 1;
 }
 
+#ifdef WITH_EXTAUTHORIZATION
+static void callback_reply_can_mkd(const char *str, AuthResult * const result)
+{
+    result->can_mkd = atoi(str);
+}
+
+static void callback_reply_can_rmd(const char *str, AuthResult * const result)
+{
+    result->can_rmd = atoi(str);
+}
+
+static void callback_reply_can_dele(const char *str, AuthResult * const result)
+{
+    result->can_dele = atoi(str);
+}
+
+#endif
+
 void pw_extauth_check(AuthResult * const result,
                       const char *account, const char *password,
                       const struct sockaddr_storage * const sa,

@@ -1541,6 +1541,11 @@ static AuthResult pw_check(const char *account, const char *password,
 #ifdef PER_USER_LIMITS
         result.per_user_max = per_user_max;
 #endif
+#ifdef  WITH_EXTAUTHORIZATION
+        result.can_mkd  = 1;
+        result.can_rmd  = 1;
+        result.can_dele = 1;
+#endif
         result.backend_data = NULL;
         auth_scan->auth->check(&result, account, password, sa, peer);
         if (result.auth_ok < 0) {
