@@ -1,7 +1,7 @@
 dnl AM_ACLOCAL_INCLUDE(m4)
 
 AC_PREREQ(2.61)
-AC_INIT([pure-ftpd],[1.0.35],[bugs at pureftpd dot org])
+AC_INIT([pure-ftpd],[1.0.36],[bugs at pureftpd dot org])
 AC_CONFIG_SRCDIR(src/ftpd.c)
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([1.9 dist-bzip2])
@@ -21,11 +21,36 @@ AM_PROG_CC_C_O
 AC_USE_SYSTEM_EXTENSIONS
 AC_SEARCH_LIBS([strerror],[cposix])
 
-AX_CHECK_COMPILE_FLAG([-fPIE], [CFLAGS="$CFLAGS -fPIE"])
+AX_CHECK_COMPILE_FLAG([-fPIE], [
+  AX_CHECK_LINK_FLAG([-fPIE],
+    [CFLAGS="$CFLAGS -fPIE"]
+  )
+])
+
 AX_CHECK_COMPILE_FLAG([-fcatch-undefined-c99-behavior], [CFLAGS="$CFLAGS -fcatch-undefined-c99-behavior"])
 AX_CHECK_COMPILE_FLAG([-fno-strict-aliasing], [CFLAGS="$CFLAGS -fno-strict-aliasing"])
 AX_CHECK_COMPILE_FLAG([-fno-strict-overflow], [CFLAGS="$CFLAGS -fno-strict-overflow"])
-AX_CHECK_COMPILE_FLAG([-fstack-protector-all], [CFLAGS="$CFLAGS -fstack-protector-all"])
+AS_IF([echo `(uname -s) 2>/dev/null` | $GREP "CYGWIN" > /dev/null], [
+  AX_CHECK_LINK_FLAG([-Wl,--dynamicbase], [LDFLAGS="$LDFLAGS -Wl,--dynamicbase"])
+  AX_CHECK_LINK_FLAG([-Wl,--nxcompat], [LDFLAGS="$LDFLAGS -Wl,--nxcompat"])
+], [
+  AS_IF([test `(uname -s) 2>/dev/null` = "DragonFly"],
+    [
+      AX_CHECK_COMPILE_FLAG([-fstack-protector], [
+        AX_CHECK_LINK_FLAG([-fstack-protector],
+          [CFLAGS="$CFLAGS -fstack-protector"]
+        )
+      ])
+    ],
+    [
+      AX_CHECK_COMPILE_FLAG([-fstack-protector-all], [
+        AX_CHECK_LINK_FLAG([-fstack-protector-all],
+          [CFLAGS="$CFLAGS -fstack-protector-all"]
+        )
+      ])    
+    ]
+  )
+])
 
 AX_CHECK_COMPILE_FLAG([-Wbounded], [CFLAGS="$CFLAGS -Wbounded"])
 AX_CHECK_COMPILE_FLAG([-Winit-self], [CFLAGS="$CFLAGS -Winit-self"])
