@@ -7,12 +7,15 @@
 #include "dynamic.h"
 #include "ftpwho-update.h"
 #include "globals.h"
+#ifdef WITH_TLS
+# include "tls.h"
+#endif
 
 #ifdef WITH_DMALLOC
 # include <dmalloc.h>
 #endif
 
-static void wrstr(const int f, const char *s)
+static void wrstr(const int f, void * const tls_fd, const char *s)
 {
     static char outbuf[CONF_TCP_SO_SNDBUF];
     static size_t outcnt;
@@ -21,13 +24,14 @@ static void wrstr(const int f, const char *s)
     if (s == NULL) {
         if (outcnt > (size_t) 0U) {
 #ifdef WITH_TLS
-            if (data_protection_level == CPL_PRIVATE) {
-                if (secure_safe_write(outbuf, outcnt) < 0) {
+            if (tls_fd != NULL) {
+                if (secure_safe_write(tls_fd, outbuf, outcnt) < 0) {
                     return;
                 } 
             } else
 #endif      
             {
+                (void) tls_fd;
                 if (safe_write(f, outbuf, outcnt) != 0) {
                     return;
                 }
@@ -53,7 +57,7 @@ static void wrstr(const int f, const char *s)
     }
 #ifdef WITH_TLS
     if (data_protection_level == CPL_PRIVATE) {
-        if (secure_safe_write(outbuf, sizeof outbuf) < 0) {
+        if (secure_safe_write(tls_fd, outbuf, sizeof outbuf) < 0) {
             return;
         } 
     } else
@@ -66,7 +70,7 @@ static void wrstr(const int f, const char *s)
 #ifdef WITH_TLS
     if (data_protection_level == CPL_PRIVATE) {    
         while (l > sizeof outbuf) {
-            if (secure_safe_write(s, sizeof outbuf) < 0) {
+            if (secure_safe_write(tls_fd, s, sizeof outbuf) < 0) {
                 return;
             }
             s += sizeof outbuf;
@@ -430,15 +434,14 @@ static int listfile(const PureFileInfo * const fi,  const char *name)
     return rval;
 }
 
-static void outputfiles(int f)
+static void outputfiles(int f, void * const tls_fd)
 {
     unsigned int n;
     struct filename *p;
     struct filename *q;
-#ifdef WITH_RFC2640
     char *c_buf; /* buffer with charset of client */
-#endif
 
+    (void) c_buf;
     if (!head) {
         return;
     }
@@ -507,13 +510,13 @@ static void outputfiles(int f)
                 pad[2] = 0;
             }
 #ifdef WITH_RFC2640
-        c_buf = charset_fs2client(q->line);
-            wrstr(f, c_buf);
-        free(c_buf);
+            c_buf = charset_fs2client(q->line);
+            wrstr(f, tls_fd, c_buf);
+            free(c_buf);
 #else
-            wrstr(f, q->line);
+            wrstr(f, tls_fd, q->line);
 #endif
-            wrstr(f, pad);
+            wrstr(f, tls_fd, pad);
             q = q->right;
             free(tmp);
         }
@@ -672,12 +675,14 @@ static PureFileInfo *sreaddir(char **names_pnt)
 }
 
 /* have to change to the directory first (speed hack for -R) */
-static void listdir(unsigned int depth, int f, const char *name)
+static void listdir(unsigned int depth, int f, void * const tls_fd,
+                    const char *name)
 {
     PureFileInfo *dir;
     char *names;
     PureFileInfo *s;
     PureFileInfo *r;
+    char *c_buf;
     int d;
     
     if (depth >= max_ls_depth || matches >= max_ls_files) {
@@ -686,7 +691,7 @@ static void listdir(unsigned int depth, int f, const char *name)
     if ((dir = sreaddir(&names)) == NULL) {
         addreply(226, MSG_CANT_READ_FILE, name);
         return;
-    }        
+    }
     s = dir;
     while (s->name_offset != (size_t) -1) {
         if (FI_NAME(s)[0] != '.') {
@@ -705,7 +710,7 @@ static void listdir(unsigned int depth, int f, const char *name)
         }
         s++;
     }
-    outputfiles(f);
+    outputfiles(f, tls_fd);
     r = dir;
     while (opt_R && r != s) {
         if (r->name_offset != (size_t) -1 && !chdir(FI_NAME(r))) {
@@ -719,22 +724,30 @@ static void listdir(unsigned int depth, int f, const char *name)
                                  name, FI_NAME(r)), sizeof_subdir)) {
                 goto nolist;
             }
+#ifdef WITH_RFC2640
+            c_buf = charset_fs2client(alloca_subdir);
+#else
+            c_buf = alloca_subdir;
+#endif
 #ifndef MINIMAL
             if (modern_listings == 0) {
-#endif
+#endif                
 #ifdef FANCY_LS_DIRECTORY_HEADERS
-                wrstr(f, "\r\n>----------------[");
-                wrstr(f, alloca_subdir);
-                wrstr(f, "]----------------<\r\n\r\n");
+                wrstr(f, tls_fd, "\r\n>----------------[");
+                wrstr(f, tls_fd, c_buf);
+                wrstr(f, tls_fd, "]----------------<\r\n\r\n");
 #else
-                wrstr(f, "\r\n\r\n");
-                wrstr(f, alloca_subdir);
-                wrstr(f, ":\r\n\r\n");                    
+                wrstr(f, tls_fd, "\r\n\r\n");
+                wrstr(f, tls_fd, c_buf);
+                wrstr(f, tls_fd, ":\r\n\r\n");                    
 #endif
 #ifndef MINIMAL
             }
 #endif
-            listdir(depth + 1U, f, alloca_subdir);
+#ifdef WITH_RFC2640            
+            free(c_buf);
+#endif            
+            listdir(depth + 1U, f, tls_fd, alloca_subdir);
             nolist:
             ALLOCA_FREE(alloca_subdir);
             if (matches >= max_ls_files) {
@@ -757,10 +770,12 @@ static void listdir(unsigned int depth, int f, const char *name)
 }
 
 void donlist(char *arg, const int on_ctrl_conn, const int opt_l_,
-             const int split_args)
+             const int opt_a_, const int split_args)
 {
     int c;
-
+    void *tls_fd = NULL;
+    char *c_buf;
+    
     matches = 0U;
 
     opt_C = opt_d = opt_F = opt_R = opt_r = opt_t = opt_S = 0;
@@ -768,7 +783,7 @@ void donlist(char *arg, const int on_ctrl_conn, const int opt_l_,
     if (force_ls_a != 0) {
         opt_a = 1;
     } else {
-        opt_a = 0;
+        opt_a = opt_a_;
     }
     if (split_args != 0) {
         while (isspace((unsigned char) *arg)) {
@@ -827,18 +842,25 @@ void donlist(char *arg, const int on_ctrl_conn, const int opt_l_,
         if (type == 2) {
             addreply_noformat(0, "ASCII");
         }
+#ifdef WITH_TLS
+        if (data_protection_level == CPL_PRIVATE) {
+            tls_fd = tls_data_cnx;
+        }
+#endif
     } else {                           /* STAT command */
         c = 1;
 #ifdef WITH_TLS
         if (data_protection_level == CPL_PRIVATE) {
-            secure_safe_write("213-STAT" CRLF, sizeof "213-STAT" CRLF - 1U);
+            secure_safe_write(tls_cnx, "213-STAT" CRLF,
+                              sizeof "213-STAT" CRLF - 1U);
+            tls_fd = tls_cnx;
         }
         else
 #endif
         {
             safe_write(c, "213-STAT" CRLF, sizeof "213-STAT" CRLF - 1U);
         }
-    }        
+    }
     if (arg != NULL && *arg != 0) {
         int justone;
 
@@ -888,7 +910,7 @@ void donlist(char *arg, const int on_ctrl_conn, const int opt_l_,
                     }
                     path++;
                 }
-                outputfiles(c);    /* in case of opt_C */
+                outputfiles(c, tls_fd);    /* in case of opt_C */
                 path = g.gl_pathv;
                 while (path && *path) {
                     if (matches >= max_ls_files) {
@@ -896,18 +918,26 @@ void donlist(char *arg, const int on_ctrl_conn, const int opt_l_,
                     }
                     if (**path) {
                         if (!justone) {
-#ifdef FANCY_LS_DIRECTORY_HEADERS                            
-                            wrstr(c, "\r\n>-----------------[");
-                            wrstr(c, *path);
-                            wrstr(c, "]-----------------<\r\n\r\n");
+#ifdef WITH_RFC2640                            
+                            c_buf = charset_fs2client(*path);
 #else
-                            wrstr(c, "\r\n\r\n");
-                            wrstr(c, *path);
-                            wrstr(c, ":\r\n\r\n");
+                            c_buf = *path;
+#endif
+#ifdef FANCY_LS_DIRECTORY_HEADERS                            
+                            wrstr(c, tls_fd, "\r\n>-----------------[");
+                            wrstr(c, tls_fd, c_buf);
+                            wrstr(c, tls_fd, "]-----------------<\r\n\r\n");
+#else
+                            wrstr(c, tls_fd, "\r\n\r\n");
+                            wrstr(c, tls_fd, c_buf);
+                            wrstr(c, tls_fd, ":\r\n\r\n");
+#endif
+#ifdef WITH_RFC2640                            
+                            free(c_buf);
 #endif
                         }
                         if (!chdir(*path)) {
-                            listdir(0U, c, *path);
+                            listdir(0U, c, tls_fd, *path);
                             chdir(wd);
                         }
                     }
@@ -931,11 +961,11 @@ void donlist(char *arg, const int on_ctrl_conn, const int opt_l_,
         if (opt_d) {
             listfile(NULL, ".");
         } else {
-            listdir(0U, c, ".");
+            listdir(0U, c, tls_fd, ".");
         }
-        outputfiles(c);
+        outputfiles(c, tls_fd);
     }
-    wrstr(c, NULL);
+    wrstr(c, tls_fd, NULL);
     if (on_ctrl_conn == 0) {
 #ifdef WITH_TLS
         closedata();

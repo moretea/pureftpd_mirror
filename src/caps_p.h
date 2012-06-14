@@ -18,10 +18,8 @@ cap_value_t cap_keep_startup[] = {
 };
 
 cap_value_t cap_keep_login[] = {
-# ifndef WITH_PRIVSEP
-#  ifndef HAVE_SYS_FSUID_H
+# ifdef WITHOUT_PRIVSEP
     CAP_SETUID,
-#  endif
     CAP_NET_BIND_SERVICE,
 # endif
     CAP_NET_ADMIN

@@ -1,3 +1,65 @@
+* Version 1.0.24:
+ - Refuse empty passwords in LDAP bind mode. Reported by Henning Brauer.
+ - The package can now be compiled with gcc 2.
+
+* Version 1.0.23:
+ - LDAP: accept "enabled" as a correct value for FTPStatus as it used
+to be.
+ - More useful error logging for OpenSSL errors.
+ - Don't read certificates twice.
+ - Fix compilation on Solaris with privsep, thanks to Ritesh Patel.
+ - Don't replace : (as in IPv6 addresses) in host names. Thanks to Tero
+Pelander.
+ - Add SUP top AUXILIARY to LDAP schema, suggested by Zhang Huangbin.
+ - Don't ignore dot files even if -D is not supplied with the MLSD command.
+ - Deinline code
+ - Throttling more reliable
+ - STAT is now working over TLS
+ - DH keys for ephemeral key exchange are now handled
+ - Fix libiconv checking
+ - The column was missing in the PassivePortRange comment (thanks to Igor
+Alexadrov)
+ - LDAP authentication through binding is now possible in addition to
+passwords. This allows for the FTP server to run with an unprivileged LDAP
+account. It also adds a warning if auth method password is used and doesn't find
+a userPassword attribute. This usually indicates that the LDAP bind DN
+cannot read the attributes, because it doesn't have sufficient privileges.
+Contributed by Wilco Baan Hofman.
+ - Perform charset conversions on directory names. Issue spotted by Xianghu
+Zhao.
+ - Almost a complete rewrite of the upload, download and TLS code for more
+reliability
+ - Seemlessly handle ABOR without any SIGURG
+ - Try to immediately handle any kind of disconnection
+ - Use poll() rather than select() as much as possible
+ - Distinguish aborted (even the hard way) and completed download and upload
+operations in log files
+ - Minor corrections to he French messages
+ - Don't use atomic uploads unless --notruncate or --autorename have been
+enabled
+ - Take care of removing .pureftpd-upload-* files in every possible case
+ - List up to 10000 files per directory per default instead of 2000
+ - Don't mess with TCP_NOPUSH, as it interferes with OpenSSL
+ - New compile-time option: --with-implicittls in order to build a FTPS-only
+server
+ - ./configure --localstatedir can now be used in order to avoid storing the
+scoreboard and other dynamic files in /var/run/
+ - Quota handling reworked (easier, and way more reliable)
+ - RNTO support even when quota are enabled.
+ - A bunch of return codes were fixed to be more RFC-conformant.
+ - ALLO command is now actually checking if an upload can occur without
+blowing the quota.
+ - Don't change the TCP window size. Admins should do this as part of their
+system configuration.
+ - Privsep is now enabled by default. Use --without-privsep to disable.
+ - --without-banner is gone. If you have a cookie file (-F), the default
+banner won't be displayed.
+ - Compile with PAM by default on OSX.
+ - Switch the privsep process to _pure-ftpd or pure-ftpd when no privileged
+call is actually necessary. Since only the effective uid chances, it's not
+brutally useful yet, but it paves the way for forthcoming changes.
+ - Install man pages with local paths instead of hard-coded ones.
+
 * Version 1.0.22:
  - New catalan translation, by Taik0.
  - TLS support for LDAP, contributed by Marc Balmer.

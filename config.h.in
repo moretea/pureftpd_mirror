@@ -35,9 +35,6 @@
 /* Define to 1 for DGUX with <sys/dg_sys_info.h>. */
 #undef DGUX
 
-/* without cork */
-#undef DISABLE_CORK
-
 /* without globbing */
 #undef DISABLE_GLOBBING
 
@@ -60,8 +57,7 @@
    this is either `int' or `gid_t'. */
 #undef GETGROUPS_T
 
-/* Define to 1 if the `getloadavg' function needs to be run setuid or setgid.
-   */
+/* Define if the `getloadavg' function needs to be run setuid or setgid. */
 #undef GETLOADAVG_PRIVILEGED
 
 /* Define to 1 if you have the `alarm' function. */
@@ -73,6 +69,9 @@
 /* Define to 1 if you have <alloca.h> and it should be used (not on Ultrix).
    */
 #undef HAVE_ALLOCA_H
+
+/* Define to 1 if you have the `arc4random' function. */
+#undef HAVE_ARC4RANDOM
 
 /* Define to 1 if your system has a working `chown' function. */
 #undef HAVE_CHOWN
@@ -435,10 +434,10 @@
 /* define if you have struct addrinfo */
 #undef HAVE_STRUCT_ADDRINFO
 
-/* Define to 1 if `n_un.n_name' is member of `struct nlist'. */
+/* Define to 1 if `struct nlist' is a member of `n_un.n_name'. */
 #undef HAVE_STRUCT_NLIST_N_UN_N_NAME
 
-/* Define to 1 if `tm_zone' is member of `struct tm'. */
+/* Define to 1 if `struct tm' is a member of `tm_zone'. */
 #undef HAVE_STRUCT_TM_TM_ZONE
 
 /* define if syslog names are available */
@@ -454,8 +453,8 @@
 /* Define to 1 if you have the <sys/fcntl.h> header file. */
 #undef HAVE_SYS_FCNTL_H
 
-/* Define to 1 if you have the <sys/fsuid.h> header file. */
-#undef HAVE_SYS_FSUID_H
+/* Define to 1 if you have the <sys/file.h> header file. */
+#undef HAVE_SYS_FILE_H
 
 /* Define to 1 if you have the <sys/ioctl.h> header file. */
 #undef HAVE_SYS_IOCTL_H
@@ -587,6 +586,9 @@
 /* define if you have __ss_len */
 #undef HAVE___SS_LEN
 
+/* with implicit TLS */
+#undef IMPLICIT_TLS
+
 /* Define to 1 if `lstat' dereferences a symlink specified with a trailing
    slash. */
 #undef LSTAT_FOLLOWS_SLASHED_SYMLINK
@@ -667,9 +669,6 @@
 /* with nonroot */
 #undef NON_ROOT_FTP
 
-/* without banner */
-#undef NO_BANNER
-
 /* without usernames */
 #undef NO_FTP_USERS
 
@@ -699,6 +698,9 @@
 
 /* Define to the one symbol short name of this package. */
 #undef PACKAGE_TARNAME
+
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
 
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
@@ -857,6 +859,9 @@
 /* without ascii */
 #undef WITHOUT_ASCII
 
+/* disable privilege separation */
+#undef WITHOUT_PRIVSEP
+
 /* with altlog */
 #undef WITH_ALTLOG
 
@@ -880,9 +885,6 @@
 
 /* with pgsql */
 #undef WITH_PGSQL
-
-/* enable privilege separation */
-#undef WITH_PRIVSEP
 
 /* with puredb */
 #undef WITH_PUREDB

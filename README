@@ -1,6 +1,6 @@
 
                               .:. PURE-FTPD .:.
-                      Documentation for version 1.0.22
+                      Documentation for version 1.0.24
 
 
            ------------------------ BLURB ------------------------
@@ -48,6 +48,19 @@ DragonflyBSD, Darwin, Solaris, Tru64, Irix, AIX and HPUX are known to work,
 other operating systems may need some tweaks. With Linux, any modern
 distribution should be ok.
 
+* Step 1 (optional but recommended):
+
+Create a specific, unprivileged user and group called _pure-ftpd, without any
+valid shell. Don't use this for anything else, including FTP virtual users.
+
+groupadd _pure-ftpd
+useradd -g _pure-ftpd -d /var/empty -s /etc _pure-ftpd
+
+If having a user whose name begins with an underscore is a no-go for you,
+you can also call it pure-ftpd, without the underscore.
+
+* Step 2:
+
 If you have Cdialog or Xdialog installed on your system, try the following
 command to build and install Pure-FTPd:
 
@@ -59,6 +72,8 @@ If you don't have Cdialog or if you prefer the conventional way, here it is:
 make install-strip
 
 Et voila! The software is now installed in /usr/local/sbin/pure-ftpd
+
+* Step 3:
 
 To launch the server, just type the following command:
 
@@ -75,14 +90,6 @@ to /etc/rc.d/rc.local or /etc/rc.d/boot.local . Don't forget the '&' sign.
 
 Note 1:
 
-On Linux systems, you will notice that the server is always running as root.
-This is intentional and more secure that servers who are changing their
-effective uid (and only effective uid, they still have root privileges in
-fact, use ps -U to see what servers are really running as root) . We are
-using Linux kernel-specific tricks to drop privileges that "ps" can't show.
-
-Note 2:
-
 To compile under Irix, you have to issue this before typing ./configure:
 
 export CC=cc
@@ -94,7 +101,7 @@ To compile under Solaris, use GNU Make, not Solaris make. Then do:
 export PATH=/usr/ccs/bin:$PATH
 export MAKE=gmake
 
-Nota 3:
+Nota 2:
 
 To deinstall Pure-FTPd (no, do you really want to do this?), use:
 ./configure
@@ -129,6 +136,8 @@ option later in this documentation for additional info.
 --with-brokenrealpath: some Solaris versions have a broken realpath()
 implementation. If altlog and/or pure-uploadscript doesn't seem to work
 properly on your system, try to recompile with this switch.
+
+--with-tls: enable TLS support. Read README.TLS for more about this feature.
 
 --with-certfile=<file>: the file with the SSL certificate (see README.TLS). The
 default is /etc/ssl/private/pure-ftpd.pem .
@@ -254,7 +263,6 @@ document.
 --with-ratios: support upload/download ratios, to please w4r3z fr34k2.
 
 --with-sysquotas: support system quotas (not Pure-FTPd's virtual quotas) .
-Only enable this if you really plan to use system quotas.
 
 --with-throttling: support bandwidth throttling (see below).
 
@@ -286,27 +294,27 @@ by default.
 
 --with-boring: display boring "professionnal-looking" messages.
 
---with-privsep: enable privilege separation (see notes about this later),
-recommended.
-
 --with-bonjour: enable Bonjour support on MacOS X (see the -v switch).
 
 --with-rfc2640: enable support for charset conversion. It adds a dependency
 over the iconv library and it requires a little more CPU time. See the -8
 and -9 switches.
 
+--with-implicittls: build a FTPS server (SSL/TLS is implicitely enabled).
+The protocol is incompatible with FTP and listens to another port by default
+(port 990, ftps). Never enable this option unless you know what you're doing.
+
 
 /-----------------------
 "--without-" switches
  -----------------------/
 
+--without-privsep: disable privilege separation (see notes about this later),
+not recommended.
 
 --without-ascii: does not support 7-bits transfers (ASCII) .  If you have
 customers using Windows clients to send scripts and HTML files, don't use
 this option or they will yell at you.
-
---without-banner: don't display the initial banner. This is stupid security
-through obscurity.
 
 --without-capabilities: if the capabilities library (libcap) is found,
 Pure-FTPd will try to use it in order to enhance security. This option
@@ -640,7 +648,7 @@ Upload will take place in a temporary file and once the upload is complete,
 the switch to the new version will be atomic. For instance, when a large PHP
 script is being uploaded, the web server will still serve the old version and
 immediatly switch to the new one as soon as the full file will have been
-transfered. This option is incompatible with virtual quotas.
+transfered.
 
 - '-1': log the PID of each session in syslog output.
 
@@ -754,7 +762,7 @@ rule to the authentication chain. Please read the "Authentication" section,
 later in this README file. It's an important section.
 
 - '-L <max files>:<max depth>': To avoid stupid denial-of-service attacks
-(or just CPU hogs), Pure-FTPd never displays more than 2000 files in response
+(or just CPU hogs), Pure-FTPd never displays more than 10000 files in response
 to an 'ls' command. Also, a recursive 'ls' (-R) never goes further than 5
 subdirectories. You can increase/decrease those limits with the '-L' option.
 
@@ -1604,21 +1612,6 @@ You can run pure-quotacheck whenever you want, even when ".ftpquota" files
 are already there. This is even a good idea to run this for all users in
 crontab, so that stored quotas are always exact, even if something went wrong
 (server bug, filesystem corruption, savagely killed server, etc) .
-       
-With traditional quotas, when a hard limit is reached, it's impossible to
-write new data. It's nice for files that are created fastly (operations on
-local filesystems) . But it's really frustrating when transfering files
-through networks.
-
-Virtual quotas are working in a (somewhat strange) but handy way. When an
-user begins an upload, the newly uploaded file can be as huge as his total
-quota. It means that if his quota is 10 Mb, he can upload a 10 Mb file, even
-if he already has 9 Mb of other files in his directory. The idea is that
-while he's uploading the file, he can realize that his quota will be
-reached and he can move/compress/delete other files to save space before
-the end of the upload. And only after completion of the upload, the quota is
-checked. If the quota is still crunched, the newly uploaded file will be
-deleted.
 
 
       ------------------------ AUTHENTICATION ------------------------
@@ -1739,13 +1732,13 @@ after authentication and chroot() and punctually communicates with the
 parent over a private channel.
 
 Privilege separation decreases performance of loaded servers, but it
-increases theorical security and reliability. Enabling it is recommended.
+increases security and reliability. Enabling it is recommended.
 
 Some old broken operating systems may allow the ptrace() system call on
 processes that revoked privileges. On these platforms, enabling privilege
 separation is a bad idea if untrusted users also have shell access. Use the
-src/ptracetest program to check this. At least Solaris, ISOS, MirBSD, OpenBSD,
-FreeBSD and Linux are known to be safe.
+src/ptracetest program to check this. At least Solaris, ISOS, MirBSD,
+OpenBSD, DragonflyBSD, FreeBSD and Linux are known to be safe.
 
 
     ------------------------ CHARSETS (RFC2640) ------------------------
@@ -1922,8 +1915,9 @@ is a safe bet.
 
 Pure-FTPd home page is: http://www.pureftpd.org/ .
 
-Pure-FTPd mailing-lists:
-                         http://www.pureftpd.org/ml/
+Pure-FTPd mailing-list: http://www.pureftpd.org/ml/
+
+Mailing-list archive: http://archives.pureftpd.org/archives.cgi?100
 
 If you have question, suggestions or patches, feel free to post them to the
 mailing list. Newbies and silly ideas are welcome.

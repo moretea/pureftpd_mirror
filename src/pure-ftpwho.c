@@ -99,7 +99,7 @@ void logfile(const int facility, const char *format, ...)
     fprintf(stderr, "\n");
 }
 
-static inline int checkproc(const pid_t proc)
+static int checkproc(const pid_t proc)
 {    
     return kill(proc, 0) == 0;
 }
@@ -566,10 +566,10 @@ static void plist_output_footer(void)
 
 static const char *shell_escaped(const char * const s_)
 {
-    register const unsigned char *s = (const unsigned char *) s_;        
+    const unsigned char *s = (const unsigned char *) s_;        
     static char buf[MAXPATHLEN + 32U];
     const char * const bufend = &buf[sizeof buf - (size_t) 1U];
-    register char *bufpnt = buf;    
+    char *bufpnt = buf;    
     
     while (*s != 0U) {
         if (ISCTRLCODE(*s)) {
@@ -844,10 +844,11 @@ int main(int argc, char *argv[])
         }
         ftpwho_lock();
         locked++;
-        if ((scanned_entry = (FTPWhoEntry *) mmap(NULL, sizeof (FTPWhoEntry),
-                                                  PROT_READ, 
-                                                  MAP_SHARED | MAP_FILE, 
-                                                  mmap_fd, (off_t) 0)) == NULL) {
+        if ((scanned_entry =
+             (FTPWhoEntry *) mmap(NULL, sizeof (FTPWhoEntry),
+                                  PROT_READ, 
+                                  MAP_SHARED | MAP_FILE, 
+                                  mmap_fd, (off_t) 0)) == (void *) MAP_FAILED) {
             goto nextone;
         }
         if (checkproc(scanned_entry->pid) == 0) {
