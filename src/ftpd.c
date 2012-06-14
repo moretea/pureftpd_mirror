@@ -868,13 +868,15 @@ static int checknamesanity(const char *name, int dot_ok)
     }
 #endif
 #ifdef QUOTAS
-    if (hasquota() == 0 && strstr(namepnt, QUOTA_FILE) != NULL) {
-        return -1;                     /* .ftpquota => *NO* */
-    }
-#endif
-#ifndef ALLOW_DELETION_OF_TEMPORARY_FILES    
-    if (strstr(namepnt, PUREFTPD_TMPFILE_PREFIX) == namepnt) {
-        return -1;
+    if (hasquota() == 0) {
+        if (strstr(namepnt, QUOTA_FILE) != NULL) {
+            return -1;                     /* .ftpquota => *NO* */
+        }
+# ifndef ALLOW_DELETION_OF_TEMPORARY_FILES
+        if (strstr(namepnt, PUREFTPD_TMPFILE_PREFIX) == namepnt) {
+            return -1;
+        }
+# endif
     }
 #endif
     while (*namepnt != 0) {
@@ -1447,7 +1449,8 @@ void douser(const char *username)
                 hd = (char *) "/";
             }
             if (chdir(root_directory) || chroot(root_directory) || chdir(hd)) {
-                die(421, LOG_ERR, "%d [%s] [%s]", __LINE__, root_directory, hd);
+                die(421, LOG_ERR, MSG_CANT_CHANGE_DIR " [%s]",
+                    root_directory, hd);
                 goto cantsec;
             }
             logfile(LOG_INFO, MSG_ANONYMOUS_LOGGED);
@@ -1539,6 +1542,7 @@ void douser(const char *username)
 #endif
 }
 
+#ifndef __IPHONE__
 static AuthResult pw_check(const char *account, const char *password,
                            const struct sockaddr_storage * const sa,
                            const struct sockaddr_storage * const peer)
@@ -1620,6 +1624,7 @@ static AuthResult pw_check(const char *account, const char *password,
     
     return result;
 }
+#endif
 
 /*
  * Check if an user belongs to the trusted group, either in his
@@ -3787,6 +3792,7 @@ void delete_atomic_file(void)
         return;
     }
     (void) unlink(atomic_file);
+    atomic_file = NULL;
 }
 
 static off_t get_file_size(const char * const file)
@@ -5495,7 +5501,7 @@ static void standalone_server(void)
         freeaddrinfo(res);
         set_cloexec_flag(listenfd);     
     }
-    if (listenfd6 != -1 && v6ready != 0) {
+    if (listenfd6 == -1 && v6ready != 0) {
         hints.ai_family = AF_INET6;
         if (getaddrinfo(standalone_ip, standalone_port, &hints, &res6) == 0) {
             if ((listenfd6 = socket(AF_INET6,
@@ -6310,7 +6316,8 @@ int pureftpd_start(int argc, char *argv[], const char *home_directory_)
 #ifdef __IPHONE__
     if (setjmp(jb) != 0) {
         close(clientfd); close(datafd); close(xferfd);
-        clientfd = datafd = xferfd = -1;
+        clientfd = datafd = xferfd = -1;        
+        delete_atomic_file();
         chroot("/");
         downloaded = uploaded = 0ULL;
         datafd = xferfd = -1;
@@ -6322,10 +6329,13 @@ int pureftpd_start(int argc, char *argv[], const char *home_directory_)
         restartat = (off_t) 0;
         state_needs_update = 1;
         atomic_prefix = NULL;
-        nb_children = 0;        
+        nb_children = 0;
+# ifdef WITH_TLS
+        tls_cnx_handshaked = tls_data_cnx_handshaked = 0;
+# endif
         if (logout_callback != NULL && suspend_client_connections == 0) {
             (*logout_callback)(logout_callback_user_data);
-        }
+        }        
         if (stop_server > 0) {
             close(listenfd); close(listenfd6);
             listenfd = listenfd6 = -1;
@@ -6410,12 +6420,14 @@ int pureftpd_start(int argc, char *argv[], const char *home_directory_)
 int pureftpd_shutdown(void)
 {
     stop_server = 1;
+    shutdown(clientfd, SHUT_RDWR);
     close(clientfd);
-    clientfd = -1;    
-    close(datafd); close(xferfd);
+    shutdown(datafd, SHUT_RDWR);
+    close(datafd);
+    shutdown(xferfd, SHUT_RDWR);
+    close(xferfd);
     datafd = xferfd = -1;
     close(listenfd); close(listenfd6);
-    listenfd = listenfd6 = -1;
     
     return 0;
 }
@@ -6469,7 +6481,8 @@ void pureftpd_register_simple_auth_callback(int (*callback)(const char *account,
 static AuthResult embedded_simple_pw_check(const char *account, const char *password)
 {
     AuthResult authresult;
-
+    
+    memset(&authresult, 0, sizeof authresult);
     if (simple_auth_callback == NULL ||
         account == NULL || *account == 0 || password == NULL) {
         authresult.auth_ok = 0;
