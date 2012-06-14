@@ -218,3 +218,4 @@
 #define MSG_TLS_WEAK "SSL/TLS: Ключ ненадежен"
 #define MSG_TLS_NEEDED "Извините, незащищенные подключения запрещены на сервере.\n" \
      "Подключитесь еще раз, используя шифрование SSL/TLS."
+#define MSG_ILLEGAL_CHARSET "Illegal charset"

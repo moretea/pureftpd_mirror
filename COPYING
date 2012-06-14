@@ -2,8 +2,8 @@
 Pure-FTPd is covered by the following license :
 
 /*
- * Copyright (c) 2001, 2002, 2003, 2004 Frank Denis <j@pureftpd.org> with
- * the help of all Pure-FTPd contributors.
+ * Copyright (c) 2001, 2002, 2003, 2004, 2005, 2006
+ * Frank Denis <j@pureftpd.org> with the help of all Pure-FTPd contributors.
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -24,6 +24,6 @@ Pure-FTPd is covered by the following license :
                   
 
   The bsd-glob.c, bsd-glob.h, bsd-realpath.c, bsd-getopt_long.c and
-bsd-getopt_long.h source code is based upon the OpenBSD and NetBSD projects
-and it is covered by the BSD license. The original license is enclosed at the
-beginning of the related files.
+bsd-getopt_long.h source codes are based upon the OpenBSD and NetBSD projects
+and they are covered by the BSD license.
+  The original license is enclosed at the beginning of the related files.

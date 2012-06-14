@@ -63,7 +63,7 @@ static void callback_reply_slow_tilde_expansion(const char *str, AuthResult * co
 
 static void callback_reply_throttling_bandwidth_ul(const char *str, AuthResult * const result)
 {
-#ifdef WITH_THROTTLING
+#ifdef THROTTLING
     result->throttling_bandwidth_ul = strtoul(str, NULL, 10);
     result->throttling_ul_changed = 1;
 #else

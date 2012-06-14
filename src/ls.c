@@ -63,9 +63,7 @@ const char *getname(const uid_t uid)
 {
     static char number[9];
 
-    if (SNCHECK(snprintf(number, sizeof number, "%-8d", uid), sizeof number)) {
-        _EXIT(EXIT_FAILURE);
-    }
+    snprintf(number, sizeof number, "%-8d", uid);
     return number;
 }
 
@@ -73,9 +71,7 @@ const char *getgroup(const gid_t gid)
 {
     static char number[9];
 
-    if (SNCHECK(snprintf(number, sizeof number, "%-8d", gid), sizeof number)) {
-        _EXIT(EXIT_FAILURE);
-    }
+    snprintf(number, sizeof number, "%-8d", gid);
     return number;
 }
 #else
@@ -334,8 +330,9 @@ static int listfile(const PureFileInfo * const fi,  const char *name)
             }
 #ifdef WITH_LARGE_FILES
             if (SNCHECK(snprintf(alloca_nameline, sizeof_nameline,
-                                 "%s %4d %s %s %8llu %s %2d %s %s", 
-                                 m, st.st_nlink, getname(st.st_uid),
+                                 "%s %4u %s %s %8llu %s %2d %s %s", 
+                                 m, (unsigned int) st.st_nlink,
+				 getname(st.st_uid),
                                  getgroup(st.st_gid), 
                                  (unsigned long long) st.st_size,
                                  months[t->tm_mon],
@@ -343,8 +340,9 @@ static int listfile(const PureFileInfo * const fi,  const char *name)
                         sizeof_nameline))
 #else
             if (SNCHECK(snprintf(alloca_nameline, sizeof_nameline,
-                                 "%s %4d %s %s %8lu %s %2d %s %s", 
-                                 m, st.st_nlink, getname(st.st_uid),
+                                 "%s %4u %s %s %8lu %s %2d %s %s", 
+                                 m, (unsigned int) st.st_nlink,
+				 getname(st.st_uid),
                                  getgroup(st.st_gid), 
                                  (unsigned long) st.st_size,
                                  months[t->tm_mon],
@@ -404,6 +402,9 @@ static void outputfiles(int f)
     unsigned int n;
     struct filename *p;
     struct filename *q;
+#ifdef WITH_RFC2640
+    char *c_buf; /* buffer with charset of client */
+#endif
 
     if (!head) {
         return;
@@ -472,7 +473,13 @@ static void outputfiles(int f)
                 pad[1] = '\n';
                 pad[2] = 0;
             }
+#ifdef WITH_RFC2640
+	    c_buf = charset_fs2client(q->line);
+            wrstr(f, c_buf);
+	    free(c_buf);
+#else
             wrstr(f, q->line);
+#endif
             wrstr(f, pad);
             q = q->right;
             free(tmp);

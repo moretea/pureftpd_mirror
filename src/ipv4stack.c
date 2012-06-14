@@ -160,7 +160,7 @@ void freeaddrinfo(struct addrinfo *res)
 int inet_pton(int af, const char *src, void *dst)
 /* written by Matthias Andree */
 {
-    unsigned long ina;
+    in_addr_t ina;
 
     if (af != AF_INET) {
         errno = EAFNOSUPPORT;

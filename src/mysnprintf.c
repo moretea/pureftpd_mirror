@@ -23,7 +23,7 @@
 # include <dmalloc.h>
 #endif
 
-#ifndef SNPRINTF_IS_NOT_BUGGY
+#ifdef SNPRINTF_IS_BOGUS
 int workaround_snprintf(char *str, size_t size, const char *format, ...)
 {
     int v;

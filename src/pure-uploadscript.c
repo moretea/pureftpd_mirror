@@ -234,6 +234,12 @@ static int parseoptions(int argc, char *argv[])
             daemonize = 1;
             break;
         }
+        case 'p': {
+            if ((uploadscript_pid_file = strdup(optarg)) == NULL) {
+                perror("Oh no ! More memory !");
+            }
+            break;
+        }
         case 'g': {
             const char *nptr;
             char *endptr;
@@ -441,10 +447,10 @@ static void updatepidfile(void)
                          (unsigned long) getpid()), sizeof buf)) {
         return;
     }
-    if (unlink(UPLOADSCRIPT_PID_FILE) != 0 && errno != ENOENT) {
+    if (unlink(uploadscript_pid_file) != 0 && errno != ENOENT) {
         return;
     }
-    if ((fd = open(UPLOADSCRIPT_PID_FILE, O_CREAT | O_WRONLY | O_TRUNC |
+    if ((fd = open(uploadscript_pid_file, O_CREAT | O_WRONLY | O_TRUNC |
                    O_NOFOLLOW, (mode_t) 0644)) == -1) {
         return;
     }
@@ -491,7 +497,7 @@ int main(int argc, char *argv[])
     updatepidfile();
     if (changeuidgid() < 0) {
         perror("Identity change");
-        (void) unlink(UPLOADSCRIPT_PID_FILE);
+        (void) unlink(uploadscript_pid_file);
         return -1;
     }
 #ifdef SIGPIPE
@@ -513,7 +519,7 @@ int main(int argc, char *argv[])
     /* Unreachable */
 #if 0
     close(upload_pipe_fd);
-    (void) unlink(UPLOADSCRIPT_PID_FILE);
+    (void) unlink(uploadscript_pid_file);
 #endif
     
     return 0;

@@ -4171,8 +4171,7 @@ void doopts(char *args)
     if (strncasecmp("utf8 ", args, 5) == 0) {
 	if (cmdopts == NULL) {
 	    addreply_noformat(501, "OPTS UTF8: " MSG_MISSING_ARG);	    
-	} else if ((iconv_fd_fs2utf8 == NULL || iconv_fd_utf82fs == NULL)
-		   && strcasecmp(charset_fs, "utf-8") != 0) {
+	} else if (iconv_fd_fs2utf8 == NULL || iconv_fd_utf82fs == NULL) {
 	    addreply_noformat(500, "Disabled");
 	} else if (strncasecmp(cmdopts, "on", sizeof "on" - 1U) == 0) {
 	    utf8 = 1;	    

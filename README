@@ -1,8 +1,6 @@
 
                               .:. PURE-FTPD .:.
-                       Documentation for version 1.0.20
-
-         PDF version available from http://www.pureftpd.org/readme.pdf
+		      Documentation for version 1.0.21
 
 
            ------------------------ BLURB ------------------------
@@ -14,8 +12,8 @@ based upon Troll-FTPd.
 The server has been designed to be secure in default configuration, it has no
 known vulnerability, it is really trivial to set up and it is especially
 designed for modern kernels. It was successfully ported to Linux, FreeBSD,
-NetBSD, OpenBSD, ISOS, EkkoBSD, MirBSD, BSDi, Solaris, Darwin, Tru64, Irix, AIX
-and HPUX.
+DragonflyBSD, NetBSD, OpenBSD, ISOS, MirBSD, BSDi, Solaris, Darwin, Tru64,
+Irix, AIX and HPUX.
 
 Features include chroot()ed and/or virtual chroot()ed home directories,
 virtual domains, built-in 'ls', anti-warez system, configurable ports for
@@ -46,10 +44,10 @@ easily write new custom handlers in any language.
 
 In its current form, Pure-FTPd uses some OS-specific system calls. And altough
 some portability work has been done in order to ease its port to other
-operating systems, only Linux FreeBSD, NetBSD, OpenBSD, ISOS, EkkoBSD, MirBSD,
-BSDi, Darwin, Solaris, Tru64, Irix, AIX and HPUX are known to work, other
-operating systems may need some tweaks. With Linux, any modern distribution
-should be ok.
+operating systems, only Linux FreeBSD, NetBSD, OpenBSD, ISOS, MirBSD, BSDi,
+DragonflyBSD, Darwin, Solaris, Tru64, Irix, AIX and HPUX are known to work,
+other operating systems may need some tweaks. With Linux, any modern
+distribution should be ok.
 
 An unofficial Windows port is available from http://www.pureftpd.org/windows/
 
@@ -148,7 +146,7 @@ manual) .
 --with-everything: build a big server with almost all features turned on:
 altlog, cookies, throttling, ratios, ftpwho, upload script, virtual users
 (puredb), quotas, virtual hosts, directory aliases, external authentication
-and rendezvous.
+and Bonjour.
 
 --with-extauth: compiles support for external authentication modules. Please
 read README.Authentication-Modules and the pure-authd(8) man page before
@@ -298,11 +296,15 @@ other FTP servers. This is a security flaw (anonymous users may upload
 'welcome.msg' files to add random banners) . Pure-ftpd uses '.banner' files
 by default.
 
---with-boring: display "professionnal-looking" messages.
+--with-boring: display boring "professionnal-looking" messages.
 
 --with-privsep: enable privilege separation (see notes about this later).
 
---withrendez-vous: enable Rendezvous support on MacOS X (see the -v switch).
+--with-bonjour: enable Bonjour support on MacOS X (see the -v switch).
+
+--with-rfc2640: enable support for charset conversion. It adds a dependency
+over the iconv library and it requires a little more CPU time. See the -8
+and -9 switches.
 
 
 /-----------------------
@@ -357,6 +359,9 @@ TmpFS and NTFS on Linux (the error reported by the server is "broken pipe" or
 from these filesystems, you have to use the --without-sendfile switch to
 enable a workaround. It was also reported that PA-Risc Linux systems need this
 flag.
+
+--without-cork: disable TCP_CORK optimization. Needed for some Linux
+variants like on Playstation.
 
 --without-shadow: ignore the shadow passwords, even though they are
 auto-detected. Usually a bad idea, unless you use PAM, LDAP or SQL.
@@ -877,8 +882,8 @@ option, you can have routed IPs for public access and a local IP (like
 protected by firewall rules and only that IP can be used to login as a
 non-anonymous user.
 
-- '-v <name>': Set the service name for Apple's Rendezvous. Only available on
-MacOS X when Rendezvous support is compiled in.
+- '-v <name>': Set the service name for Apple's Bonjour. Only available on
+MacOS X when Bonjour support is compiled in.
 
 - '-w': Support the FXP protocol only for authenticated users. FXP works
 with IPv4 and IPv6 addresses.
@@ -965,6 +970,8 @@ aliases are available. You can get this list at any time by typing
 -1  --logpid                <file>
 -4  --ipv4only
 -6  --ipv6only
+-8  --fscharset             <charset>
+-9  --clientcharset         <charset>
 -a  --trustedgid            <gid>
 -A  --chrooteveryone    
 -b  --brokenclientscompatibility    
@@ -1005,7 +1012,7 @@ aliases are available. You can get this list at any time by typing
 -T  --userbandwidth         <bandwidth (KB/s)> or [<up bw>]:[<down bw>]
 -u  --minuid                <uid>
 -U  --umask                 <mask>
--v  --rendezvous            <name>
+-v  --bonjour               <name>
 -V  --trustedip             <ip address>
 -w  --allowuserfxp  
 -W  --allowanonymousfxp
@@ -1035,7 +1042,8 @@ aliases are available. You can get this list at any time by typing
 -S  --bind                  <ip address,port>
 -b  --brokenclientscompatibility    
 
--A  --chrooteveryone    
+-A  --chrooteveryone
+-9  --clientcharset         <charset>
 -j  --createhomedir
 -Z  --customerproof
 
@@ -1047,6 +1055,7 @@ aliases are available. You can get this list at any time by typing
 
 -P  --forcepassiveip        <ip address>
 -F  --fortunesfile          <file>
+-8  --fscharset             <charset>
 
 -h  --help  
 
@@ -1072,13 +1081,13 @@ aliases are available. You can get this list at any time by typing
 -G  --norename
 -0  --notruncate
 
+-v  --bonjour               <name>
+
 -p  --passiveportrange      <minport:maxport>
 -y  --peruserlimits         <per user max>:<max anonymous sessions>
 -g  --pidfile               <path to pid file>
 -X  --prohibitdotfilesread  
 -x  --prohibitdotfileswrite 
-
--v  --rendezvous            <name>
 
 -f  --syslogfacility        <facility>
 
@@ -1712,7 +1721,7 @@ pureftpd-port
 /usr/ports/net/pure-ftpd
 
 
-   ------------------------ PRIVILEGE SEPARATION ------------------------
+    ------------------------ PRIVILEGE SEPARATION ------------------------
 
 
 When privilege separation is enabled, each session will spawn two processes :
@@ -1728,11 +1737,44 @@ increases theorical security.
 Some old broken operating systems may allow the ptrace() system call on
 processes that revoked privileges. On these platforms, enabling privilege
 separation is a bad idea if untrusted users also have shell access. Use the
-src/ptracetest program to check this. At least Solaris, ISOS, EkkoBSD, MirBSD
-OpenBSD, FreeBSD and Linux are known to be safe.
+src/ptracetest program to check this. At least Solaris, ISOS, MirBSD, OpenBSD,
+FreeBSD and Linux are known to be safe.
 
 
------------------------- OPTIMIZING FOR HIGH LOAD ------------------------
+    ------------------------ CHARSETS (RFC2640) ------------------------
+        
+
+Since version 1.0.21, pure-ftpd has *experimental* support for charsets
+conversion. The server filesystem can use a different charset than the
+charset assumed by clients, and pure-ftpd translates file names through the
+iconv library.
+
+Some modern clients like lftp will also try to use UTF-8 if the server
+supports it.
+
+Thus, charsets conversion can be very useful when dealing with file names
+containing non-english characters.
+
+In order to support this, pure-ftpd has to be compiled with:
+
+./configure ... --with-rfc2640
+
+This is not supported by default because it requires libiconv.
+
+Then the server has to be started with --fscharset=<charset>. Replace
+<charset> with the charset of the server's filesystem. For instance:
+
+/usr/local/sbin/pure-ftpd --fscharset=ISO-8859-15
+
+This is often enough to properly work with UTF-8 capable clients.
+
+But optionnally, you can specify the default charset for clients, with
+--clientcharset:
+
+/usr/local/sbin/pure-ftpd --fscharset=iso-8859-15 --clientcharset=big5
+
+
+ ------------------------ OPTIMIZING FOR HIGH LOAD ------------------------
 
 
 If you are going to use Pure-FTPd on a highly loaded server, here are some
@@ -1879,59 +1921,6 @@ Pure-FTPd home page is: http://www.pureftpd.org/ .
 
 Pure-FTPd mailing-lists:
                          http://www.pureftpd.org/ml/
-
-You can also fetch the latest snapshots by CVS:
-
-cvs -d:pserver:anonymous@cvs.pureftpd.org:/cvsroot/pureftpd login
-(hit return without entering any password)
-cvs -z3 -d:pserver:anonymous@cvs.pureftpd.org:/cvsroot/pureftpd co pureftpd
-cd pureftpd
-./autogen.sh
-
-Alternatively you can peek at the "snapshots" directory of the FTP mirrors
-carrying the source tarball. It contains experimental tarballs that are ready
-to compile.
-
-FreeBSD port is available in: ports/ftp/pure-ftpd/
-
-OpenBSD port is available in: ports/net/pure-ftpd/
-
-NetBSD port is available in: pkgsrc/net/pureftpd/
-
-Open Packages (C&W multiple-architectures OpenPKG standard packages) for
-Pure-FTPd are available from http://www.openpkg.org/download.html .
-Pre-built Solaris binary packages are available from the same location.
-
-MacOS X packages are available from Fink:
-http://fink.sourceforge.net/pdb/package.php/pure-ftpd/
-
-Gentoo Linux emerging : emerge pure-ftpd
-
-EkkoBSD ships it in the base install.
-
-Latest releases and regular snapshots are always available from:
-
-  ftp://ftp.pureftpd.org/pub/pure-ftpd/         (a link to a fast mirror)
-  ftp://ftp.fr.pureftpd.org/pub/pure-ftpd/      (master, slow)
-  ftp://ftp2.fr.pureftpd.org/pub/mirrors/ftp.fr.pureftpd.org/pub/pure-ftpd/ (T-Online, fast)
-  ftp://ftp3.fr.pureftpd.org/pub/pure-ftpd/     (OAV / Cable&Wireless FR, fast)
-  ftp://ftp.nl.pureftpd.org/pub/pure-ftpd/      (WideXS NL, fast)  
-  ftp://ftp.dk.pureftpd.org/mirrors/pure-ftpd/  (Sunsite DK mirror, fast)
-  ftp://ftp.cn.pureftpd.org/pub/pureftpd/pure-ftpd/ (Chinese mirror)
-  ftp://ftp.es.pureftpd.org/mirror/pureftpd/latest/ (Spanish mirror, fast)
-
-New mirrors are always welcome.
-
-Korean RPM binary files are available from (thanks to Im Eunjea):
-
-  http://kldp.org/~eunjea/
-
-QNX port is available from:
-
-  http://www.me.iitb.ac.in/~mritun/
-  http://mritun.qnx.org.ru/
-  http://www.qnxzone.com/~mritun/
-       
 
 If you have question, suggestions or patches, feel free to post them to the
 mailing list. Newbies and silly ideas are welcome.

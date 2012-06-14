@@ -1,6 +1,4 @@
-
-/*    $OpenBSD: getopt_long.c,v 1.17 2004/06/03 18:46:52 millert Exp $    */
-/*    $NetBSD: getopt_long.c,v 1.15 2002/01/31 22:43:40 tv Exp $    */
+/*      $OpenBSD: getopt_long.c,v 1.20 2005/10/25 15:49:37 jmc Exp $    */
 
 /*
  * Copyright (c) 2002 Todd C. Miller <Todd.Miller@courtesan.com>
@@ -421,12 +419,12 @@ static int pure_getopt_internal(int nargc, char * const *nargv,
         optchar == '-' && *pure_place != '\0' ||        
         (oli = strchr(options, optchar)) == NULL) { 
          /*
-          * If the user specified "-" and '-' isn't listed in
-          * options, return -1 (non-option) as per POSIX.
-          * Otherwise, it is an unknown option character (or :').
+          * If the user didn't specify '-' as an option,
+	  * assume it means -1 as POSIX specifies.
           */
-        if (optchar == '-' && *pure_place == '\0')
+        if (optchar == '-')
             return -1;
+	/* option letter unknown or ':' */
         if (!*pure_place)
             ++pure_optind;
         if (PRINT_ERROR)
@@ -456,19 +454,29 @@ static int pure_getopt_internal(int nargc, char * const *nargv,
             ++pure_optind;
     } else {                /* takes (optional) argument */
         pure_optarg = NULL;
-        if (*pure_place)            /* no white space */
-            pure_optarg = pure_place;
-        /* XXX: disable test for :: if PC? (GNU doesn't) */
-        else if (oli[1] != ':') {    /* arg not optional */
+        if (*pure_place) {            /* no white space */
+	    pure_optarg = pure_place;
+	    /* XXX: disable test for :: if PC? (GNU doesn't) */
+        } else if (oli[1] != ':') {    /* arg not optional */
             if (++pure_optind >= nargc) {    /* no arg */
                 pure_place = EMSG;
                 if (PRINT_ERROR)
                     fprintf(stderr, recargchar, optchar);
                 pure_optopt = optchar;
                 return BADARG;
-            } else {
-                pure_optarg = nargv[pure_optind];
-            }
+	    } else {
+		pure_optarg = nargv[pure_optind];
+	    }
+	} else if (!(flags & FLAG_PERMUTE)) {
+	    /* 
+	     * If permutation is disabled, we can accept an
+	     * optional arg separated by whitespace so long
+	     * as it does not start with a dash (-).
+	     */
+	    if (pure_optind + 1 < nargc &&
+		*nargv[pure_optind + 1] != '-') {
+		pure_optarg = nargv[++pure_optind];
+	    }
         }
         pure_place = EMSG;
         ++pure_optind;
@@ -485,7 +493,7 @@ int pure_getopt(int nargc, char * const *nargv, const char *options)
 {
     
     /*
-     * We dont' pass FLAG_PERMUTE to pure_getopt_internal() since
+     * We don't pass FLAG_PERMUTE to pure_getopt_internal() since
      * the BSD getopt(3) (unlike GNU) has never done this.
      *
      * Furthermore, since many privileged programs call getopt()

@@ -15,7 +15,7 @@ int fakesnprintf_snprintf(char * const str, const size_t size,
 # ifdef CONF_SNPRINTF_TYPE
 #  undef CONF_SNPRINTF_TYPE
 # endif
-# define CONF_SNPRINTF_TYPE 2
+# define CONF_SNPRINTF_TYPE 4
 
 #endif
 

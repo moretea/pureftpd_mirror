@@ -3,6 +3,9 @@
 /* display only boring messages */
 #undef BORING_MODE
 
+/* Define to 1 if the `closedir' function returns void instead of `int'. */
+#undef CLOSEDIR_VOID
+
 /* return value of an overflowed snprintf */
 #undef CONF_SNPRINTF_TYPE
 
@@ -29,6 +32,9 @@
 /* Define to 1 for DGUX with <sys/dg_sys_info.h>. */
 #undef DGUX
 
+/* without cork */
+#undef DISABLE_CORK
+
 /* without globbing */
 #undef DISABLE_GLOBBING
 
@@ -54,6 +60,9 @@
 /* Define to 1 if the `getloadavg' function needs to be run setuid or setgid.
    */
 #undef GETLOADAVG_PRIVILEGED
+
+/* Define to 1 if you have the `alarm' function. */
+#undef HAVE_ALARM
 
 /* Define to 1 if you have `alloca', as a function or macro. */
 #undef HAVE_ALLOCA
@@ -94,6 +103,9 @@
 /* Define to 1 if you have the `fileno' function. */
 #undef HAVE_FILENO
 
+/* Define to 1 if you have the `fork' function. */
+#undef HAVE_FORK
+
 /* Define to 1 if you have the `getaddrinfo' function. */
 #undef HAVE_GETADDRINFO
 
@@ -117,6 +129,9 @@
 
 /* Define to 1 if you have the `getpagesize' function. */
 #undef HAVE_GETPAGESIZE
+
+/* Define to 1 if you have the <iconv.h> header file. */
+#undef HAVE_ICONV_H
 
 /* Define to 1 if you have the `inet_ntop' function. */
 #undef HAVE_INET_NTOP
@@ -150,6 +165,9 @@
 
 /* Define to 1 if you have the `dl' library (-ldl). */
 #undef HAVE_LIBDL
+
+/* Define to 1 if you have the `iconv' library (-liconv). */
+#undef HAVE_LIBICONV
 
 /* Define to 1 if you have the `kstat' library (-lkstat). */
 #undef HAVE_LIBKSTAT
@@ -189,6 +207,10 @@
 
 /* Define to 1 if you have the <locale.h> header file. */
 #undef HAVE_LOCALE_H
+
+/* Define to 1 if `lstat' has the bug that it succeeds when given the
+   zero-length file name argument. */
+#undef HAVE_LSTAT_EMPTY_STRING_BUG
 
 /* Define to 1 if you have the <mach/mach.h> header file. */
 #undef HAVE_MACH_MACH_H
@@ -241,6 +263,18 @@
 /* Define to 1 if you have the `pam_getenvlist' function. */
 #undef HAVE_PAM_GETENVLIST
 
+/* Define to 1 if you have the <pam/pam_appl.h> header file. */
+#undef HAVE_PAM_PAM_APPL_H
+
+/* Define to 1 if you have the <pam/pam_filter.h> header file. */
+#undef HAVE_PAM_PAM_FILTER_H
+
+/* Define to 1 if you have the <pam/pam_misc.h> header file. */
+#undef HAVE_PAM_PAM_MISC_H
+
+/* Define to 1 if you have the <pam/pam_modules.h> header file. */
+#undef HAVE_PAM_PAM_MODULES_H
+
 /* Define if you have POSIX termios */
 #undef HAVE_POSIX_TERMIOS
 
@@ -273,6 +307,9 @@
 
 /* Define to 1 if you have the <security/pam_misc.h> header file. */
 #undef HAVE_SECURITY_PAM_MISC_H
+
+/* Define to 1 if you have the <security/pam_modules.h> header file. */
+#undef HAVE_SECURITY_PAM_MODULES_H
 
 /* Define to 1 if you have the `setegid' function. */
 #undef HAVE_SETEGID
@@ -362,6 +399,12 @@
 /* Define to 1 if you have the <string.h> header file. */
 #undef HAVE_STRING_H
 
+/* Define to 1 if you have the `strlcat' function. */
+#undef HAVE_STRLCAT
+
+/* Define to 1 if you have the `strlcpy' function. */
+#undef HAVE_STRLCPY
+
 /* Define to 1 if you have the `strtoq' function. */
 #undef HAVE_STRTOQ
 
@@ -418,8 +461,14 @@
 /* Define to 1 if you have the <sys/resource.h> header file. */
 #undef HAVE_SYS_RESOURCE_H
 
+/* Define to 1 if you have the <sys/select.h> header file. */
+#undef HAVE_SYS_SELECT_H
+
 /* Define to 1 if you have the <sys/sendfile.h> header file. */
 #undef HAVE_SYS_SENDFILE_H
+
+/* Define to 1 if you have the <sys/socket.h> header file. */
+#undef HAVE_SYS_SOCKET_H
 
 /* Define to 1 if you have the <sys/statvfs.h> header file. */
 #undef HAVE_SYS_STATVFS_H
@@ -465,8 +514,17 @@
 /* Define to 1 if you have the <utime.h> header file. */
 #undef HAVE_UTIME_H
 
+/* Define to 1 if `utime(file, NULL)' sets file's timestamp to the present. */
+#undef HAVE_UTIME_NULL
+
 /* Define to 1 if you have the <varargs.h> header file. */
 #undef HAVE_VARARGS_H
+
+/* Define to 1 if you have the `vfork' function. */
+#undef HAVE_VFORK
+
+/* Define to 1 if you have the <vfork.h> header file. */
+#undef HAVE_VFORK_H
 
 /* Define to 1 if you have the `vfprintf' function. */
 #undef HAVE_VFPRINTF
@@ -477,11 +535,21 @@
 /* Define to 1 if you have the `vsnprintf' function. */
 #undef HAVE_VSNPRINTF
 
+/* Define to 1 if you have the `wait3' system call. Deprecated, you should no
+   longer depend upon `wait3'. */
+#undef HAVE_WAIT3
+
 /* Define to 1 if you have the `waitpid' function. */
 #undef HAVE_WAITPID
 
 /* Define to 1 if you have the <windows.h> header file. */
 #undef HAVE_WINDOWS_H
+
+/* Define to 1 if `fork' works. */
+#undef HAVE_WORKING_FORK
+
+/* Define to 1 if `vfork' works. */
+#undef HAVE_WORKING_VFORK
 
 /* define if you have __ss_family */
 #undef HAVE___SS_FAMILY
@@ -621,13 +689,25 @@
 #undef RATIOS
 
 /* Define if realpath() works on unreadable directories */
-#undef REALPATH_IGNORES_UNREADABLE_DIRECTORIES
+#undef REALPATH_WORKS_WITH_UNREADABLE_DIRECTORIES
 
 /* Define as the return type of signal handlers (`int' or `void'). */
 #undef RETSIGTYPE
 
 /* Define is getgroups(0, NULL) works on your system */
 #undef SAFE_GETGROUPS_0
+
+/* Define to the type of arg 1 for `select'. */
+#undef SELECT_TYPE_ARG1
+
+/* Define to the type of args 2, 3 and 4 for `select'. */
+#undef SELECT_TYPE_ARG234
+
+/* Define to the type of arg 5 for `select'. */
+#undef SELECT_TYPE_ARG5
+
+/* define if you have a linuxish sendfile64 */
+#undef SENDFILE64_LINUX
 
 /* define if you have a solarisish sendfilev */
 #undef SENDFILEV_SOLARIS
@@ -743,8 +823,8 @@
 /* with mysql */
 #undef WITH_MYSQL
 
-/* Enable Rendezvous on MacOS X */
-#undef WITH_OSX_RENDEZVOUS
+/* Enable Bonjour on MacOS X */
+#undef WITH_OSX_BONJOUR
 
 /* with pgsql */
 #undef WITH_PGSQL
@@ -754,6 +834,9 @@
 
 /* with puredb */
 #undef WITH_PUREDB
+
+/* Enable RFC2640 (UTF-8) support */
+#undef WITH_RFC2640
 
 /* Enable TLS */
 #undef WITH_TLS
@@ -831,3 +914,10 @@
 
 /* Define to `int' if <sys/types.h> doesn't define. */
 #undef uid_t
+
+/* Define as `fork' if `vfork' does not work. */
+#undef vfork
+
+/* Define to empty if the keyword `volatile' does not work. Warning: valid
+   code using `volatile' can become incorrect without. Disable with care. */
+#undef volatile

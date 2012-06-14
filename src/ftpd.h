@@ -107,6 +107,9 @@
 #ifdef HAVE_UTIME_H
 # include <utime.h>
 #endif
+#ifdef WITH_RFC2640
+# include <iconv.h>
+#endif
 
 #include "mysnprintf.h"
 
@@ -129,11 +132,13 @@
   (defined(SENDFILEV_SOLARIS) && defined(SENDFILE_HPUX))
 # undef SENDFILE_FREEBSD
 # undef SENDFILE_LINUX
+# undef SENDFILE_LINUX64
 # undef SENDFILE_HPUX
 # undef SENDFILEV_SOLARIS
 #endif
-#if defined(SENDFILE_FREEBSD) || defined(SENDFILEV_SOLARIS) || defined(SENDFILE_HPUX)
-/* FreeBSD, Solaris and HP-UX sendfile() handles large files */
+#if defined(SENDFILE_FREEBSD) || defined(SENDFILEV_SOLARIS) || \
+    defined(SENDFILE_HPUX) || defined(SENDFILE_LINUX64)
+/* Only unsupported old Linux kernels/glibcs can't handle 64-bits sendfile() */
 #elif defined(SENDFILE_LINUX)
 # ifdef WITH_LARGE_FILES
 #  undef SENDFILE_LINUX
@@ -334,7 +339,9 @@ void doesta(void);
 void doestp(void);
 #endif
 void dopasv(int);
+void doopts(char *args);
 void dochmod(char *name, mode_t mode);
+void doutime(char *name, const char * const wanted_time);
 void error(int n, const char *msg);
 void domode(const char *arg);
 void dostru(const char *arg);
@@ -367,7 +374,7 @@ void logfile(const int facility, const char *format, ...)
 void die(const int err, const int priority, const char * const format, ...)
     __attribute__ ((format(printf, 3, 4)));
 void die_mem(void);
-void setprogname(const char * const title);
+void setprocessname(const char * const title);
 int modernformat(const char *file,
                  char *target, size_t target_size);
 int sfgets(void);
@@ -377,6 +384,9 @@ unsigned int zrand(void);
 void simplify(char *subdir);
 int checkprintable(register const char *s);
 void delete_atomic_file(void);
+#ifdef WITH_RFC2640
+char *charset_fs2client(const char * const string);
+#endif
 
 #ifdef HAVE_SYS_FSUID_H
 # define usleep2 usleep
@@ -494,7 +504,7 @@ Your platform has a very large MAXPATHLEN, we should not trust it.
 # define MAX_SESSION_XFER_IDLE (24 * 60 * 60)   /* Max duration of a transfer */
 #endif
 #ifndef MAX_USER_LENGTH
-# define MAX_USER_LENGTH 32U
+# define MAX_USER_LENGTH 127U
 #endif
 
 #ifdef LOG_FTP
@@ -527,13 +537,11 @@ Your platform has a very large MAXPATHLEN, we should not trust it.
 
 #define PUREFTPD_TMPFILE_PREFIX ".pureftpd-"    
 #define ATOMIC_PREFIX_PREFIX PUREFTPD_TMPFILE_PREFIX "upload."
-    
-/*
- * Some users reported that something was wrong with TCP_CORK.
- * Better disable it for now, but we have to investigate.
- */
-#ifdef TCP_CORK
-# undef TCP_CORK
+
+#ifdef TCP_CORK  
+# ifdef DISABLE_CORK  
+#  undef TCP_CORK
+# endif
 #endif
 #ifdef TCP_CORK
 # define CORK_ON(SK) do { int optval = 1; setsockopt(SK, SOL_TCP, TCP_CORK, \

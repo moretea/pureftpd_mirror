@@ -24,9 +24,24 @@
 # ifdef HAVE_SECURITY_PAM_APPL_H
 #  include <security/pam_appl.h>
 # endif
-# include <security/pam_modules.h>
+# ifdef HAVE_SECURITY_PAM_MODULES_H
+#  include <security/pam_modules.h>
+# endif
 # ifdef HAVE_SECURITY_PAM_FILTER_H
 #  include <security/pam_filter.h>
+# endif
+
+# ifdef HAVE_PAM_PAM_MISC_H
+#  include <pam/pam_misc.h>
+# endif
+# ifdef HAVE_PAM_PAM_APPL_H
+#  include <pam/pam_appl.h>
+# endif
+# ifdef HAVE_PAM_PAM_MODULES_H
+#  include <pam/pam_modules.h>
+# endif
+# ifdef HAVE_PAM_PAM_FILTER_H
+#  include <pam/pam_filter.h>
 # endif
 
 # ifdef WITH_DMALLOC

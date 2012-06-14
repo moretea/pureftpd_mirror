@@ -286,16 +286,18 @@ int privsep_init(void)
         return -1;
     }
     if (pid != (pid_t) 0) {
-        (void) close(sv[1]);        
-        psfd = sv[0];
-        setprogname("pure-ftpd (PRIV)");
-        (void) privsep_privpart_closejunk();
-        _exit(privsep_privpart_main());
+	(void) close(sv[0]);
+	psfd = sv[1];
+	
+	return 0;
     }
-    (void) close(sv[0]);
-    psfd = sv[1];
+    (void) close(sv[1]);        
+    psfd = sv[0];
+    setprocessname("pure-ftpd (PRIV)");
+    (void) privsep_privpart_closejunk();
+    _exit(privsep_privpart_main());
     
-    return 0;
+    return -1; /* NOTREACHED */
 }
 
 #endif

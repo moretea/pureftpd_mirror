@@ -13,7 +13,7 @@
  * make ptracetest
  * ./ptracetest
  * 
- * (C)opyleft 2003-2004 Jedi/Sector One <j@pureftpd.org>.
+ * (C)opyleft 2003-2006 Jedi/Sector One <j@pureftpd.org>.
  */
 
 #include <config.h>

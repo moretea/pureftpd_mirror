@@ -1,6 +1,6 @@
 #include <config.h>
 
-#ifdef WITH_OSX_RENDEZVOUS
+#ifdef WITH_OSX_BONJOUR
 # include "osx-extensions.h"
 # include <CoreServices/CoreServices.h>
 
@@ -9,7 +9,7 @@
 # endif
 
 # pragma mark 
-# pragma mark *********** Rendezvous Globals ***********
+# pragma mark *********** Bonjour Globals ***********
 /* reg_reply -- empty callback function for DNSServiceRegistrationCreate() */
 static void reg_reply(DNSServiceRegistrationReplyErrorType errorCode,
                       void *context)

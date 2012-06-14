@@ -43,7 +43,7 @@ unsigned int ftpwho_read_count(const char * const user)
     }
     while ((entry = readdir(dir)) != NULL) {
         if (strncmp(entry->d_name, SCOREBOARD_PREFIX,
-                    sizeof SCOREBOARD_PREFIX - 1U) != 0 ||
+		    sizeof SCOREBOARD_PREFIX - 1U) != 0 ||
             scoreboard_cleanup(entry->d_name) != 0 ||
             (fd = open(entry->d_name, O_RDONLY | O_NOFOLLOW)) == -1) {
             continue;
@@ -71,7 +71,7 @@ unsigned int ftpwho_read_count(const char * const user)
         }        
 # endif
         foundaccount[(sizeof foundaccount) - 1] = 0;
-        if (strcmp(foundaccount, user) == 0 && count < UINT_MAX) {
+        if (strcasecmp(foundaccount, user) == 0 && count < UINT_MAX) {
             count++;
         }        
         nextone_close:

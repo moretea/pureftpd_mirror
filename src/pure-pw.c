@@ -1323,8 +1323,9 @@ int main(int argc, char *argv[])
         pwinfo.login = NULL;
     }
     filter_pw_line_sep(pwinfo.login);
-    while ((fodder = getopt(argc, argv, 
-                            "c:d:D:f:g:hi:I:mn:N:q:Q:r:R:t:T:u:y:z:")) != -1) {
+    while ((fodder =
+	    getopt(argc, argv, 
+		   "c:d:D:f:F:g:hi:I:mn:N:q:Q:r:R:t:T:u:y:z:")) != -1) {
         switch(fodder) {
         case 'c' : {
             if ((pwinfo.gecos = strdup(optarg)) == NULL) {
@@ -1365,6 +1366,12 @@ int main(int argc, char *argv[])
         }
         case 'f' : {
             if ((file = strdup(optarg)) == NULL) {
+                no_mem();
+            }
+            break;
+        }
+        case 'F' : {
+            if ((dbfile = strdup(optarg)) == NULL) {
                 no_mem();
             }
             break;

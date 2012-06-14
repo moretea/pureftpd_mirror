@@ -44,7 +44,7 @@
 #define MSG_NO_PASSWORD_NEEDED "Any password will work"
 #define MSG_NOTRUST "Sorry, but I can't trust you"
 #define MSG_WHOAREYOU "Please tell me who you are"
-#define MSG_AUTH_FAILED "Authentication failed, sorry"
+#define MSG_AUTH_FAILED "Login authentication failed"
 #define MSG_AUTH_TOOMANY "Too many authentication failures"
 #define MSG_NO_HOMEDIR "Home directory not available - aborting"
 #define MSG_NO_HOMEDIR2 "%s does not exist or is unreachable"
@@ -218,3 +218,4 @@
 #define MSG_TLS_WEAK "SSL/TLS: Cipher too weak"
 #define MSG_TLS_NEEDED "Sorry, cleartext sessions are not accepted on this server.\n" \
     "Please reconnect using SSL/TLS security mechanisms."
+#define MSG_ILLEGAL_CHARSET "Illegal charset"

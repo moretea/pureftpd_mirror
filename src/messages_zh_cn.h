@@ -218,3 +218,4 @@
 #define MSG_TLS_WEAK "SSL/TLS: 密码不足"
 #define MSG_TLS_NEEDED "抱歉，此服务器不接受明文式连接。\n" \
     "请使用SSL/TLS的安全机制重新连接。"
+#define MSG_ILLEGAL_CHARSET "Illegal charset"

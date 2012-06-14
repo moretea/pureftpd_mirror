@@ -218,3 +218,4 @@
 #define MSG_TLS_WEAK "SSL/TLS: Sistem de criptare prea slab"
 #define MSG_TLS_NEEDED "Sesiunile in text clar nu sint acceptate pe acest server.\n" \
     "Reconectati-va utilizind mecanismele de securitate SSL/TLS."
+#define MSG_ILLEGAL_CHARSET "Illegal charset"

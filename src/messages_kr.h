@@ -218,3 +218,4 @@
 #define MSG_TLS_WEAK "SSL/TLS: Cipher too weak"
 #define MSG_TLS_NEEDED "Sorry, cleartext sessions are not accepted on this server.\n" \
     "Please reconnect using SSL/TLS security mechanisms."
+#define MSG_ILLEGAL_CHARSET "Illegal charset"

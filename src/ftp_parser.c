@@ -181,11 +181,45 @@ static char *revealextraspc(char * const s_)
 }
 #endif
 
+#ifdef WITH_RFC2640
+char *charset_client2fs(const char * const string)
+{
+    char *output = NULL, *output_;
+    size_t inlen, outlen, outlen_;
+    
+    inlen = strlen(string);
+    outlen_ = outlen = inlen * (size_t) 4U + (size_t) 1U;
+    if (outlen <= inlen ||
+	(output_ = output = calloc(outlen, (size_t) 1U)) == NULL) {
+	die_mem();
+    }
+    if (utf8 > 0 && strcasecmp(charset_fs, "utf-8") != 0) {
+	if (iconv(iconv_fd_utf82fs, (const char **) &string,
+		  &inlen, &output_, &outlen_) == (size_t) -1) {
+	    strncpy(output, string, outlen);
+	}
+    } else if (utf8 <= 0 && strcasecmp(charset_fs, charset_client) != 0) {
+	if (iconv(iconv_fd_client2fs, (const char **) &string,
+		  &inlen, &output_, &outlen_) == (size_t) -1) {
+	    strncpy(output, string, outlen);
+	}
+    } else {
+	strncpy(output, string, outlen);
+    }
+    output[outlen - 1] = 0;    
+		
+    return output;
+}
+#endif
+
 void parser(void)
 {
     char *arg;
 #ifndef MINIMAL
     char *sitearg;
+#endif
+#ifdef WITH_RFC2640
+    char *narg = NULL;
 #endif
     size_t n;
 
@@ -193,7 +227,7 @@ void parser(void)
         xferfd = -1;
         if (state_needs_update != 0) {
             state_needs_update = 0;
-            setprogname("pure-ftpd (IDLE)");
+            setprocessname("pure-ftpd (IDLE)");
 #ifdef FTPWHO
             if (shm_data_cur != NULL) {
                 ftpwho_lock();
@@ -265,6 +299,10 @@ void parser(void)
                    cmd, strcmp(cmd, "pass") ? arg : "<*>");
 #endif
         }
+#ifdef WITH_RFC2640
+        narg = charset_client2fs(arg);
+	arg = narg;
+#endif
         /*
          * antiidle() is called with dummy commands, usually used by clients
          * who are wanting extra idle time. We give them some, but not too much.
@@ -346,6 +384,9 @@ void parser(void)
         } else if (!strcmp(cmd, "feat")) {
             dofeat();
             goto wayout;
+	} else if (!strcmp(cmd, "opts")) {
+	    doopts(arg);
+	    goto wayout;
 #endif
         } else if (!strcmp(cmd, "stru")) {
             dostru(arg);
@@ -401,8 +442,17 @@ void parser(void)
                 dopasv(2);
 #endif
             } else if (!strcmp(cmd, "pwd") || !strcmp(cmd, "xpwd")) {
+#ifdef WITH_RFC2640
+		char *nwd;
+#endif
                 antiidle();
+#ifdef WITH_RFC2640
+		nwd = charset_fs2client(wd);
+		addreply(257, "\"%s\" " MSG_IS_YOUR_CURRENT_LOCATION, nwd);
+		free(nwd);
+#else
                 addreply(257, "\"%s\" " MSG_IS_YOUR_CURRENT_LOCATION, wd);
+#endif
                 goto wayout;                
             } else if (!strcmp(cmd, "cdup") || !strcmp(cmd, "xcup")) {
                 docwd("..");
@@ -531,7 +581,7 @@ void parser(void)
 # ifdef WITH_DIRALIASES
                                       " ALIAS" CRLF
 # endif
-                                      " CHMOD" CRLF " IDLE");
+                                      " CHMOD" CRLF " IDLE" CRLF " UTIME");
                     addreply_noformat(214, "Pure-FTPd - http://pureftpd.org/");
                 } else if (!strcasecmp(arg, "chmod")) {
                     char *sitearg2;
@@ -539,7 +589,7 @@ void parser(void)
                     
                     parsechmod:
                     if (sitearg == NULL || *sitearg == 0) {
-                        addreply_noformat(501, "SITE CHMOD: " MSG_MISSING_ARG);
+                        addreply_noformat(501, MSG_MISSING_ARG);
                         goto chmod_wayout;
                     }
                     sitearg2 = sitearg;
@@ -550,18 +600,58 @@ void parser(void)
                         sitearg2++;
                     }                    
                     if (*sitearg2 == 0) {
-                        addreply_noformat(550, "SITE CHMOD: " MSG_NO_FILE_NAME);
+                        addreply_noformat(550, MSG_NO_FILE_NAME);
                         goto chmod_wayout;
                     }
                     mode = (mode_t) strtoul(sitearg, NULL, 8);
                     if (mode > (mode_t) 07777) {
-                        addreply_noformat(501, "SITE CHMOD: " MSG_BAD_CHMOD);
+                        addreply_noformat(501, MSG_BAD_CHMOD);
                         goto chmod_wayout;
                     }
                     dochmod(sitearg2, mode);
                   chmod_wayout:
                     (void) 0;
-# ifdef WITH_DIRALIASES
+                } else if (!strcasecmp(arg, "utime")) {
+                    char *sitearg2;
+                    
+                    if (sitearg == NULL || *sitearg == 0) {
+                        addreply_noformat(501, MSG_NO_FILE_NAME);
+                        goto utime_wayout;
+                    }		    
+                    if ((sitearg2 = strrchr(sitearg, ' ')) == NULL ||
+			sitearg2 == sitearg) {
+                        addreply_noformat(501, MSG_MISSING_ARG);
+                        goto utime_wayout;
+		    }
+		    if (strcasecmp(sitearg2, " UTC") != 0) {
+                        addreply_noformat(500, "UTC Only");
+                        goto utime_wayout;			
+		    }
+		    *sitearg2-- = 0;
+                    if ((sitearg2 = strrchr(sitearg, ' ')) == NULL ||
+			sitearg2 == sitearg) {
+			utime_no_arg:
+                        addreply_noformat(501, MSG_MISSING_ARG);
+                        goto utime_wayout;
+		    }
+		    *sitearg2-- = 0;
+                    if ((sitearg2 = strrchr(sitearg, ' ')) == NULL ||
+			sitearg2 == sitearg) {
+			goto utime_no_arg;
+		    }
+		    *sitearg2-- = 0;
+                    if ((sitearg2 = strrchr(sitearg, ' ')) == NULL ||
+			sitearg2 == sitearg) {
+                        goto utime_no_arg;
+		    }
+		    *sitearg2++ = 0;
+		    if (*sitearg2 == 0) {
+                        goto utime_no_arg;			
+		    }
+                    doutime(sitearg, sitearg2);
+                  utime_wayout:
+                    (void) 0;
+# ifdef WITH_DIRALIASES		    
                 } else if (!strcasecmp(arg, "alias")) {
                     if (sitearg == NULL || *sitearg == 0) {
                         print_aliases();
@@ -608,7 +698,11 @@ void parser(void)
             }
         }
         noopidle = (time_t) -1;
-      wayout:
+	wayout:
+#ifdef WITH_RFC2640
+	free(narg);
+	narg = NULL;
+#endif
 #ifdef THROTTLING
         if (throttling_delay != 0UL) {
             usleep2(throttling_delay);

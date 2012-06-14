@@ -18,6 +18,7 @@ EXTRA_DIST = \
 	README.Windows \
 	README.TLS \
 	README.MacOS-X \
+	README.Donations \
 	pureftpd.schema \
 	pureftpd-ldap.conf \
 	pureftpd-mysql.conf \

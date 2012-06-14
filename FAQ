@@ -192,8 +192,8 @@ port forwarding for all passive ports.
 
 On the client side, if a client if behind a firewall, that firewall must
 understand the FTP protocol. On Linux firewalls (iptables), just load
-the ip_conntrack_ftp and ip_nat_ftp modules. On OpenBSD, ISOS and EkkoBSD
-firewalls (PF), redirect all traffic to port 21, to ftp-proxy.
+the ip_conntrack_ftp and ip_nat_ftp modules. On OpenBSD, ISOS and
+FreeBSD 5 firewalls (PF), redirect all traffic to port 21, to ftp-proxy.
 
 
 
@@ -295,8 +295,7 @@ People with no home directory (/dev/null) and no valid shell
 (/usr/bin/false) won't be able to get a shell nor to run any command on your
 server. But they will be granted FTP-over-SSH sessions.
 
-Here are examples (Linux/OpenBSD/ISOS/EkkoBSD commands, translate them if
-necessary) .
+Here are examples (Linux/OpenBSD/ISOS commands, translate them if necessary) .
 
 1) Creating a regular FTP account:
 
@@ -485,10 +484,10 @@ Other mechanisms would work, like signals to interrupt transfers, re-read
 parameters, then resume. But it would introduce a lot of complexity to the
 code.
 
-If you're using a modern operating system like OpenBSD, ISOS, EkkoBSD or Linux,
+If you're using a modern operating system like OpenBSD, ISOS or Linux,
 your kernel already includes a fair TCP/IP traffic shaper. And because it
 works at kernel-level, you can easily change the bandwidth allowed to IPs or
-services on-the-fly. Have a look at pf.conf(5) OpenBSD, ISOS and EkkoBSD,
+services on-the-fly. Have a look at pf.conf(5) OpenBSD, ISOS and FreeBSD 5,
 and at tc (or read the Linux networking HOWTO) on Linux.
 Also see the 'Global bandwidth limitation' section later in this document.
 
@@ -521,7 +520,7 @@ errors), but you just have to deinstall Kerberos on your client host to have
 uploads a file, that one belongs to 'john', but to another group like
 'wheel' (whoose John isn't a member of). What's wrong?
 
-This is a BSD standard behavior (verified on OpenBSD, ISOS, EkkoBSD and
+This is a BSD standard behavior (verified on OpenBSD, ISOS, DragonflyBSD and
 FreeBSD): when a new file is created, the group is inherited from the parent
 directory. On other systems (like GNU/Linux), files are owned by the primary
 group of the user, unless the directory has the setgid bit set.
@@ -835,6 +834,11 @@ Please read these documents about ICMP filtering :
 http://www.phildev.net/mss/index.html
 http://alive.znep.com/~marcs/mtu/
 http://www.freelabs.com/~whitis/isp_mistakes.html
+
+Also some hardware routers don't properly handle window scaling. Try
+to turn it off, for instance on Linux:
+sysctl -w net.ipv4.tcp_window_scaling=0
+sysctl -w net.ipv4.tcp_bic=0
 
 
 

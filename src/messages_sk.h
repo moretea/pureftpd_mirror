@@ -218,3 +218,4 @@
 #define MSG_TLS_WEAK "SSL/TLS: Sifra je prilis slaba"
 #define MSG_TLS_NEEDED "Prepacte, ale nesifrovane spojenia nie su povolene na tomto serveri.\n" \
     "Pri najblizsom spojeni pouzite zabezpecovacie mechanizmy SSL/TLS."
+#define MSG_ILLEGAL_CHARSET "Illegal charset"

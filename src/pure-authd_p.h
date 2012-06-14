@@ -29,7 +29,7 @@ static const char *GETOPT_OPTIONS =
 #ifndef NO_GETOPT_LONG
     "h"
 #endif
-    "r:s:u:";
+    "p:r:s:u:";
 
 #ifndef NO_GETOPT_LONG
 static struct option long_options[] = {
@@ -38,6 +38,7 @@ static struct option long_options[] = {
 # ifndef NO_GETOPT_LONG
     { "help", 0, NULL, 'h' },
 # endif
+    { "pidfile", 1, NULL, 'p' },
     { "run", 1, NULL, 'r' },
     { "socket", 1, NULL, 's' },
     { "uid", 1, NULL, 'u' },
@@ -49,6 +50,7 @@ static signed char daemonize;
 static uid_t uid;
 static gid_t gid;
 static const char *socketpath;
+static const char *authd_pid_file = AUTHD_PID_FILE;
 static const char *script;
 static volatile signed char exit_authd;
 static volatile int kindy = -1;

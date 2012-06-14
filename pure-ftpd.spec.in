@@ -27,7 +27,8 @@
 %define con_privsep 1
 %define con_tls 0
 %define con_sysquotas 1
-%define con_rendezvous 0
+%define con_bonjour 0
+%define con_rfc2640 0
 
 %define prefixdef  /usr/local
 %define sysconfdef /etc
@@ -67,8 +68,9 @@
 %{?with_boring:%define con_boring 1}
 %{?with_privsep:%define con_privsep 1}
 %{?with_tls:%define con_tls 1}
+%{?with_rfc2640:%define con_rfc2640 1}
 %{?with_sysquotas:%define con_sysquotas 1}
-%{?with_rendezvous:%define con_rendezvous 1}
+%{?with_bonjour:%define con_bonjour 1}
 
 #If you don't like the prefix '/usr/local' you can override it like this:
 #rpm -ba|--rebuild --define 'prefix /usr'
@@ -94,9 +96,9 @@ Summary:           Lightweight, fast and secure FTP server
 Conflicts:         wu-ftpd proftpd ftpd in.ftpd anonftp publicfile wuftpd ftpd-BSD
 
 %description
-Pure-FTPd is a fast, production-quality, standard-comformant FTP server,
-based upon Troll-FTPd. Unlike other popular FTP servers, it has no known
-security flaw, it is really trivial to set up and it is especially designed
+Pure-FTPd is a fast, production-quality, standard-conformant FTP server,
+that focuses on security.
+It is really trivial to set up and it is especially designed
 for modern Linux and FreeBSD kernels (setfsuid, sendfile, capabilities) .
 Features include chroot()ed and/or virtual chroot()ed home directories,
 virtual domains, built-in 'ls', anti-warez system, bounded ports for passive
@@ -189,11 +191,14 @@ CFLAGS="$RPM_OPT_FLAGS" ./configure --prefix=%{prefix} \
 %if %{con_tls}
   --with-tls \
 %endif  
+%if %{con_rfc2640}
+  --with-rfc2640
+%endif
 %if %{con_sysquotas}
   --with-sysquotas \
 %endif  
-%if %{con_rendezvous}
-  --with-rendezvous \
+%if %{con_bonjour}
+  --with-bonjour \
 %endif  
   --with-paranoidmsg \
   --mandir=%{_mandir} --sysconfdir=%{sysconfdir} \
@@ -294,7 +299,7 @@ install -m 755 configuration-file/pure-config.pl_replaced $RPM_BUILD_ROOT%{prefi
 %{_mandir}/man8/*
 
 %defattr(-, root, root)
-%doc FAQ THANKS README.MacOS-X README.Authentication-Modules README.Windows README.Virtual-Users README.Debian README README.Contrib README.Configuration-File pureftpd.schema AUTHORS CONTACT HISTORY NEWS README.LDAP README.PGSQL README.MySQL README.Netfilter README.TLS pureftpd-ldap.conf pureftpd-mysql.conf pureftpd-pgsql.conf
+%doc FAQ THANKS README.Donations README.MacOS-X README.Authentication-Modules README.Windows README.Virtual-Users README.Debian README README.Contrib README.Configuration-File pureftpd.schema AUTHORS CONTACT HISTORY NEWS README.LDAP README.PGSQL README.MySQL README.Netfilter README.TLS pureftpd-ldap.conf pureftpd-mysql.conf pureftpd-pgsql.conf
 
 %config(noreplace) %{sysconfdir}/*.conf
 %if %{con_pam}
@@ -305,6 +310,15 @@ install -m 755 configuration-file/pure-config.pl_replaced $RPM_BUILD_ROOT%{prefi
 %endif
 
 %changelog
+* Mon Feb 06 2006 Frank Denis <j@pureftpd.org>
+- New con_rfc2640 switch.
+
+* Thu May 19 2005 Frank DENIS <j@pureftpd.org>
+- Rendezvous has been renamed Bonjour.
+
+* Sun Oct 03 2004 Frank DENIS <j@pureftpd.org>
+- Rendezvous has been renamed Opentalk.
+
 * Sun Feb 29 2004 Frank DENIS <j@pureftpd.org>
 - Add a knob for rendezvous.
 

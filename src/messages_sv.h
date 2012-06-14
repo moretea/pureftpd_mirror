@@ -218,3 +218,4 @@
 #define MSG_TLS_WEAK "SSL/TLS: Krypteringen är för svag"
 #define MSG_TLS_NEEDED "Tyvärr är sessioner i klartext inte tillåtna på denna server.\n" \
     "Vänligen återanslut och använd SSL/TLS för ökad säkerhet."
+#define MSG_ILLEGAL_CHARSET "Illegal charset"
