@@ -5,6 +5,7 @@
 # include "ftpwho-update.h"
 # include "globals.h"
 # include "upload-pipe.h"
+# include "safe_rw.h"
 
 # ifdef WITH_DMALLOC
 #  include <dmalloc.h>
@@ -45,8 +46,13 @@ int upload_pipe_open(void)
         goto anew;
     }        
     anew2:
-    if ((upload_pipe_fd =
-         open(UPLOAD_PIPE_FILE, O_WRONLY | O_NOFOLLOW)) == -1) {
+    upload_pipe_fd =
+        open(UPLOAD_PIPE_FILE, O_WRONLY | O_NOFOLLOW);
+    if (upload_pipe_fd == -1 && errno == ENXIO) {
+        upload_pipe_fd =
+            open(UPLOAD_PIPE_FILE, O_RDWR | O_NOFOLLOW);
+    }
+    if (upload_pipe_fd == -1) {
         if (mkfifo(UPLOAD_PIPE_FILE, (mode_t) 0600) < 0) {
             return -1;
         }
@@ -117,7 +123,7 @@ int upload_pipe_push(const char *vuser, const char *file)
     memcpy(pnt, vuser, sizeof_vuser);
     pnt += sizeof_vuser;
     memcpy(pnt, file, sizeof_file);
-    (void) safe_write(upload_pipe_fd, buf, sizeof_buf);
+    (void) safe_write(upload_pipe_fd, buf, sizeof_buf, -1);
     free(buf);
     lock.l_type = F_UNLCK;
     while (fcntl(upload_pipe_lock, F_SETLK, &lock) < 0 && errno == EINTR);

@@ -8,6 +8,7 @@
 #include "ftpwho-read.h"
 #include "globals.h"
 #include "caps.h"
+#include "alt_arc4random.h"
 #if defined(WITH_UPLOAD_SCRIPT)
 # include "upload-pipe.h"
 #endif
@@ -23,6 +24,7 @@
 #include "ftpd.h"
 #include "bsd-glob.h"
 #include "getloadavg.h"
+#include "safe_rw.h"
 #ifndef WITHOUT_PRIVSEP
 # include "privsep.h"
 #endif
@@ -61,39 +63,17 @@ void usleep2(const unsigned long microsec)
     enablesignals();
 }
 
-int safe_write(const int fd, const void *buf_, size_t count)
-{
-    ssize_t written;    
-    const char *buf = (const char *) buf_;
-    
-    while (count > (size_t) 0U) {
-        for (;;) {
-            if ((written = write(fd, buf, count)) <= (ssize_t) 0) {
-                if (errno != EINTR) {
-                    return -1;
-                }
-                continue;
-            }
-            break;
-        }
-        buf += written;
-        count -= written;
-    }
-    return 0;
-}
-
 #ifdef WITH_TLS
-int secure_safe_write(void * const tls_fd, const void *buf_, size_t count)
+ssize_t secure_safe_write(void * const tls_fd, const void *buf_, size_t count)
 {
     ssize_t written;
     const char *buf = (const char *) buf_;
-    size_t ssw_status = count;
     
     while (count > (size_t) 0U) {
         for (;;) {
             if ((written = SSL_write(tls_fd, buf, count)) <= (ssize_t) 0) {
                 if (SSL_get_error(tls_fd, written) != SSL_ERROR_NONE) {
-                    return -1;
+                    return (ssize_t) -1;
                 }
                 continue;
             }
@@ -102,7 +82,7 @@ int secure_safe_write(void * const tls_fd, const void *buf_, size_t count)
         buf += written;
         count -= written;
     }
-    return ssw_status;
+    return (ssize_t) (buf - (const char *) buf_);
 }
 #endif
 
@@ -328,7 +308,7 @@ void client_fflush(void)
     if (replybuf_pos == replybuf) {
         return;
     }
-    safe_write(clientfd, replybuf, (size_t) (replybuf_pos - replybuf));
+    safe_write(clientfd, replybuf, (size_t) (replybuf_pos - replybuf), -1);
     client_init_reply_buf();
 }
 
@@ -2153,67 +2133,9 @@ void docwd(const char *dir)
 #endif
 }
 
-static void iptropize(const struct sockaddr_storage *ss)
-{
-    size_t t = sizeof *ss;
-    const unsigned char *s = (const unsigned char *) ss;
-    
-    iptropy = getpid();
-    do {
-        iptropy += (iptropy << 5);
-        iptropy ^= (int) *s++;
-    } while (--t > 0U);
-}
-
-#ifdef PROBE_RANDOM_AT_RUNTIME
-static void pw_zrand_probe(void)
-{
-    static const char * const devices[] = {
-        "/dev/arandom", "/dev/urandom", "/dev/random", NULL
-    };
-    const char * const *device = devices;
-    
-    do {
-        if (access(*device, F_OK | R_OK) == 0) {
-            random_device = *device;
-            break;
-        }
-        device++;
-    } while (*device != NULL);
-}
-#endif
-
 unsigned int zrand(void)
 {
-    int fd;
-    int ret;
-    
-    if (chrooted != 0 ||
-#ifdef PROBE_RANDOM_AT_RUNTIME
-        ((fd = open(random_device, O_RDONLY | O_NONBLOCK)) == -1)        
-#elif defined(HAVE_DEV_ARANDOM)
-        ((fd = open("/dev/arandom", O_RDONLY | O_NONBLOCK)) == -1)
-#elif defined(HAVE_DEV_URANDOM)
-        ((fd = open("/dev/urandom", O_RDONLY | O_NONBLOCK)) == -1)
-#else
-        ((fd = open("/dev/random", O_RDONLY | O_NONBLOCK)) == -1)
-#endif
-        ) {
-        nax:
-#ifdef HAVE_ARC4RANDOM
-        return (unsigned int) (arc4random() ^ iptropy);
-#elif defined HAVE_RANDOM
-        return (unsigned int) (random() ^ iptropy);
-#else
-        return (unsigned int) (rand() ^ iptropy);
-#endif
-    }
-    if (read(fd, &ret, sizeof ret) != (ssize_t) sizeof ret) {
-        (void) close(fd);
-        goto nax;
-    }
-    (void) close(fd);
-    return (unsigned int) (ret ^ iptropy);
+    return (unsigned int) alt_arc4random();
 }
 
 static void keepalive(const int fd, int keep)
@@ -2730,7 +2652,7 @@ void doutime(char *name, const char * const wanted_time)
     if (utime(name, &tb) < 0) {
         addreply(550, "utime(%s): %s", name, strerror(errno));
     } else {
-        addreply_noformat(250, "UTIME OK");
+        addreply_noformat(213, "UTIME OK");
     }    
 }
 #endif
@@ -3615,11 +3537,11 @@ void dormd(char *name)
 void dofeat(void)
 {
 # define FEAT  "Extensions supported:" CRLF \
-    " EPRT" CRLF " IDLE" CRLF " MDTM" CRLF " SIZE" CRLF \
+    " EPRT" CRLF " IDLE" CRLF " MDTM" CRLF " SIZE" CRLF " MFMT" CRLF \
         " REST STREAM" CRLF \
         " MLST type*;size*;sizd*;modify*;UNIX.mode*;UNIX.uid*;UNIX.gid*;unique*;" CRLF \
         " MLSD"
-    
+
 # ifdef WITH_TLS
 #  define FEAT_TLS CRLF " AUTH TLS" CRLF " PBSZ" CRLF " PROT"
 # else
@@ -3963,6 +3885,7 @@ int ul_dowrite(ULHandler * const ulhandler, const unsigned char *buf_,
                const size_t size_, off_t * const uploaded)
 {
     size_t size = size_;
+    ssize_t written;
     const unsigned char *buf = buf_;
     unsigned char *unasciibuf = NULL;
     int ret = 0;
@@ -3991,7 +3914,8 @@ int ul_dowrite(ULHandler * const ulhandler, const unsigned char *buf_,
         size = (size_t) (unasciibufpnt - unasciibuf);
     }
 #endif
-    ret = safe_write(ulhandler->f, buf, size);
+    written = safe_write(ulhandler->f, buf, size, -1); 
+    ret = - (written != (ssize_t) size);
     if (unasciibuf != NULL) {
         ALLOCA_FREE(unasciibuf);
     }
@@ -4990,6 +4914,22 @@ static void fill_atomic_prefix(void)
     }
 }
 
+#ifndef HAVE_RANDOM_DEV
+static void seed_old_rng(void)
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    const unsigned int seed = (unsigned int)
+        (((long) getpid() * 131072L) ^ tv->tv_sec ^ (tv_usec * 4096L));
+
+# if defined(HAVE_RANDOM)
+    srandom(seed);
+# else
+    srand(seed);
+# endif
+}
+#endif
+
 static void doit(void)
 {
     socklen_t socksize;
@@ -5003,6 +4943,10 @@ static void doit(void)
     fcntl(clientfd, F_SETOWN, getpid());
 #endif
     set_signals_client();
+#ifndef HAVE_RANDOM_DEV
+    seed_old_rng();
+#endif
+    alt_arc4random_stir();
     (void) umask((mode_t) 0);
     socksize = (socklen_t) sizeof ctrlconn;
     if (getsockname(clientfd, (struct sockaddr *) &ctrlconn, &socksize) != 0) {
@@ -5061,7 +5005,6 @@ static void doit(void)
     *host = '?';
     host[1] = 0;
 #endif
-    iptropize(&peer);
     logfile(LOG_INFO, MSG_NEW_CONNECTION, host);
 
     replycode = 220;
@@ -5277,6 +5220,7 @@ static void updatepidfile(void)
 {
     int fd;
     char buf[42];
+    size_t buf_len;
 
     if (SNCHECK(snprintf(buf, sizeof buf, "%lu\n",
                          (unsigned long) getpid()), sizeof buf)) {
@@ -5289,7 +5233,8 @@ static void updatepidfile(void)
                    O_NOFOLLOW, (mode_t) 0644)) == -1) {
         return;
     }
-    if (safe_write(fd, buf, strlen(buf)) != 0) {
+    buf_len = strlen(buf);
+    if (safe_write(fd, buf, buf_len, -1) != (ssize_t) buf_len) {
         (void) ftruncate(fd, (off_t) 0);
     }
     (void) close(fd);
@@ -5573,9 +5518,6 @@ int pureftpd_start(int argc, char *argv[], const char *home_directory_)
     home_directory = home_directory_;
 #endif
     client_init_reply_buf();    
-#ifdef PROBE_RANDOM_AT_RUNTIME
-    pw_zrand_probe();
-#endif    
     
 #ifdef HAVE_GETPAGESIZE
     page_size = (size_t) getpagesize();
@@ -5844,6 +5786,10 @@ int pureftpd_start(int argc, char *argv[], const char *home_directory_)
             break;
         }            
         case 'J': {
+            if (strncmp(optarg, "-S:", sizeof "-S:" - (size_t) 1U) == 0) {
+                optarg += sizeof "-S:" - (size_t) 1U;
+                ssl_disabled = 1;
+            }
             if ((tlsciphersuite = strdup(optarg)) == NULL) {
                 die_mem();
             }
@@ -6358,6 +6304,7 @@ int pureftpd_start(int argc, char *argv[], const char *home_directory_)
 #ifdef WITH_TLS
     tls_free_library();
 #endif
+    alt_arc4random_close();
     
     _EXIT(EXIT_SUCCESS);
 

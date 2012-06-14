@@ -2,6 +2,7 @@
 
 #include "ftpd.h"
 #include "quotas.h"
+#include "safe_rw.h"
 
 #ifndef HAVE_GETOPT_LONG
 # include "bsd-getopt_long.h"
@@ -119,7 +120,8 @@ static int traversal(const char * const s)
         nodes = new_nodes;
     }
     {
-        Node * const node = (Node *) (((unsigned char *) nodes) + nodes_size);
+        Node * const node =
+            (Node *) (void *) (((unsigned char *) nodes) + nodes_size);
 
         node->inode = st.st_ino;
         node->device = st.st_dev;
@@ -224,7 +226,6 @@ static int writequota(const char * const quota_file)
     int fd;
     struct flock lock;
     ssize_t towrite;
-    ssize_t written;
     struct stat st;
     char buf[84];
     const char *bufpnt = buf;
@@ -260,24 +261,7 @@ static int writequota(const char * const quota_file)
         goto bye;
     }
     towrite = (ssize_t) strlen(buf);
-    while (towrite > (ssize_t) 0) {
-        for (;;) {
-            if ((written = write(fd, bufpnt,
-                                 (size_t) towrite)) <= (ssize_t) 0) {
-                if (written == (ssize_t) 0 ||
-                    (errno != EAGAIN && errno != EINTR)) {
-                    (void) ftruncate(fd, (off_t) 0);
-                    goto bye;
-                } else {
-                    continue;
-                }
-            }
-            break;
-        }
-        bufpnt += written;
-        towrite -=written;
-    }
-    err = 0;
+    err = - (safe_write(fd, bufpnt, towrite, -1) != (ssize_t) towrite);
     bye:
     lock.l_type = F_UNLCK;
     while (fcntl(fd, F_SETLK, &lock) < 0 && errno == EINTR);

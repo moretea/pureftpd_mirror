@@ -1,7 +1,7 @@
 dnl AM_ACLOCAL_INCLUDE(m4)
 
 AC_PREREQ(2.61)
-AC_INIT([pure-ftpd],[1.0.32],[bugs at pureftpd dot org])
+AC_INIT([pure-ftpd],[1.0.34],[bugs at pureftpd dot org])
 AC_CONFIG_SRCDIR(src/ftpd.c)
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([1.9 dist-bzip2])
@@ -56,7 +56,7 @@ AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS(unistd.h string.h strings.h sys/param.h ioctl.h sys/ioctl.h)
 AC_CHECK_HEADERS(sys/vfs.h sys/statvfs.h sys/sendfile.h sys/uio.h)
 AC_CHECK_HEADERS(sys/time.h sys/resource.h sys/capability.h)
-AC_CHECK_HEADERS(shadow.h getopt.h stddef.h)
+AC_CHECK_HEADERS(shadow.h getopt.h stddef.h stdint.h)
 AC_CHECK_HEADERS(netinet/in_systm.h netinet/in.h sys/pstat.h sys/file.h)
 AC_CHECK_HEADERS(sys/mount.h, [], [],
 [#ifdef HAVE_SYS_PARAM_H
@@ -337,12 +337,6 @@ AC_ARG_WITH(brokenrealpath,
 [AS_HELP_STRING(--with-brokenrealpath,If your libc has a broken realpath() call)],
 [ if test "x$withval" = "xyes" ; then
     AC_DEFINE(USE_BUILTIN_REALPATH,,[realpath() is broken])
-  fi ])
-
-AC_ARG_WITH(probe-random-dev,
-[AS_HELP_STRING(--with-probe-random-dev,If you want to probe for /dev/*random at run-time)],
-[ if test "x$withval" = "xyes" ; then
-    AC_DEFINE(PROBE_RANDOM_AT_RUNTIME,,[probe for /dev/Xrandom at run-time])
   fi ])
 
 AC_ARG_WITH(minimal,

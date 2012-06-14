@@ -13,7 +13,7 @@ constant databases. It manages data files that contains text or binary
 key/data pairs of arbitrary sizes. Lookups are very fast (normally only one
 disk access to match a hash value), overhead is low (a database is 1028
 bytes plus only 16 extra bytes per record), multiple concurrent read access
-are supported, and databases can be up to 4 Gb long, and they are portable
+are supported, databases can be up to 4 Gb long, and they are portable
 accross architectures. 
 
 
@@ -200,7 +200,7 @@ int puredb_find(PureDB * const db, const char * const tofind,
                 const size_t tofind_len, off_t * const retpos, 
                 size_t * const retlen);
 
-This function looks the database for a key matching tofind, whoose length is
+This function looks the database for a key matching tofind, whose length is
 tofind_len. After a successful match, retpos contains the offset to the
 first byte of the matching data, and retlen is the length of the data.
 
