@@ -195,7 +195,11 @@ void parser(void)
         alarm(idletime * 2);
         switch (sfgets()) {
         case -1:
-            die(421, LOG_INFO, MSG_TIMEOUT_PARSER);            
+#ifdef BORING_MODE
+	    die(421, LOG_INFO, MSG_TIMEOUT);
+#else
+            die(421, LOG_INFO, MSG_TIMEOUT_PARSER);
+#endif
         case -2:
             return;
         }
@@ -324,7 +328,9 @@ void parser(void)
 #ifndef MINIMAL
             } else if (!strcmp(cmd, "eprt")) {
                 doeprt(arg);
-	    } else if (!strcmp(cmd, "esta")) {
+	    } else if (!strcmp(cmd, "esta") &&
+		       disallow_passive == 0 &&
+		       STORAGE_FAMILY(force_passive_ip) == 0) {
 		doesta();
 	    } else if (!strcmp(cmd, "estp")) {
 		doestp();
@@ -414,7 +420,7 @@ void parser(void)
                     modern_listings = 0;
                     donlist(arg, 1, 1, 1);
                 } else {
-                    addreply_noformat(211, "http://www.pureftpd.org");
+                    addreply_noformat(211, "http://www.pureftpd.org/");
                 }
 #endif
             } else if (!strcmp(cmd, "list")) {
@@ -471,7 +477,7 @@ void parser(void)
                                       " ALIAS" CRLF
 # endif
                                       " CHMOD" CRLF " IDLE");
-                    addreply(214, "Pure-FTPd - http://pureftpd.org");
+                    addreply(214, "Pure-FTPd - http://pureftpd.org/");
                 } else if (!strcasecmp(arg, "chmod")) {
                     char *sitearg2;
                     mode_t mode;

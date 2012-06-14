@@ -51,7 +51,7 @@
 #define MSG_START_SLASH "/ 에서 시작함"
 #define MSG_USER_GROUP_ACCESS "유저 %s 는 다음 그룹에 접근 가능"
 #define MSG_FXP_SUPPORT "이 서버는 FXP 전송이 사용가능 합니다."
-#define MSG_RATIO "업/다운로드 ( %u:%u ) 비율을 지켜주세요."
+#define MSG_RATIO "업/다운로드 (%u:%u) 비율을 지켜주세요."
 #define MSG_CHROOT_FAILED "chroot() 를 설정할수 없음"
 #define MSG_CURRENT_DIR_IS "현재 디렉토리: %s"
 #define MSG_CURRENT_RESTRICTED_DIR_IS "제한된 디렉토리는 %s"

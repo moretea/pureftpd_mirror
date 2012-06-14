@@ -3,7 +3,7 @@ Credits for Troll-FTPd are going to the following dudes.
 * Original Troll-FTPd authors :
 
     Arnt Gulbrandsen <agulbra@troll.no>
-    Troll Tech AS    <http://www.troll.no>
+    Troll Tech AS    <http://www.troll.no/>
     
 * Original Troll-FTPd contributors :
 
@@ -33,15 +33,19 @@ Credits for Pure-FTPd are going to the following ones.
     sendfile() usage.
     Capability drop.
 
-* Andreas Westin <forsaken@users.sourceforge.net> :
+* Andreas Westin <andwes-8@student.luth.se> :
 
     FXP support.
     ftpwho design and reference implementation.
 
-* The OpenBSD team <http://www.openbsd.org>
+* The OpenBSD team (http://www.openbsd.org/)
   The Regents of the University of California :
 
     Most of the glob() function, and realpath() replacement.
+
+* The sh-utils team (ftp://alpha.gnu.org/gnu/fetish/)
+
+    getloadavg.c derivative.
 
 * Jason Lunz <j@falooley.org> :
 
@@ -49,7 +53,7 @@ Credits for Pure-FTPd are going to the following ones.
     Get rid of -D in favor of <config.h> (thanks to Arkadiusz, too).
     Fix XML output.
     Official ninja warrior.
-    Debian package maintainer.  
+    First Debian package maintainer.  
     
 * Mathias Gumz <gumz@cs.uni-magdeburg.de>
 
@@ -98,7 +102,7 @@ Credits for Pure-FTPd are going to the following ones.
     Solaris < 8 portI
     Fixed Solaris large file support.
 
-* Trilucid ( http://www.trilucid.com )
+* Trilucid (http://www.trilucid.com/)
 
     Web design of pureftpd.org .
 
@@ -115,7 +119,7 @@ Credits for Pure-FTPd are going to the following ones.
 
     Original SHA1 implementation.
 
-* RSA Data Security, Inc. ( http://www.rsa.com )
+* RSA Data Security, Inc. (http://www.rsa.com/)
 
     Original MD5 implementation.
 
@@ -195,7 +199,7 @@ Credits for Pure-FTPd are going to the following ones.
 
 * Stanton Gallegos
 
-    MacOS X maintainer (see http://fink.sourceforge.net) .
+    MacOS X maintainer (see http://fink.sourceforge.net/) .
 
 * Florin Andrei <florin@sgi.com> 
   Chan Wilson <cwilson@sgi.com>
@@ -235,6 +239,32 @@ ratios.
 
     Traditional and simplified Chinese translations.
 
+* Jeffrey Lim <jf_____@fastmail.fm>
+
+    A lot of excellent documentation improvements.
+
+* Ying-Chieh Liao <ijliao@csie.nctu.edu.tw>
+
+    FreeBSD fixes for pure-mrtginfo.
+
+* Johannes Erdfelt <johannes@erdfelt.com>
+
+    Fix error when deleting files with an absolute directory when quotas are
+enabled.
+    RPM spec file improvements.
+
+* Martin Sarfy <xsarfy@informatics.muni.cz>
+
+    Czech translation.
+
+* Clive Goodhead <clive@swnet.net>
+
+    Implement MYSQLDefaultGID and MYSQLDefaultUID.
+
+* Aristoteles Pagaltzis <pagaltzis@gmx.de>
+
+    pure-config.pl rewrite.
+
 * Frank DENIS aka Jedi/Sector One <j@pureftpd.org> :
 
     Pure-FTPd project initiator and maintainer.
@@ -244,9 +274,6 @@ ratios.
 
 Original licence :
 
-Written by Arnt Gulbrandsen <agulbra@troll.no> and copyright 1995-1999
-Troll Tech AS, Waldemar Thranes gate 98B, N-0175 Oslo, Norway, fax +47
-22806380.
-
+Copyright 1995-2000 Trolltech AS. Copyright 2001-2002 Arnt Gulbrandsen.
 Use, modification and distribution is allowed without limitation,
 warranty, or liability of any kind.

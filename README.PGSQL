@@ -7,7 +7,7 @@ database.
 
 To compile the server with PostgreSQL support, you first have to build and
 install the PostgreSQL client libraries. PostgreSQL is freely available from
-http://www.postgresql.org and binary packages are included in many major
+http://www.postgresql.org/ and binary packages are included in many major
 distributions. But if you choose a binary form, don't forget to also install
 the development packages if they are available separately.
 
@@ -135,6 +135,17 @@ Please note that a login can only contains common characters : A...Z, a...z,
 0...9, -, ., _, space, :, @ and  and ' . For security purposes, other
 characters are forbidden.
 
+You can also remove uid and gid fields in your tables, and use default
+values instead (thus saving useless lookups) . Two directives are
+useful to serve that purpose : PGSQLDefaultUID and PGSQLDefaultGID.
+
+Obvious example :
+
+PGSQLDefaultUID 1000
+PGSQLDefaultGID 1000
+
+Using these directives overrides PGSQLGetUID and PGSQLGetGID.
+
 
      ------------------------ PER-USER SETTINGS ------------------------
 
@@ -159,7 +170,7 @@ PGSQLGetRatioUL SELECT ULRatio FROM users WHERE User='\L'
 PGSQLGetRatioDL SELECT DLRatio FROM users WHERE User='\L'
 
 - PGSQLGetBandwidthUL and PGSQLGetBandwidthDL are optional upload and
-download bandwidth restrictions. Returned values should be in Kb/s.
+download bandwidth restrictions. Returned values should be in KB/s.
 
 Example :
 PGSQLGetBandwidthUL SELECT ULBandwidth FROM users WHERE User='\L'

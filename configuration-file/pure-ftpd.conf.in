@@ -82,7 +82,7 @@ NoAnonymous                 no
 
 
 # Syslog facility (auth, authpriv, daemon, ftp, security, user, local*)
-# The default facility is "ftp".
+# The default facility is "ftp". "none" disables logging.
 
 SyslogFacility              ftp
 
@@ -110,18 +110,18 @@ MaxIdleTime                 15
 
 # LDAP configuration file (see README.LDAP)
 
-# LDAPConfigFile                /etc/pureftp-ldap.conf
+# LDAPConfigFile                /etc/pureftpd-ldap.conf
 
 
 
 # MySQL configuration file (see README.MySQL)
 
-# MySQLConfigFile               /etc/pureftp-mysql.conf
+# MySQLConfigFile               /etc/pureftpd-mysql.conf
 
 
 # Postgres configuration file (see README.PGSQL)
 
-# PGSQLConfigFile               /etc/pureftp-pgsql.conf
+# PGSQLConfigFile               /etc/pureftpd-pgsql.conf
 
 
 # PureDB user database (see README.Virtual-Users)
@@ -216,13 +216,13 @@ AntiWarez                   yes
 
 
 
-# Maximum bandwidth for anonymous users in Kb/s
+# Maximum bandwidth for anonymous users in KB/s
 
 # AnonymousBandwidth            8
 
 
 
-# Maximum bandwidth for *all* users (including anonymous) in Kb/s
+# Maximum bandwidth for *all* users (including anonymous) in KB/s
 # Use AnonymousBandwidth *or* UserBandwidth, both makes no sense.
 
 # UserBandwidth             8
@@ -307,8 +307,7 @@ AnonymousCantUpload         no
 
 
 # Create an additional log file with transfers logged in a format optimized
-# for statistic reports, as done with ftpStats
-# (http://www.shagged.org/ftpstats) .
+# for statistic reports.
 
 # AltLog                     stats:/var/log/pureftpd.log
 
@@ -350,7 +349,7 @@ AnonymousCantUpload         no
 # If your pure-ftpd has been compiled with standalone support, you can change
 # the location of the pid file. The default is /var/run/pure-ftpd.pid
 
-#PIDFile                     /usr/local/var/pure-ftpd.pid
+#PIDFile                     /var/run/pure-ftpd.pid
 
 
 
@@ -363,12 +362,12 @@ AnonymousCantUpload         no
 
 
 
-# This option is usefull with servers where anonymous upload is 
+# This option is useful with servers where anonymous upload is 
 # allowed. As /var/ftp is in /var, it save some space and protect 
 # the log files. When the partition is more that X percent full,
 # new uploads are disallowed.
 
-MaxDiskUsage               90
+MaxDiskUsage               99
 
 
 

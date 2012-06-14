@@ -162,7 +162,7 @@ static int glob_(const char *pattern,
 	}
     } else {
         /* Protect the quoted characters. */
-        while (bufnext < bufend && (c = *patnext++) != EOS)
+        while (bufnext < bufend && (c = *patnext++) != EOS) {
             if (c == QUOTE) {
                 if ((c = *patnext++) == EOS) {
                     c = QUOTE;
@@ -172,6 +172,7 @@ static int glob_(const char *pattern,
             } else {
                 *bufnext++ = (Char) c;
 	    }
+        }
     }
     *bufnext = EOS;
 
@@ -217,9 +218,10 @@ static int globexp1(const Char * pattern, glob_t * pglob, int recursion)
         return glob0(pattern, pglob);
 
     while ((ptr =
-            (const Char *) g_strchr((const Char *) ptr, LBRACE)) != NULL)
+            (const Char *) g_strchr((const Char *) ptr, LBRACE)) != NULL) {
         if (!globexp2(ptr, pattern, pglob, &rv, recursion + 1))
             return rv;
+    }
 
     return glob0(pattern, pglob);
 }
@@ -260,9 +262,9 @@ globexp2(const Char * ptr,
                  */
                 pe = pm;
             }
-        } else if (*pe == LBRACE)
+        } else if (*pe == LBRACE) {
             i++;
-        else if (*pe == RBRACE) {
+        } else if (*pe == RBRACE) {
             if (i == 0)
                 break;
             i--;
@@ -363,19 +365,21 @@ static const Char *globtilde(const Char * pattern,
          * first and then trying the password file
          */
         if (issetugid() != 0 || (h = getenv("HOME")) == NULL) {
-            if ((pwd = getpwuid(getuid())) == NULL)
+            if ((pwd = getpwuid(getuid())) == NULL) {
                 return pattern;
-            else
+            } else {
                 h = pwd->pw_dir;
+            }
         }
     } else {
         /*
          * Expand a ~user
          */
-        if ((pwd = getpwnam((char *) patbuf)) == NULL)
+        if ((pwd = getpwnam((char *) patbuf)) == NULL) {
             return pattern;
-        else
+        } else {
             h = pwd->pw_dir;
+        }
     }
 
     /* Copy the home directory */
@@ -451,8 +455,9 @@ static int glob0(const Char * pattern, glob_t * pglob)
             /* collapse adjacent stars to one,
              * to avoid exponential behavior
              */
-            if (bufnext == patbuf || bufnext[-1] != M_ALL)
+            if (bufnext == patbuf || bufnext[-1] != M_ALL) {
                 *bufnext++ = M_ALL;
+            }
             break;
         default:
             *bufnext++ = CHAR(c);
@@ -461,8 +466,9 @@ static int glob0(const Char * pattern, glob_t * pglob)
     }
     *bufnext = EOS;
 
-    if ((err = glob1(patbuf, patbuf + MAXPATHLEN, pglob, &limit)) != 0)
+    if ((err = glob1(patbuf, patbuf + MAXPATHLEN, pglob, &limit)) != 0) {
         return (err);
+    }
 
     /*
      * If there was no match we are going to append the pattern
@@ -473,9 +479,10 @@ static int glob0(const Char * pattern, glob_t * pglob)
     if (pglob->gl_pathc == oldpathc) {
         return (GLOB_NOMATCH);
     }
-    if (!(pglob->gl_flags & GLOB_NOSORT))
+    if (!(pglob->gl_flags & GLOB_NOSORT)) {
         qsort(pglob->gl_pathv + oldpathc,
               (size_t) (pglob->gl_pathc - oldpathc), sizeof (char *), compare);
+    }
     return 0;
 }
 
@@ -490,8 +497,9 @@ glob1(Char * pattern, Char * pattern_last, glob_t * pglob, size_t * limitp)
     Char pathbuf[MAXPATHLEN + 1];
 
     /* A null pathname is invalid -- POSIX 1003.1 sect. 2.4. */
-    if (*pattern == EOS)
+    if (*pattern == EOS) {
         return 0;
+    }
     return (glob2(pathbuf, pathbuf + MAXPATHLEN,
                   pathbuf, pathbuf + MAXPATHLEN,
                   pattern, pattern_last, pglob, limitp, 0));
@@ -584,11 +592,13 @@ glob3(Char * pathbuf, Char * pathbuf_last, Char * pathend,
     if ((dirp = g_opendir(pathbuf)) == NULL) {
         /* TODO: don't call for ENOENT or ENOTDIR? */
         if (pglob->gl_errfunc) {
-            if (g_Ctoc(pathbuf, buf, sizeof (buf)))
+            if (g_Ctoc(pathbuf, buf, sizeof (buf))) {
                 return (GLOB_ABORTED);
+            }
             if (pglob->gl_errfunc(buf, errno) ||
-                pglob->gl_flags & GLOB_ERR)
+                pglob->gl_flags & GLOB_ERR) {
                 return (GLOB_ABORTED);
+            }
         }
         return 0;
     }
@@ -600,8 +610,14 @@ glob3(Char * pathbuf, Char * pathbuf_last, Char * pathend,
         register Char *dc;
 
         /* Initial DOT must be matched literally. */
-        if (dp->d_name[0] == DOT && *pattern != DOT)
+        if (dp->d_name[0] == DOT && *pattern != DOT) {
             continue;
+        }
+#ifndef GLOB_UNPRINTABLE
+        if (checkprintable(dp->d_name) != 0) {
+            continue;
+        }
+#endif
         dc = pathend;
         sc = (unsigned char *) dp->d_name;
         while (dc < pathend_last && (*dc++ = *sc++) != EOS);
@@ -628,7 +644,7 @@ glob3(Char * pathbuf, Char * pathbuf_last, Char * pathend,
 
 
 /*
- * Extend the gl_pathv member of a glob_t structure to accomodate a new item,
+ * Extend the gl_pathv member of a glob_t structure to accommodate a new item,
  * add the new item, and update gl_pathc.
  *
  * This assumes the BSD realloc, which only copies the block when its size
@@ -707,34 +723,41 @@ match(register Char * name, register Char * pat, register Char * patend)
         case M_ALL:
             if (pat == patend)
                 return 1;
-            do
-                if (match(name, pat, patend))
+            do {
+                if (match(name, pat, patend)) {
                     return 1;
-            while (*name++ != EOS);
+                }
+            } while (*name++ != EOS);
             return 0;
         case M_ONE:
-            if (*name++ == EOS)
+            if (*name++ == EOS) {
                 return 0;
+            }
             break;
         case M_SET:
             ok = 0;
             if ((k = *name++) == EOS)
                 return 0;
-            if ((negate_range = ((*pat & M_MASK) == M_NOT)) != EOS)
+            if ((negate_range = ((*pat & M_MASK) == M_NOT)) != EOS) {
                 ++pat;
-            while (((c = *pat++) & M_MASK) != M_END)
+            }
+            while (((c = *pat++) & M_MASK) != M_END) {
                 if ((*pat & M_MASK) == M_RNG) {
                     if (c <= k && k <= pat[1])
                         ok = 1;
                     pat += 2;
-                } else if (c == k)
+                } else if (c == k) {
                     ok = 1;
-            if (ok == negate_range)
+                }
+            }
+            if (ok == negate_range) {
                 return 0;
+            }
             break;
         default:
-            if (*name++ != c)
+            if (*name++ != c) {
                 return 0;
+            }
             break;
         }
     }
@@ -749,9 +772,11 @@ void globfree(glob_t * pglob)
 
     if (pglob->gl_pathv != NULL) {
         pp = pglob->gl_pathv;
-        for (i = pglob->gl_pathc; i--; ++pp)
-            if (*pp)
+        for (i = pglob->gl_pathc; i--; ++pp) {
+            if (*pp) {
                 free(*pp);
+            }
+        }
         free(pglob->gl_pathv);
         pglob->gl_pathv = NULL;
     }
@@ -761,9 +786,10 @@ static DIR *g_opendir(register Char * str)
 {
     char buf[MAXPATHLEN + 1];
 
-    if (!*str)
-        strcpy(buf, ".");              /* safe : sizeof buf > 2 */
-    else {
+    if (!*str) {
+	buf[0] = '.';
+	buf[1] = 0;         /* safe : sizeof buf > 2 */
+    } else {
         if (g_Ctoc(str, buf, sizeof (buf)))
             return NULL;
     }

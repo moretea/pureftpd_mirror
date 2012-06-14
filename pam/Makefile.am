@@ -1,5 +1,5 @@
 EXTRA_DIST = \
-	ftplockout \
+	ftpusers \
 	pure-ftpd \
 	README
 

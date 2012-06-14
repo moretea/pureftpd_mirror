@@ -23,6 +23,7 @@
 #endif
 #include "ftpd.h"
 #include "bsd-glob.h"
+#include "getloadavg.h"
 
 #ifdef WITH_DMALLOC
 # include <dmalloc.h>
@@ -56,10 +57,10 @@ void usleep2(const unsigned long microsec)
 
 int safe_write(const int fd, const void *buf_, size_t count)
 {
+    ssize_t written;    
     register const char *buf = (const char *) buf_;
-    ssize_t written;
 
-    while (count > (size_t) 0) {
+    while (count > (size_t) 0U) {
         for (;;) {
             if ((written = write(fd, buf, count)) <= (ssize_t) 0) {
                 if (errno == EAGAIN) {
@@ -137,6 +138,22 @@ void simplify(char *subdir)
             overlapcpy(subdir, a);
         }
     }
+}
+
+int checkprintable(register const char *s)
+{
+    register int ret = 0;    
+    register unsigned char c;
+    
+    while ((c = (unsigned char) *s) != 0U) {
+        if ((c & ~31U) == 0U) {
+            ret--;
+            break;
+        }
+        s++;
+    }
+    
+    return ret;    
 }
 
 void die(const int err, const int priority, const char * const format, ...)
@@ -245,7 +262,7 @@ static RETSIGTYPE sigterm(int sig)
     stop_server = 1;
     if (listenfd != -1) {
         shutdown(listenfd, 2);
-        close(listenfd);
+        (void) close(listenfd);
     }
     errno = olderrno;
 }
@@ -413,8 +430,8 @@ void logfile(const int crit, const char *format, ...)
     (void) crit;
     (void) format;
 #else
+    const char *urgency;    
     va_list va;
-    const char *urgency;
     char line[MAX_SYSLOG_LINE];
 
     if (no_syslog != 0) {
@@ -502,10 +519,10 @@ void addreply_noformat(const int code, const char * const line)
 
 void addreply(const int code, const char * const line, ...)
 {
-    va_list ap;
-    int last;
     register char *a;
     register char *b;
+    va_list ap;
+    int last;
     char buf[MAXPATHLEN + 50U];
 
     if (code != 0) {
@@ -546,8 +563,8 @@ void doreply(void)
     CORK_ON(1);
     do {
         nextentry = scannedentry->next;
-        printf("%3d%c%s\r\n", replycode, nextentry == NULL ? ' ' : '-',
-               scannedentry->line);
+	printf("%3d%c%s\r\n", replycode, nextentry == NULL ? ' ' : '-',
+	       scannedentry->line);
         if (logging > 1) {
             logfile(LOG_DEBUG, "%3d%c%s", replycode, 
                     nextentry == NULL ? ' ' : '-', scannedentry->line);
@@ -639,8 +656,8 @@ static int checknamesanity(const char *name, int dot_ok)
 
 static void do_ipv6_port(char *p, char delim)
 {
+    char *deb;    
     struct sockaddr_storage a;
-    char *deb;
 
     deb = p;
     while (*p && strchr("0123456789abcdefABCDEF:", *p) != NULL) {
@@ -648,7 +665,7 @@ static void do_ipv6_port(char *p, char delim)
     }
     if (*p != delim || atoi(p + 1) == 0) {
         nope:
-        close(datafd);
+        (void) close(datafd);
         datafd = -1;
         addreply_noformat(501, MSG_SYNTAX_ERROR_IP);
         return;
@@ -663,8 +680,8 @@ static void do_ipv6_port(char *p, char delim)
 #ifndef MINIMAL
 void doesta(void)
 {
+    struct sockaddr_storage dataconn;    
     socklen_t socksize;    
-    struct sockaddr_storage dataconn;
     char hbuf[NI_MAXHOST];
     char pbuf[NI_MAXSERV];
     
@@ -694,8 +711,8 @@ void doesta(void)
 
 void doestp(void)
 {
-    socklen_t socksize;    
     struct sockaddr_storage dataconn;
+    socklen_t socksize;        
     char hbuf[NI_MAXHOST];
     char pbuf[NI_MAXSERV];
     
@@ -806,30 +823,53 @@ void stripctrl(char * const buf, size_t len)
 
 #ifndef MINIMAL
 
-/* small help routine to display a banner */
-void dobanner(void)
+/*
+ * small help routine to display a banner
+ * type = 0 reads .banner/welcome.msg
+ * type = 1 reads .message (after cd'ing into a directory)
+ */
+void dobanner(const int type)
 {
+    char buffer[512];    
     FILE *msg;
-    if ((msg = fopen(".banner", "rt")) != NULL
+    size_t buflen;
+    unsigned int nblines = BANNER_MAXLINES;    
+    
+    switch (type) {
+    case 0:
+	if ((msg = fopen(".banner", "r")) == NULL
 # ifdef WITH_WELCOME_MSG
-    || (msg = fopen("welcome.msg", "rt")) != NULL
+	    && (msg = fopen("welcome.msg", "r")) == NULL
 # endif
-        ) {
-        /* if you think this is too small, send me mail.
-         NOTE: It should not be unlimited. */
-        char buffer[4000];
-        char *bufpnt = buffer;
-        size_t len = fread(buffer, (size_t) 1U, sizeof buffer - 1U, msg);
-        fclose(msg);
-        if (len > (size_t) 0U && len < (sizeof buffer - 1U)) {
-            stripctrl(buffer, len);
-            buffer[len] = 0;
-            while (*bufpnt == '\n') {
-                bufpnt++;
-            }
-            addreply(0, "%s", bufpnt);
-        }
+	    ) {
+	    return;
+	}
+	break;
+    case 1:
+	if ((msg = fopen(".message", "r")) == NULL) {
+	    return;
+	}
+	break;
+    default:
+	return;
+    }	
+    
+    while (fgets(buffer, sizeof buffer, msg) != NULL && nblines > 0U) {
+	nblines--;	    
+	if ((buflen = strlen(buffer)) > (size_t) 0U) {
+	    buflen--;
+	    while (buffer[buflen] == '\n' || buffer[buflen] == '\r') {
+		buffer[buflen] = 0;
+		if (buflen == (size_t) 0U) {
+		    break;
+		}
+		buflen--;
+	    }
+	    stripctrl(buffer, buflen);
+	}
+	addreply_noformat(0, buffer);
     }
+    (void) fclose(msg);
 }
 
 #endif
@@ -839,9 +879,9 @@ void dobanner(void)
 int modernformat(const char *file,
                  char *target, size_t target_size)
 {
-    struct stat st;
     const char *ft;
     struct tm *t;
+    struct stat st;
     int ret = 0;
 
     if (stat(file, &st) != 0 ||
@@ -916,7 +956,11 @@ void domlst(const char * const file)
 
 void donoop(void)
 {
+#ifdef BORING_MODE
+    addreply_noformat(200, "dc.w $4E71");
+#else
     addreply_noformat(200, MSG_SLEEPING);
+#endif
 }
 
 #endif
@@ -1110,7 +1154,7 @@ void douser(const char *username)
         }
 #endif
 #ifndef MINIMAL
-        dobanner();
+        dobanner(0);
 #endif
         if (broken_client_compat) {
             addreply_noformat(331, MSG_ANONYMOUS_ANY_PASSWORD);
@@ -1241,7 +1285,7 @@ static int check_trustedgroup(const uid_t uid, const gid_t gid)
     GETGROUPS_T *alloca_suppgroups;
     int n;
     int n2;
-    int result;
+    int result = 0;
 
     if (uid == (uid_t) 0) {
         return 1;
@@ -1252,6 +1296,7 @@ static int check_trustedgroup(const uid_t uid, const gid_t gid)
     if (gid == chroot_trustedgid) {
         return 1;
     }
+#ifdef HAVE_GETGROUPS
     if ((n = getgroups(0, NULL)) <= 0) {
         return 0;
     }
@@ -1273,7 +1318,8 @@ static int check_trustedgroup(const uid_t uid, const gid_t gid)
         }
     };
     ALLOCA_FREE(alloca_suppgroups);
-
+#endif
+    
     return result;
 }
 
@@ -1316,40 +1362,35 @@ static int create_home_and_chdir(const char * const home)
             if (z[1] == 0) {
                 break;
             }
-            if (mkdir(pathcomp, (mode_t) 0755) < 0 &&
-                errno != EEXIST) {
-                ALLOCA_FREE(pathcomp);
-                return -1;
-            }
+            (void) mkdir(pathcomp, (mode_t) 0755);
             *z = delim;
         }
     }
-    /* 
-     * Security : never chown() an already existing directory,
-     * so that an untrusted user db admin can't chown arbitrary
-     * directories.
-     */
-    if (mkdir(pathcomp, (mode_t) 0755 & ~u_mask_d) == 0) {
-        if (chown(pathcomp, authresult.uid, authresult.gid) < 0) {
-            ALLOCA_FREE(pathcomp);            
-            return -1;
-        }        
-    } else if (errno != EEXIST) {
-        ALLOCA_FREE(pathcomp);        
-        return -1;
-    }
     ALLOCA_FREE(pathcomp);
+    (void) mkdir(home, (mode_t) 0700);
+    if (chdir(home) != 0) {
+	return -1;
+    }
+    if (chown(home, authresult.uid, authresult.gid) < 0 ||
+	chmod(home, (mode_t) 0755 & ~u_mask_d) < 0) {
+	return -1;
+    }
     
     return chdir(home);
 }
 
 void dopass(char *password)
 {
-    int ngroups;
-    gid_t g[NGROUPS_MAX];
+    static unsigned int tapping;    
+    gid_t *groups = NULL;
     char *hd;
-    static unsigned int tapping;
-
+    int ngroups;
+#if defined(NGROUPS_MAX) && NGROUPS_MAX > 0
+    int ngroups_max = NGROUPS_MAX; /* Use the compile time value */
+#else
+    int ngroups_max = 1; /* use a sane default */
+#endif
+    
     if (loggedin != 0) {
         if (guest != 0) {
             addreply_noformat(230, MSG_NO_PASSWORD_NEEDED);
@@ -1366,9 +1407,13 @@ void dopass(char *password)
         return;
     }
     authresult = pw_check(account, password, &ctrlconn, &peer);
-    if (*password != 0) {
-        /* Clear password from memory, paranoia */
-        memset(password, 0, strlen(password));
+    {
+        /* Clear password from memory, paranoia */        
+        register volatile char *password_ = (volatile char *) password;
+        
+        while (*password_ != 0) {
+            *password_++ = 0;
+        }
     }
     if (authresult.auth_ok != 1) {
         addreply_noformat(530, MSG_AUTH_FAILED);
@@ -1506,8 +1551,23 @@ void dopass(char *password)
             throttling_bandwidth_ul = 0UL;
     }
 #endif
-#ifndef MINIMAL
-    ngroups = getgroups(NGROUPS_MAX, g);
+#if !defined(MINIMAL) && defined(HAVE_GETGROUPS)
+# ifdef SAFE_GETGROUPS_0
+    ngroups = getgroups(0, NULL);
+    if (ngroups > ngroups_max) {
+	ngroups_max = ngroups;	
+    }
+# elif defined(_SC_NGROUPS_MAX)
+    /* get the run time value */
+    ngroups = (int) sysconf(_SC_NGROUPS_MAX);
+    if (ngroups > ngroups_max) {
+	ngroups_max = ngroups;	
+    }    
+# endif
+    if ((groups = malloc(sizeof(GETGROUPS_T) * ngroups_max)) == NULL) {
+	die_mem();
+    }
+    ngroups = getgroups(ngroups_max, groups);
     if (guest == 0 && ngroups > 0) {
         size_t p;
         const char *q;
@@ -1521,8 +1581,8 @@ void dopass(char *password)
         p = strlen(reply);
         do {
             ngroups--;
-            if ((ngroups != 0 && g[ngroups] == g[0]) ||
-                (q = getgroup(g[ngroups])) == NULL) {
+            if ((ngroups != 0 && groups[ngroups] == groups[0]) ||
+                (q = getgroup(groups[ngroups])) == NULL) {
                 continue;
             }
             if (p + strlen(q) > 75) {
@@ -1539,6 +1599,7 @@ void dopass(char *password)
         reply[p] = 0;
         addreply(0, "%s", reply);
     }
+    free(groups);
 #endif
     if (guest == 0 && allowfxp == 1) {
         addreply_noformat(0, MSG_FXP_SUPPORT);
@@ -1614,7 +1675,7 @@ void dopass(char *password)
         wd[1] = 0;
     }
 #ifndef MINIMAL
-    dobanner();
+    dobanner(0);
 #endif
 #ifdef QUOTAS
     displayquota(NULL);
@@ -1722,22 +1783,7 @@ void docwd(const char *dir)
     
 #ifndef MINIMAL
     failures = 0UL;
-    
-    {
-        FILE *msg;
-        char txtbuf[2001U];
-
-        if ((msg = fopen(".message", "rt")) != NULL) {
-            const size_t len =
-                fread(txtbuf, (size_t) 1U, sizeof txtbuf - 1U, msg);
-            fclose(msg);
-            if (len > (size_t) 0 && len < sizeof txtbuf) {
-                stripctrl(txtbuf, len);
-                txtbuf[len] = 0;
-                addreply(0, "%s", txtbuf);
-            }
-        }
-    }
+    dobanner(1);
 #endif
     if (getcwd(wd, sizeof wd) == NULL) {
         if (*dir == '/') {
@@ -1809,10 +1855,10 @@ unsigned int zrand(void)
 #endif
     }
     if (read(fd, &ret, sizeof ret) != (ssize_t) sizeof ret) {
-        close(fd);
+        (void) close(fd);
         goto nax;
     }
-    close(fd);
+    (void) close(fd);
     return (unsigned int) (ret ^ iptropy);
 }
 
@@ -1851,7 +1897,7 @@ void dopasv(int psvtype)
         return;
     }
     if (datafd != -1) {                /* for buggy clients */
-        close(datafd);
+        (void) close(datafd);
         datafd = -1;
     }
     fourinsix(&ctrlconn);
@@ -1888,7 +1934,7 @@ void dopasv(int psvtype)
             p = lastport;
         }
         if (p == firstporttried) {
-            close(datafd);
+            (void) close(datafd);
             datafd = -1;
             addreply_noformat(425, MSG_PORTS_BUSY);
             return;
@@ -1898,14 +1944,14 @@ void dopasv(int psvtype)
     socksize = (socklen_t) sizeof dataconn;
     if (listen(datafd, DEFAULT_BACKLOG_DATA) < 0 ||
         getsockname(datafd, (struct sockaddr *) &dataconn, &socksize) < 0) {
-        close(datafd);
+        (void) close(datafd);
         datafd = -1;
         error(425, MSG_GETSOCKNAME_DATA);
         return;
     }
     fourinsix(&dataconn);
     if (checkvalidaddr(&dataconn) == 0) {
-        close(datafd);
+        (void) close(datafd);
         datafd = -1;
         addreply_noformat(425, MSG_INVALID_IP);
         return;
@@ -1920,7 +1966,7 @@ void dopasv(int psvtype)
         if (STORAGE_FAMILY(force_passive_ip) == 0) {
             a = ntohl(STORAGE_SIN_ADDR(dataconn));
         } else if (STORAGE_FAMILY(force_passive_ip) == AF_INET6) {
-            close(datafd);
+            (void) close(datafd);
             datafd = -1;
             addreply_noformat(425, MSG_NO_EPSV);
             return;
@@ -1972,11 +2018,12 @@ void doport(const char *arg)
 }
 
 /*
- * Some operating systems (at least Solaris > 2.7 and FreeBSD < 4.3) have strange
- * troubles with reusing TCP ports, even when SO_REUSEADDR is enabled. Although it
- * is an OS issue, we try several unassigned privileged ports as a workaround. The
- * last ressort is to let the OS assign a port. But you can filter everything >1023
- * on your firewall if you feel paranoid (and fix the server OS) .
+ * Some operating systems (at least Solaris > 2.7 and FreeBSD) have strange
+ * troubles with reusing TCP ports, even when SO_REUSEADDR is enabled. 
+ * As a workaround, we try several unassigned privileged ports.
+ * The last way is to let the OS assign a port.
+ * For egress filtering, you can accept connections from ports <= 20
+ * to ports >= 1024.
  */
 
 void doport2(struct sockaddr_storage a, unsigned int p)
@@ -2002,7 +2049,7 @@ void doport2(struct sockaddr_storage a, unsigned int p)
         return;
     }
     if (datafd != -1) {    /* for buggy clients saying PORT over and over */
-        close(datafd);
+        (void) close(datafd);
         datafd = -1;
     }
     if (p < 1024) {
@@ -2030,7 +2077,7 @@ void doport2(struct sockaddr_storage a, unsigned int p)
         enablesignals();
 # endif
 #endif
-        close(datafd);
+        (void) close(datafd);
         datafd = -1;
         error(425, MSG_CANT_CREATE_DATA_SOCKET);
         return;
@@ -2044,8 +2091,14 @@ void doport2(struct sockaddr_storage a, unsigned int p)
         } else {
             STORAGE_PORT(dataconn) = htons(*portlistpnt);
         }
-        if (bind(datafd, (struct sockaddr *) &dataconn, STORAGE_LEN(dataconn)) == 0) {
+        if (bind(datafd, (struct sockaddr *) &dataconn, 
+                 STORAGE_LEN(dataconn)) == 0) {
+#ifdef USE_ONLY_FIXED_DATA_PORT
+            sleep(1);
+            continue;
+#else           
             break;
+#endif           
         }
         if (*portlistpnt == (unsigned short) 0U) {
             goto data_socket_error;
@@ -2075,7 +2128,7 @@ void doport2(struct sockaddr_storage a, unsigned int p)
         }
         if (allowfxp == 0 || (allowfxp == 1 && guest != 0)) {
             hu:
-            close(datafd);
+            (void) close(datafd);
             datafd = -1;
             addreply(500, MSG_NO_FXP, hbuf, peerbuf);
             return;
@@ -2095,7 +2148,7 @@ void closedata(void)
     volatile int tmp_xferfd = xferfd;   /* do not simplify this... */
     
     xferfd = -1;	       /* ...it avoids a race */
-    close(tmp_xferfd);
+    (void) close(tmp_xferfd);
 }
 
 void opendata(void)
@@ -2133,14 +2186,14 @@ void opendata(void)
             if ((fd = accept(datafd, (struct sockaddr *) &dataconn,
                              &socksize)) == -1) {
                 nope:
-                close(datafd);
+                (void) close(datafd);
                 datafd = -1;
                 error(421, MSG_ACCEPT_FAILED);
                 return;
             }
             if (STORAGE_FAMILY(dataconn) != AF_INET
                 && STORAGE_FAMILY(dataconn) != AF_INET6) {
-                close(fd);
+                (void) close(fd);
                 goto nope;
             }
             fourinsix(&dataconn);
@@ -2149,7 +2202,7 @@ void opendata(void)
             }
             if (allowfxp == 0 || (allowfxp == 1 && guest != 0)) {
                 shutdown(fd, 2);
-                close(fd);
+                (void) close(fd);
             } else {
                 break;
             }
@@ -2179,7 +2232,7 @@ void opendata(void)
             }
             addreply(425, MSG_CNX_PORT_FAILED ": %s",
                      peerdataport, strerror(errno));
-            close(datafd);
+            (void) close(datafd);
             datafd = -1;
             return;
         }
@@ -2247,7 +2300,7 @@ void dochmod(char *name, mode_t mode)
         goto failure;
     }
 # ifdef QUOTAS
-    if (hasquota() == 0) {
+    if (hasquota() == 0 && S_ISDIR(st2.st_mode)) {
         mode |= 0500;
     }
 # endif
@@ -2311,11 +2364,20 @@ void dodele(char *name)
 
 #ifdef QUOTAS
     {
+	char *p;
         struct stat st;
-        struct stat st2;        
-        char qtfile[84];
+        struct stat st2;
+	size_t dirlen = (size_t) 0U;	
+        char qtfile[MAXPATHLEN + 1];
 
-        if (SNCHECK(snprintf(qtfile, sizeof qtfile, ".pureftpd-rename.%lu.%d",
+	if ((p = strrchr(name, '/')) != NULL) {
+	    if ((dirlen = p - name + (size_t) 1U) >= sizeof qtfile) {
+		goto denied;       /* should never happen */
+	    }
+	    memcpy(qtfile, name, dirlen);   /* safe, dirlen < sizeof qtfile */
+	}	
+        if (SNCHECK(snprintf(qtfile + dirlen, sizeof qtfile - dirlen,
+			     ".pureftpd-rename.%lu.%d",
                              (unsigned long) getpid(), zrand()),
                     sizeof qtfile)) {
             goto denied;
@@ -2553,10 +2615,12 @@ void doretr(char *name)
         addreply(550, MSG_LOAD_TOO_HIGH, load);
         goto end;
     }
+# if !defined(WIN32) && !defined(_WIN32) && !defined(__WIN32__) && !defined(__CYGWIN__)
     if (type < 1 || (type == 1 && restartat > (off_t) 1)) {
         addreply_noformat(503, MSG_NO_ASCII_RESUME);
         goto end;
     }
+# endif
     if (checknamesanity(name, dot_read_ok) != 0) {
         addreply(550, MSG_SANITY_FILE_FAILURE, name);
         goto end;
@@ -2567,7 +2631,7 @@ void doretr(char *name)
     }
     if (fstat(f, &st) < 0) {
         stat_failure:
-        close(f);
+        (void) close(f);
         error(451, MSG_STAT_FAILURE);
         goto end;
     }
@@ -2577,7 +2641,7 @@ void doretr(char *name)
         }
     }
     if (restartat && (restartat > st.st_size)) {
-        close(f);
+        (void) close(f);
         addreply(451, MSG_REST_TOO_LARGE_FOR_FILE "\n" MSG_REST_RESET,
                  (long long) restartat, (long long) st.st_size);
         goto end;
@@ -2587,12 +2651,12 @@ void doretr(char *name)
         || st.st_size >= INT_MAX
 #endif
         ) {
-        close(f);
+        (void) close(f);
         addreply_noformat(550, MSG_NOT_REGULAR_FILE);
         goto end;
     }
     if (warez != 0 && st.st_uid == warez && guest != 0) {
-        close(f);
+        (void) close(f);
         addreply(550, MSG_NOT_MODERATED);
         goto end;
     }
@@ -2600,7 +2664,7 @@ void doretr(char *name)
     if (ratio_upload > 0U && ratio_download > 0U) {
         if ((downloaded + st.st_size - restartat) / ratio_download >
             (uploaded / ratio_upload)) {
-            close(f);
+            (void) close(f);
             addreply(550, MSG_RATIO_DENIAL, ratio_upload, ratio_download,
                      (unsigned long long) uploaded / 1024ULL,
                      (unsigned long long) downloaded / 1024ULL);
@@ -2610,19 +2674,19 @@ void doretr(char *name)
 #endif
     opendata();
     if (xferfd == -1) {
-        close(f);
+        (void) close(f);
         goto end;
     }
     if (restartat > st.st_size) {
         /* some clients insist on doing this.  I can't imagine why. */
         addreply_noformat(226, MSG_NO_MORE_TO_DOWNLOAD);
-        close(f);
+        (void) close(f);
 	closedata();
         goto end;
     }
 #ifdef NON_BLOCKING_DATA_SOCKET
     if ((s = fcntl(xferfd, F_GETFL, 0)) < 0) {
-        close(f);
+        (void) close(f);
 	closedata();
         error(451, "fcntl");
         goto end;
@@ -2731,7 +2795,7 @@ void doretr(char *name)
                 
 		vec[0].sfv_fd   = f;
 		vec[0].sfv_flag = 0;
-		vec[0].sfv_off  = 0;
+		vec[0].sfv_off  = o;
 		vec[0].sfv_len  = (size_t) left;
 		if (sendfilev(xferfd, vec, 1, &w) < 0) {
 		    if ((errno != EAGAIN && errno != EINTR) || w < (off_t) 0) {
@@ -2759,7 +2823,7 @@ void doretr(char *name)
                         select(xferfd + 1, &rs, &ws, NULL, &tv);
                         if (FD_ISSET(0, &rs)) {
                             /* we assume it is ABRT since nothing else is legal */
-                            close(f);
+                            (void) close(f);
 			    closedata();
                             addreply_noformat(426, MSG_ABORTED);
                             goto end;
@@ -2771,7 +2835,7 @@ void doretr(char *name)
                         }
                         w = 0;
                     } else {
-                        close(f);
+                        (void) close(f);
                         if (xferfd != -1) {
 			    closedata();
                             error(450, MSG_DATA_WRITE_FAILED);
@@ -2800,7 +2864,7 @@ void doretr(char *name)
                             delay = (long double) MAX_THROTTLING_DELAY;
                         }
                         if (delay > 0.0L) {
-                            usleep2(delay * 1000000.0L);
+                            usleep2((unsigned long) (delay * 1000000.0L));
                         }
                     }
 # endif
@@ -2824,7 +2888,7 @@ void doretr(char *name)
             buf = mmap(0, left, PROT_READ, MAP_FILE | MAP_SHARED, f, o);
             if (buf == (char *) MAP_FAILED) {
 		closedata();
-                close(f);
+                (void) close(f);
                 error(451, MSG_MMAP_FAILED);
                 goto end;
             }
@@ -2853,7 +2917,7 @@ void doretr(char *name)
                         if (FD_ISSET(0, &rs)) {
                             /* we assume is is ABRT since nothing else is legal */
                             (void) munmap(buf, s);
-                            close(f);
+                            (void) close(f);
 			    closedata();
                             addreply_noformat(426, MSG_ABORTED);
                             goto end;
@@ -2864,7 +2928,7 @@ void doretr(char *name)
                         }
                         w = (ssize_t) 0;
                     } else {
-                        close(f);
+                        (void) close(f);
                         if (xferfd != -1) {
 			    closedata();
                             error(450, MSG_DATA_WRITE_FAILED);
@@ -2889,7 +2953,7 @@ void doretr(char *name)
                         delay = (long double) MAX_THROTTLING_DELAY;
                     }
                     if (delay > 0.0L) {
-                        usleep2(delay * 1000000.0L);
+                        usleep2((unsigned long) (delay * 1000000.0L));
                     }
                 }
 # endif
@@ -2920,7 +2984,7 @@ void doretr(char *name)
             buf = mmap(0, left, PROT_READ, MAP_FILE | MAP_SHARED, f, o);
             if (buf == (char *) MAP_FAILED) {
 		closedata();
-                close(f);
+                (void) close(f);
                 error(451, MSG_MMAP_FAILED);
                 goto end;
             }
@@ -2949,7 +3013,7 @@ void doretr(char *name)
                             /* we assume is is ABRT since nothing else is legal */
                             (void) munmap(buf, s);
 			    closedata();
-                            close(f);
+                            (void) close(f);
                             addreply_noformat(426, MSG_ABORTED);
                             goto end;
                         } else if (!(FD_ISSET(xferfd, &ws))) {
@@ -2959,7 +3023,7 @@ void doretr(char *name)
                         }
                         w = (ssize_t) 0;
                     } else {
-                        close(f);
+                        (void) close(f);
                         if (xferfd != -1) {
 			    closedata();
                             error(450, MSG_DATA_WRITE_FAILED);
@@ -2984,7 +3048,7 @@ void doretr(char *name)
                         delay = (long double) MAX_THROTTLING_DELAY;
                     }
                     if (delay > 0.0L) {
-                        usleep2(delay * 1000000.0L);
+                        usleep2((unsigned long) (delay * 1000000.0L));
                     }
                 }
 # endif
@@ -2994,7 +3058,7 @@ void doretr(char *name)
         }
     }
 #endif
-    close(f);
+    (void) close(f);
     closedata();
     displayrate(MSG_DOWNLOADED, st.st_size - restartat, started, name, 0);
     end:
@@ -3095,7 +3159,7 @@ void dofeat(void)
 {
 # define FEAT  "Extensions supported:" CRLF \
     " EPRT" CRLF " IDLE" CRLF " MDTM" CRLF " SIZE" CRLF \
-    " ESTA" CRLF " ESTP" CRLF " REST STREAM" CRLF \
+    " REST STREAM" CRLF \
     " MLST type*;size*;sizd*;modify*;UNIX.mode*;UNIX.uid*;UNIX.gid*;unique*;" CRLF \
     " MLSD"
 # ifdef DEBUG
@@ -3109,11 +3173,25 @@ void dofeat(void)
 #  define FEAT_TVFS CRLF " TVFS"
 # endif
 # define FEAT_PASV CRLF " PASV" CRLF " EPSV" CRLF " SPSV"
-    char feat[] = FEAT FEAT_DEBUG FEAT_TVFS FEAT_PASV;
+
+#ifdef MINIMAL
+# define FEAT_ESTA ""
+# define FEAT_ESTP ""
+#else
+# define FEAT_ESTA CRLF " ESTA"
+# define FEAT_ESTP CRLF " ESTP"
+#endif
+    
+    char feat[] = FEAT FEAT_DEBUG FEAT_TVFS FEAT_ESTP FEAT_PASV FEAT_ESTA;
 
     if (disallow_passive != 0) {
-        feat[sizeof FEAT FEAT_DEBUG FEAT_TVFS] = 0;
+        feat[sizeof FEAT FEAT_DEBUG FEAT_TVFS FEAT_ESTP] = 0;
     }
+#ifndef MINIMAL
+    else if (STORAGE_FAMILY(force_passive_ip) != 0) {
+        feat[sizeof FEAT FEAT_DEBUG FEAT_TVFS FEAT_ESTP FEAT_PASV] = 0;
+    }
+#endif
     addreply_noformat(0, feat);
     addreply_noformat(211, "End.");
 }
@@ -3209,11 +3287,11 @@ static int dostor_quota_update_close_f(const int overwrite,
         addreply(550, MSG_QUOTA_EXCEEDED, name);
         /* ftruncate+unlink is overkill, but it reduce possible races */
         ftruncate(f, (off_t) 0);
-        close(f);
+        (void) close(f);
         unlink(name);
         ret = -1;
     } else {
-        close(f);
+        (void) close(f);
     }
     displayquota(&quota);
     
@@ -3319,7 +3397,7 @@ void dostor(char *name, const int append, const int autorename)
             goto end;
         }
         if (fstat(f, &st) < 0) {
-            close(f);
+            (void) close(f);
             error(553, MSG_STAT_FAILURE2);
             goto end;
         }
@@ -3328,7 +3406,7 @@ void dostor(char *name, const int append, const int autorename)
             || st.st_size >= INT_MAX
 #endif
             ) {
-            close(f);
+            (void) close(f);
             addreply_noformat(553, MSG_NOT_REGULAR_FILE);
             goto end;
         }
@@ -3337,7 +3415,7 @@ void dostor(char *name, const int append, const int autorename)
 #ifndef ANON_CAN_RESUME
             if (guest != 0) {
                 addreply_noformat(553, MSG_ANON_CANT_OVERWRITE);
-                close(f);
+                (void) close(f);
                 goto end;
             }
 #endif
@@ -3351,13 +3429,13 @@ void dostor(char *name, const int append, const int autorename)
             restartat = st.st_size;
         }
         if (restartat > (off_t) 0 && lseek(f, restartat, SEEK_SET) < (off_t) 0) {
-            close(f);
+            (void) close(f);
             error(451, "seek");
             goto end;
         }
         if (restartat < st.st_size) {
             if (ftruncate(f, restartat) < 0) {
-                close(f);
+                (void) close(f);
                 error(451, "ftruncate");
                 goto end;
             }
@@ -3376,7 +3454,7 @@ void dostor(char *name, const int append, const int autorename)
     }
     opendata();
     if (xferfd == -1) {
-        close(f);
+        (void) close(f);
         goto end;
     }
     doreply();
@@ -3431,7 +3509,7 @@ void dostor(char *name, const int append, const int autorename)
             (void) dostor_quota_update_close_f(overwrite, filesize,
                                                restartat, name, f);
 #else                        
-            close(f);
+            (void) close(f);
 #endif
 	    closedata();
             addreply_noformat(0, MSG_ABRT_ONLY);
@@ -3469,7 +3547,7 @@ void dostor(char *name, const int append, const int autorename)
                     delay = (long double) MAX_THROTTLING_DELAY;
                 }
                 if (delay > 0.0L) {
-                    usleep2(delay * 1000000.0L);
+                    usleep2((unsigned long) (delay * 1000000.0L));
                 }
             }
 #endif
@@ -3505,7 +3583,7 @@ void dostor(char *name, const int append, const int autorename)
                     dostor_quota_update_close_f(overwrite, filesize,
                                                 restartat, name, f);
 #else                        
-                    close(f);
+                    (void) close(f);
 #endif
 		    closedata();
                     error(-450, MSG_WRITE_FAILED);
@@ -3547,7 +3625,7 @@ void dostor(char *name, const int append, const int autorename)
     quota_exceeded = 
         dostor_quota_update_close_f(overwrite, filesize, restartat, name, f);
 #else
-    close(f);
+    (void) close(f);
 #endif
     uploaded += (unsigned long long) (filesize - restartat);
 #ifdef QUOTAS
@@ -3778,7 +3856,7 @@ static void fortune(void)
     struct stat st;
     off_t gl;
     char *fortunepnt;
-    char fortune[4000];
+    char fortune[2048];
 
     if (fortunes_file == NULL || *fortunes_file == 0) {
         return;
@@ -3794,7 +3872,7 @@ static void fortune(void)
         (buf = mmap(NULL, (size_t) st.st_size,
                 PROT_READ, MAP_FILE | MAP_SHARED, fd,
                 (off_t) 0)) == (char *) MAP_FAILED) {
-        close(fd);
+        (void) close(fd);
         logfile(LOG_ERR, MSG_OPEN_FAILURE, fortunes_file);
         return;
     }
@@ -3840,14 +3918,15 @@ static void fortune(void)
     while (*fortunepnt == '\n') {
         fortunepnt++;
     }
-    if (*fortunepnt != 0) {
-        addreply_noformat(220, "<<");
-        addreply(220, "%s", fortunepnt);
-        addreply_noformat(220, ">>");
+    if (*fortunepnt == 0) {
+	goto bye;
     }
+    addreply_noformat(220, "<<");
+    addreply(220, "%s", fortunepnt);
+    addreply_noformat(220, ">>");
     bye:
     (void) munmap(buf, st.st_size);
-    close(fd);
+    (void) close(fd);
 }
 #endif
 
@@ -3942,7 +4021,6 @@ static void doit(void)
 {
     socklen_t socksize;
     struct rusage ru;
-    struct tm *t;
 
     session_start_time = time(NULL);
     fixlimits();
@@ -3992,8 +4070,12 @@ static void doit(void)
     logfile(LOG_INFO, MSG_NEW_CONNECTION, host);
 
 #ifndef NO_BANNER
+# ifdef BORING_MODE
+    addreply_noformat(0, MSG_WELCOME_TO " Pure-FTPd.");
+# else
     addreply_noformat(0, "=(<*>)=-.:. (( " MSG_WELCOME_TO 
-                      " PureFTPd " VERSION " )) .:.-=(<*>)=-");
+                      " Pure-FTPd " VERSION " )) .:.-=(<*>)=-");
+# endif
 #else
     addreply_noformat(220, "FTP server ready.");
 #endif
@@ -4065,85 +4147,17 @@ static void doit(void)
             logfile(LOG_ERR, "altlog %s: %s", altlog_filename, strerror(errno));
         }
     }
-#endif    
-    
-    /* Back to the client */
-#ifdef HAVE_GETLOADAVG                 /* BSD */
-    if (getloadavg(&load, 1) < 0) {
-        load = 0.0;
-    }
-#elif defined(HAVE_SYS_SYSGET_H) && defined(SGT_COOKIE_SET_KSYM) && defined(KSYM_AVENRUN)
-    {
-        int sgt_res;
-        int avenrun;
-        sgt_cookie_t ck;        
-        
-        SGT_COOKIE_INIT(&ck);
-        SGT_COOKIE_SET_KSYM(&ck, KSYM_AVENRUN);
-        sgt_res = sysget(SGT_KSYM, (char *) &avenrun, sizeof avenrun,
-                         SGT_READ | SGT_SUM, &ck);
-        if (sgt_res > 0) {
-            sgt_res /= sizeof avenrun;
-            avenrun /= sgt_res;
-            load = ((double) avenrun) / 1024.0;
-        }
-    }
-#elif defined(__svr4__) && defined(__sun__) /* Solaris 2 aka SunOS 5 */
-    {
-        long avenrun_loc = 0L;
-        kvm_t *kd;
-        struct nlist nmlst[2];
-        char n_name[] = "avenrun";
-        
-        memset(&nmlst, 0, sizeof nmlst);
-        nmlst[0].n_name = n_name;
-        nmlst[0].n_value = 0L;
-        nmlst[1].n_name = NULL;
-        
-# define LOADAV 0
-        
-        if ((kd = kvm_open(NULL, NULL, NULL, O_RDONLY, NULL)) != NULL) {
-            if (kvm_nlist(kd, nmlst) == 0) {
-                if (nmlst[LOADAV].n_type != 0 && nmlst[LOADAV].n_value != 0L) {
-                    avenrun_loc = nmlst[LOADAV].n_value;
-                }
-            }
-            kvm_close(kd);
-            if (avenrun_loc != 0L) {
-                int kmem;
-                
-                if ((kmem = open("/dev/kmem", O_RDONLY)) != -1) {
-                    long temp;
-                    
-                    (void) lseek(kmem, (off_t) avenrun_loc, SEEK_SET);
-                    if (read(kmem, (char *) &temp, 
-                             sizeof(long)) == sizeof(long)) {
-                        load = (double) temp / FSCALE;
-                    }
-                    close(kmem);
-                }                
-            }
-        }
-    }
-#elif defined(HAVE_PSTAT_GETDYNAMIC)
-    {
-        struct pst_dynamic dyn_info;
-        
-        if (pstat_getdynamic(&dyn_info, sizeof dyn_info, 0, 0) >= 0) {
-            load = (double) (dyn_info.psd_avg_1_min);
-        }         
-    }
-#else
-    { /* Linux */
-        FILE *f;
-        
-        load = 0.0;
-        if ((f = fopen("/proc/loadavg", "rt")) != NULL) {
-            fscanf(f, "%lf", &load);
-            fclose(f);
-        }
-    }
 #endif
+    /* Back to the client - Get the 5 min load average */
+    {
+        double load_[2];
+        
+        if (getloadavg(load_, sizeof load_ / sizeof load_[0]) < 0) {
+            load = 0.0;
+        } else {
+            load = load_[1];
+        }
+    }
 #ifndef NON_ROOT_FTP
     wd[0] = '/';
     wd[1] = 0;
@@ -4174,15 +4188,19 @@ static void doit(void)
 #else
     srand((unsigned int) session_start_time ^ (unsigned int) zrand());
 #endif
-    t = localtime(&session_start_time);
 #ifdef COOKIE
     fortune();
 #endif
-#ifndef NO_BANNER
-    if (t != NULL)
-        addreply(220, MSG_WELCOME_TIME,
-                 t->tm_hour, t->tm_min, load > 0.0 ? load : 0.0,
-                 (unsigned int) serverport);
+#if !defined(NO_BANNER) && !defined(BORING_MODE)
+    {
+        struct tm *t;
+        
+        if ((t = localtime(&session_start_time)) != NULL) {
+            addreply(220, MSG_WELCOME_TIME,
+                     t->tm_hour, t->tm_min, load > 0.0 ? load : 0.0,
+                     (unsigned int) serverport);
+        }
+    }
 #endif
     if (anon_only > 0) {
         addreply_noformat(220, MSG_ANONYMOUS_FTP_ONLY);
@@ -4217,6 +4235,10 @@ static void doit(void)
 
     candownload = (signed char) ((maxload <= 0.0) || (load < maxload));
     parser();
+#ifdef BORING_MODE
+    addreply(0, MSG_LOGOUT);
+    logfile(LOG_INFO, MSG_LOGOUT);    
+#else
     if (getrusage(RUSAGE_SELF, &ru) == 0) {
         unsigned long s, u;
 
@@ -4229,8 +4251,9 @@ static void doit(void)
         addreply(0, MSG_INFO_CPU_TIME, s, u);
         logfile(LOG_INFO, MSG_INFO_CPU_TIME, s, u);
     } else {
-        logfile(LOG_INFO, MSG_INFO_CPU_TIME, 42UL, 42UL);
+        logfile(LOG_INFO, MSG_LOGOUT);
     }
+#endif
     doreply();
 }
 
@@ -4240,7 +4263,7 @@ static void check_ipv6_support(void)     /* check for ipv6 support in kernel */
     int p;
 
     if ((p = socket(PF_INET6, SOCK_STREAM, IPPROTO_TCP)) != -1) {
-        close(p);
+        (void) close(p);
         v6ready++;
     }
 #endif
@@ -4266,7 +4289,7 @@ static void updatepidfile(void)
     if (safe_write(fd, buf, strlen(buf)) != 0) {
         ftruncate(fd, (off_t) 0);
     }
-    close(fd);
+    (void) close(fd);
 }
 
 #ifndef NO_STANDALONE
@@ -4293,7 +4316,7 @@ static void dodaemonize(void)
 # endif
             do {
                 if (isatty((int) i)) {
-                    close((int) i);
+                    (void) close((int) i);
                 }
                 i--;
             } while (i != 0U);
@@ -4312,7 +4335,7 @@ static void standalone_server(void)
     pid_t child;
 
     if (isatty(0)) {
-        close(0);
+        (void) close(0);
     }
 # ifndef NO_INETD
     standalone = 1;
@@ -4354,7 +4377,7 @@ static void standalone_server(void)
         }
         if (STORAGE_FAMILY(sa) != AF_INET
             && STORAGE_FAMILY(sa) != AF_INET6) {
-            close(clientfd);
+            (void) close(clientfd);
             continue;
         }
         if (maxusers > 0U && nb_children >= maxusers) {
@@ -4366,7 +4389,7 @@ static void standalone_server(void)
                 /* No need to check a return value to say 'fuck' */
                 (void) write(clientfd, line, strlen(line));
             }
-            close(clientfd);
+            (void) close(clientfd);
             continue;
         }
         if (maxip > 0U) {
@@ -4392,7 +4415,7 @@ static void standalone_server(void)
                                 (unsigned long) maxip, hbuf);
                     }
                 }
-                close(clientfd);
+                (void) close(clientfd);
                 continue;
             }
         }
@@ -4405,13 +4428,13 @@ static void standalone_server(void)
             dup2(clientfd, 0);
             dup2(0, 1);
             if (clientfd > 1) {
-                close(clientfd);
+                (void) close(clientfd);
             }
             if (listenfd > 1) {
-                close(listenfd);
+                (void) close(listenfd);
             }
             if (isatty(2)) {
-                close(2);
+                (void) close(2);
             }
 # ifndef SAVE_DESCRIPTORS
             if (no_syslog == 0) {
@@ -4430,7 +4453,7 @@ static void standalone_server(void)
                 iptrack_add(&sa, child);
             }
         }
-        close(clientfd);
+        (void) close(clientfd);
         sigprocmask(SIG_UNBLOCK, &set, NULL);
     }
 }
@@ -4504,6 +4527,18 @@ int main(int argc, char *argv[])
 
     loggedin = 0;
 
+#ifdef BANNER_ENVIRON
+# ifdef COOKIE
+    {
+	const char *a;
+	
+	if ((a = getenv("BANNER")) != NULL && *a != 0) {
+	    fortunes_file = strdup(a);
+	}
+    }
+# endif
+#endif
+    
     while ((fodder =
 #ifndef NO_GETOPT_LONG
             getopt_long(argc, argv, GETOPT_OPTIONS, long_options, &option_index)
@@ -4708,6 +4743,11 @@ int main(int argc, char *argv[])
         }
 #ifdef COOKIE
         case 'F': {
+# ifdef BANNER_ENVIRON	    
+	    if (fortunes_file != NULL) {
+		free(fortunes_file);
+	    }
+# endif
             fortunes_file = strdup(optarg);
             break;
         }
@@ -5112,6 +5152,7 @@ int main(int argc, char *argv[])
         free(trustedip);
     }
 #ifndef NO_STANDALONE
+    iptrack_free();    
     unlink(pid_file);
 #endif
     closelog();

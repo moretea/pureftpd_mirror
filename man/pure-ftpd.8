@@ -1,13 +1,10 @@
 .\"
-.\" Troll-FTPd written by Arnt Gulbrandsen <agulbra@troll.no> and copyright 1995-1999
-.\" Troll Tech AS, Waldemar Thranes gate 98B, N-0175 Oslo, Norway, fax +47
-.\" 22806380.
-.\"
-.\" Pure-FTPd (C)opyleft 2001-2002 by Frank DENIS <j@pureftpd.org> and the Pure-FTPd team.
+.\" Troll-FTPd is Copyright 1995-2000 Trolltech AS, and Copyright 2001-2002 Arnt Gulbrandsen.
+.\" Pure-FTPd is (C)opyleft 2001-2002 by Frank DENIS <j@pureftpd.org> and the Pure-FTPd team.
 .\"
 .\" Use, modification and distribution is allowed without limitation, warranty, or liability of any kind.
 .\"
-.TH "pure-ftpd" "8" "1.0.12" "Pure-FTPd Team" "Pure-FTPd"
+.TH "pure-ftpd" "8" "1.0.13" "Pure-FTPd Team" "Pure-FTPd"
 .SH "NAME"
 pure\-ftpd \- simple File Transfer Protocol server
 
@@ -122,7 +119,7 @@ Alternative style, unless compiled with
 \-Z \-\-customerproof
 
 .SH "DESCRIPTION"
-.B PureFTPd
+.B Pure\-FTPd
 is a small, simple server for the old and hairy File Transfer
 Protocol, designed to use less resources than older servers, be
 smaller and very secure, and to never execute any external program.
@@ -142,7 +139,8 @@ Add the PID to the syslog output. Ignored if
 is set.
 .TP
 .B \-4
-Listen only for IPv4 connections. MANDATORY FOR IPV NETWORKS ON OPENBSD.
+Listen only for IPv4 connections. MANDATORY FOR IPv4 NETWORKS ON
+OPENBSD, NETBSD AND MICROBSD.
 .TP
 .B \-A
 Chroot() everyone, but root.
@@ -875,16 +873,17 @@ Please report bugs to the mailing\-list (see below).
 Pure\-FTPd looks very stable and is used on production servers. However it comes with no warranty and it can have nasty bugs or security flaws.
 
 .SH "HOME PAGE"
-http://www.pureftpd.org
+http://www.pureftpd.org/
 .SH "NEW VERSIONS"
-See the mailing\-list on \fBhttp://www.pureftpd.org\fR.
+See the mailing\-list on \fBhttp://www.pureftpd.org/ml/\fR.
 
 .SH "AUTHOR AND LICENCE"
-Troll\-FTPd was written by Arnt Gulbrandsen <agulbra@troll.no> and copyright 1995\-1999
+Troll\-FTPd was written by Arnt Gulbrandsen <agulbra@troll.no> and copyright 1995\-2002
 Troll Tech AS, Waldemar Thranes gate 98B, N\-0175 Oslo, Norway, fax +47
 22806380.
 .PP
-Pure\-FTPd is (C)opyleft 2001 by Frank DENIS <j@pureftpd.org> and the Pure\-FTPd team.
+Pure\-FTPd is (C)opyleft 2001\-2002 by Frank DENIS <j@pureftpd.org> and
+the Pure\-FTPd team.
 .PP
 This software is covered by a dual GPL/BSD license.
 .PP
@@ -948,7 +947,13 @@ Contributors:
     Alex Dupre,
     Gabriele Vinci,
     Andrey Ulanov,
-    Fygul Hether.
+    Fygul Hether,
+    Jeffrey Lim,
+    Ying-Chieh Liao,
+    Johannes Erdfelt,
+    Martin Sarfy,
+    Clive Goodhead,
+    Aristoteles Pagaltzis.
 
 .SH "SEE ALSO"
 .BR "ftp(1)" ,

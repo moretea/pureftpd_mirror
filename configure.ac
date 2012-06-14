@@ -1,8 +1,10 @@
+dnl AM_ACLOCAL_INCLUDE(m4)
+
 AC_PREREQ(2.50)
-AC_INIT
-AM_INIT_AUTOMAKE(pure-ftpd, 1.0.12)
+AC_INIT(pure-ftpd, 1.0.13a, bugs@pureftpd.org)
 AC_CONFIG_SRCDIR(src/ftpd.c)
 AM_CONFIG_HEADER(config.h)
+AM_INIT_AUTOMAKE([1.6 dist-bzip2])
 
 AC_SUBST(VERSION)
 
@@ -25,7 +27,7 @@ AC_ARG_VAR(PYTHON,local path to the python interpreter)
 python_possible_path="/usr/bin:/usr/local/bin:/bin:/opt/python/bin:/opt/python/usr/bin:/opt/python/usr/local/bin"
 AC_PATH_PROG(PYTHON,python,/usr/bin/env python,$python_possible_path)
 
-CFLAGS="$CFLAGS -D_GNU_SOURCE=1 -I/usr/local/include"
+CPPFLAGS="$CPPFLAGS -D_GNU_SOURCE=1 -I/usr/local/include"
 LDFLAGS="$LDFLAGS -L/usr/local/lib"
 
 dnl Checks for header files
@@ -34,12 +36,13 @@ AC_HEADER_STDC
 AC_HEADER_STAT
 AC_HEADER_TIME
 AC_HEADER_DIRENT
+AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS(unistd.h string.h strings.h sys/param.h ioctl.h sys/ioctl.h)
 AC_CHECK_HEADERS(sys/vfs.h sys/statvfs.h sys/sendfile.h sys/uio.h sys/fsuid.h)
-AC_CHECK_HEADERS(sys/time.h sys/resource.h sys/wait.h sys/capability.h)
+AC_CHECK_HEADERS(sys/time.h sys/resource.h sys/capability.h)
 AC_CHECK_HEADERS(shadow.h getopt.h stddef.h)
 AC_CHECK_HEADERS(netinet/in_systm.h netinet/in.h sys/mount.h sys/pstat.h)
-AC_CHECK_HEADERS(fcntl.h sys/fcntl.h sys/loadavg.h sys/sysmp.h sys/sysget.h)
+AC_CHECK_HEADERS(fcntl.h sys/fcntl.h sys/loadavg.h)
 AC_CHECK_HEADERS(security/pam_appl.h security/pam_misc.h security/pam_filter.h)
 AC_CHECK_HEADERS(sgtty.h termio.h)
 AC_CHECK_HEADERS(locale.h)
@@ -234,7 +237,7 @@ AC_ARG_WITH(shadow,
 if test -z "$no_shadow" && test "x$ac_cv_header_shadow_h" = "xyes" ; then
   AC_CHECK_FUNC(getspnam, AC_DEFINE(USE_SHADOW,,[use shadow passwords]),
     AC_CHECK_LIB(shadow, getspnam, AC_DEFINE(USE_SHADOW),
-      AC_WARN("shadow.h was found, but getspnam() isn't available")
+      AC_MSG_WARN("shadow.h was found, but getspnam() isn't available")
     )
   )
 fi
@@ -293,6 +296,13 @@ AC_ARG_WITH(sendfile,
     AC_DEFINE(DISABLE_SENDFILE,,[without sendfile])
   fi ])
 
+AC_ARG_WITH(boring,
+[AC_HELP_STRING([--with-boring],[Display only boring messages])],
+[ if test "x$withval" = "xyes" ; then
+    AC_DEFINE(BORING_MODE,,[display only boring messages])
+    AC_DEFINE(DISABLE_HUMOR)
+  fi ])
+
 AC_ARG_WITH(brokenrealpath,
 [AC_HELP_STRING([--with-brokenrealpath],[If your libc has a broken realpath() call])],
 [ if test "x$withval" = "xyes" ; then
@@ -314,7 +324,7 @@ AC_ARG_WITH(minimal,
     AC_DEFINE(NO_FTP_USERS)
     AC_DEFINE(WITHOUT_ASCII)    
     AC_DEFINE(NO_BANNER)        
-    CFLAGS="$CFLAGS -Os -fomit-frame-pointer -fgcse -malign-functions=2 -malign-jumps=2 -fno-unroll-loops "
+    CFLAGS="$CFLAGS -Os -fomit-frame-pointer -fssa -fgcse -falign-functions=2 -falign-jumps=2 -fno-unroll-loops "
     LDFLAGS="$LDFLAGS -s "
   fi ])
 
@@ -747,7 +757,7 @@ AC_ARG_WITH(language,
 [AC_HELP_STRING([--with-language=],[< english | german | romanian | french |
 french-funny | polish | spanish | danish | dutch | italian |
 brazilian-portuguese | slovak | korean | swedish | norwegian | russian |
-traditional-chinese | simplified-chinese >])],
+traditional-chinese | simplified-chinese | czech >])],
 [ if test "x$withval" = "xenglish" ; then
     AC_DEFINE(MESSAGES_EN,,[english])
   elif test "x$withval" = "xgerman" ; then
@@ -781,11 +791,13 @@ traditional-chinese | simplified-chinese >])],
   elif test "x$withval" = "xrussian" ; then
     AC_DEFINE(MESSAGES_RU,,[russian])
   elif test "x$withval" = "xtraditional-chinese" ; then
-    AC_DEFINE(MESSAGES_ZH_CN,,[traditional chinese])
+    AC_DEFINE(MESSAGES_ZH_TW,,[traditional chinese])
   elif test "x$withval" = "xsimplified-chinese" ; then
-    AC_DEFINE(MESSAGES_ZH_TW,,[simplified chinese])
+    AC_DEFINE(MESSAGES_ZH_CN,,[simplified chinese])
+  elif test "x$withval" = "xczech" ; then
+    AC_DEFINE(MESSAGES_CS_CZ,,[czech])
   else 
-    AC_WARN("--with-language=$withval is not recognized") 
+    AC_MSG_WARN("--with-language=$withval is not recognized") 
   fi ])
 
 
@@ -801,7 +813,7 @@ AC_FUNC_MEMCMP
 AC_FUNC_STRFTIME
 AC_FUNC_STAT
 AC_FUNC_VPRINTF
-AC_FUNC_GETLOADAVG
+AC_FUNC_GETLOADAVG(src)
 AC_FUNC_GETGROUPS
 
 AC_CHECK_FUNCS(initgroups setrlimit waitpid setproctitle getopt_long)
@@ -814,38 +826,6 @@ AC_CHECK_FUNCS(setusershell setgroups snprintf vsnprintf vfprintf gethostname)
 AC_CHECK_FUNCS(setlocale)
 AC_CHECK_FUNCS(utime utimes mknod mkfifo)
 AC_CHECK_FUNCS(random srandomdev SHA1Transform MD5Transform)
-
-AC_MSG_CHECKING([whether we must link kvm and elf (Solaris)])
-AC_TRY_COMPILE([
-#include <stdio.h>
-#ifdef HAVE_UNISTD_H
-# include <unistd.h>
-#endif
-#include <sys/types.h>
-#include <kvm.h>
-#include <nlist.h>
-],
-[
-#if defined(__svr4__) && defined(__sun__)
-kvm_t *kd;
-struct nlist nmlstload;
-
-(void) kd;
-(void) nmlstload;
-
-return 0;
-#else
-choke me
-#endif
-],
-[
-  AC_MSG_RESULT(yes)
-  AC_CHECK_LIB(elf, nlist)  
-  AC_CHECK_LIB(kvm, kvm_open)
-],
-[
-  AC_MSG_RESULT(no)
-])
 
 AC_MSG_CHECKING([whether statvfs64() is defined])
 AC_TRY_COMPILE([
@@ -893,7 +873,7 @@ int main(void)
 {
     char buf[4];
     
-    (void) fprintf(fopen("conftestval", "wt"), "%d\n",
+    (void) fprintf(fopen("conftestval", "w"), "%d\n",
         (int) snprintf(buf, sizeof buf, "12345678"));
     return 0;
 }
@@ -902,10 +882,38 @@ CONF_SNPRINTF_TYPE=`cat conftestval`
 )
 AC_MSG_RESULT(done)
 if test "x$CONF_SNPRINTF_TYPE" = "x" ; then
-  AC_WARN(your operating system doesn't implement snprintf)
+  AC_MSG_WARN(your operating system doesn't implement snprintf)
 else
   AC_DEFINE_UNQUOTED(CONF_SNPRINTF_TYPE, $CONF_SNPRINTF_TYPE, [return value of an overflowed snprintf])
 fi
+
+
+AC_MSG_CHECKING(whether getgroups 0 is sane)
+AC_TRY_RUN([
+#include <stdio.h>
+#ifdef STDC_HEADERS
+# include <stdlib.h>
+# include <stddef.h>
+#else
+# if HAVE_STDLIB_H
+#  include <stdlib.h>
+# endif
+#endif
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
+
+int main(void)
+{
+    return getgroups(0, NULL) <= 0;
+}
+],
+[
+AC_MSG_RESULT(yes)
+AC_DEFINE(SAFE_GETGROUPS_0,,[Define is getgroups(0, NULL) works on your system])
+],
+AC_MSG_RESULT(no)
+)
 
 AC_MSG_CHECKING(default TCP send buffer size)
 AC_TRY_RUN([
@@ -923,7 +931,7 @@ int main(void)
     if ((fd = socket(PF_INET, SOCK_STREAM, 0)) < 0) return 1;
         if (getsockopt(fd, SOL_SOCKET, SO_SNDBUF, &val, &len) < 0) return 1;
     if (val <= 0) return 1;
-        fprintf (fopen("conftestval", "wt"), "%d\n", val);
+        fprintf (fopen("conftestval", "w"), "%d\n", val);
     return 0;
 }
 ],
@@ -950,7 +958,7 @@ int main(void)
     if ((fd = socket(PF_INET, SOCK_STREAM, 0)) < 0) return 1;
         if (getsockopt(fd, SOL_SOCKET, SO_RCVBUF, &val, &len) < 0) return 1;
     if (val <= 0) return 1;
-        fprintf (fopen("conftestval", "wt"), "%d\n", val);
+        fprintf (fopen("conftestval", "w"), "%d\n", val);
     return 0;
 }
 ],
@@ -968,7 +976,7 @@ AC_ARG_WITH(ldap,
     if test "x$withval" != "x" && test "x$withval" != "xyes" ; then
       LD_RUN_PATH="${withval}/lib${LD_RUN_PATH:+:}${LD_RUN_PATH}"
       LDFLAGS="$LDFLAGS -L${withval}/lib"
-      CFLAGS="$CFLAGS -I${withval}/include"
+      CPPFLAGS="$CPPFLAGS -I${withval}/include"
     fi
     with_ldap="yes"
     AC_DEFINE(WITH_LDAP,,[with ldap])
@@ -993,11 +1001,11 @@ AC_ARG_WITH(mysql,
     if test "x$withval" != "x" && test "x$withval" != "xyes" ; then
       LD_RUN_PATH="${withval}/lib${LD_RUN_PATH:+:}${LD_RUN_PATH}"    
       LDFLAGS="$LDFLAGS -L${withval}/lib -L${withval}/lib/mysql -L${withval}/mysql/lib"
-      CFLAGS="$CFLAGS -I${withval}/include -I${withval}/include/mysql -I${withval}/mysql/include"
+      CPPFLAGS="$CPPFLAGS -I${withval}/include -I${withval}/include/mysql -I${withval}/mysql/include"
     else
       LD_RUN_PATH="/usr/local/mysql/lib:/usr/local/mysql/lib/mysql:/usr/lib/mysql:/usr/mysql/lib:/usr/mysql/lib/mysql:/usr/local/lib/mysql:${LD_RUN_PATH:+:}${LD_RUN_PATH}"
       LDFLAGS="$LDFLAGS -L/usr/local/mysql/lib -L/usr/lib/mysql -L/usr/mysql/lib -L/usr/local/lib/mysql -L/usr/local/mysql/lib/mysql -L/usr/mysql/lib/mysql"
-      CFLAGS="$CFLAGS -I/usr/local/mysql/include -I/usr/include/mysql -I/usr/mysql/include -I/usr/local/include/mysql -I/usr/local/mysql/include/mysql -I/usr/mysql/include/mysql"
+      CPPFLAGS="$CPPFLAGS -I/usr/local/mysql/include -I/usr/include/mysql -I/usr/mysql/include -I/usr/local/include/mysql -I/usr/local/mysql/include/mysql -I/usr/mysql/include/mysql"
     fi
     AC_CHECK_LIB(m, floor)
     AC_CHECK_LIB(z, gzclose)
@@ -1030,11 +1038,11 @@ AC_ARG_WITH(pgsql,
     if test "x$withval" != "x" && test "x$withval" != "xyes" ; then
       LD_RUN_PATH="${withval}/lib${LD_RUN_PATH:+:}${LD_RUN_PATH}"    
       LDFLAGS="$LDFLAGS -L${withval}/lib -L${withval}/lib/pgsql -L${withval}/lib/postgresql -L${withval}/pgsql/lib -L${withval}/postgresql/lib"
-      CFLAGS="$CFLAGS -I${withval}/include -I${withval}/include/pgsql -I${withval}/include/postgresql -I${withval}/pgsql/include -I${withval}/postgresql/include"
+      CPPFLAGS="$CPPFLAGS -I${withval}/include -I${withval}/include/pgsql -I${withval}/include/postgresql -I${withval}/pgsql/include -I${withval}/postgresql/include"
     else
       LD_RUN_PATH="/usr/local/pgsql/lib:/usr/local/pgsql/lib/pgsql:/usr/lib/pgsql:/usr/pgsql/lib:/usr/pgsql/lib/pgsql:/usr/local/lib/pgsql:/usr/local/postgresql/lib:/usr/local/postgresql/lib/postgresql:/usr/lib/postgresql:/usr/postgresql/lib:/usr/postgresql/lib/postgresql:/usr/local/lib/postgresql:${LD_RUN_PATH:+:}${LD_RUN_PATH}"
       LDFLAGS="$LDFLAGS -L/usr/local/pgsql/lib -L/usr/lib/pgsql -L/usr/pgsql/lib -L/usr/local/lib/pgsql -L/usr/local/pgsql/lib/pgsql -L/usr/pgsql/lib/pgsql -L/usr/local/postgresql/lib -L/usr/lib/postgresql -L/usr/postgresql/lib -L/usr/local/lib/postgresql -L/usr/local/postgresql/lib/postgresql -L/usr/postgresql/lib/postgresql"
-      CFLAGS="$CFLAGS -I/usr/local/pgsql/include -I/usr/include/pgsql -I/usr/pgsql/include -I/usr/local/include/pgsql -I/usr/local/pgsql/include/pgsql -I/usr/pgsql/include/pgsql -I/usr/local/postgresql/include -I/usr/include/postgresql -I/usr/postgresql/include -I/usr/local/include/postgresql -I/usr/local/postgresql/include/postgresql -I/usr/postgresql/include/postgresql"
+      CPPFLAGS="$CPPFLAGS -I/usr/local/pgsql/include -I/usr/include/pgsql -I/usr/pgsql/include -I/usr/local/include/pgsql -I/usr/local/pgsql/include/pgsql -I/usr/pgsql/include/pgsql -I/usr/local/postgresql/include -I/usr/include/postgresql -I/usr/postgresql/include -I/usr/local/include/postgresql -I/usr/local/postgresql/include/postgresql -I/usr/postgresql/include/postgresql"
     fi
     AC_CHECK_LIB(m, floor)
     AC_CHECK_LIB(z, gzclose)
@@ -1091,14 +1099,13 @@ fi
 sysconfdir="$CONFDIR"
 AC_SUBST(sysconfdir)
 
-CFLAGS="$CFLAGS -DCONFDIR='\"$sysconfdir\"'"
+CPPFLAGS="$CPPFLAGS -DCONFDIR='\"$sysconfdir\"'"
 
 AC_CONFIG_FILES(Makefile src/Makefile pam/Makefile man/Makefile
-gui/Makefile configuration-file/Makefile contrib/Makefile
-configuration-file/pure-ftpd.conf
-configuration-file/pure-config.pl
-configuration-file/pure-config.py
-puredb/Makefile puredb/src/Makefile pure-ftpd.spec)
+gui/Makefile configuration-file/Makefile contrib/Makefile m4/Makefile
+configuration-file/pure-ftpd.conf configuration-file/pure-config.pl
+configuration-file/pure-config.py puredb/Makefile puredb/src/Makefile
+pure-ftpd.spec)
 
 AC_OUTPUT
 

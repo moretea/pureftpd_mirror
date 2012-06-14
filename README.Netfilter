@@ -34,6 +34,7 @@ connection tracking code. Basically, an external user can open any filtered
 port if the FTP connection tracking code is enabled.
 
   So, if you are using Linux firewalls/masquerading boxes, please upgrade
-their kernel as soon as possible, to the latest 2.4 release (at least
-2.4.4). Both the EPSV/EPRT and the big security flaw are fixed.
+their kernel as soon as possible, to the latest 2.4 release. Even 2.4.4
+kernels are rather old and they also have known bugs and vulnerabilities.
+  It's why upgrading is definitely something to do. And EPSV/EPRT will work.
 

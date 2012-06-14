@@ -45,11 +45,11 @@ account.
 
   A sample SuSE init script.
 
-* sfv-crc-check.pl (author: Fox.F):
+* pure-vpopauth.pl (author: Dan Caescu):
 
-  An SFV CRC checker to be used with pure-uploadscript. It needs bsdsfv
-(http://bsdsvf.sourceforge.net).
-
+  An external authentication module for pure-ftpd using vpasswd
+vpopmail password files.
+  Run it the standard way with pure-authd.
 
 -----------------------------------------------------------------------------
 
@@ -71,7 +71,9 @@ files, stores them in MySQL, and then generates HTML output on the fly. It
 can display statistics between any two given times, show you a transfer
 list, average and max speeds, details on each user, etc.
 
-  URL: http://www.shagged.org/ftpstats/
+  Unofficial download location :
+
+            ftp://ftp.pureftpd.org/pub/pure-ftpd/ftpstats/
 
 
 * ModLogAn (author: Ostborn)
@@ -90,17 +92,40 @@ more easily. Uploads are stored in a MySQL database, and duplicate files are
 tracked using MD5 checksums. Includes all setup scripts and comprehensive
 notes.
 
-  URL: http://www.mildewhall.demon.co.uk
+  URL: http://www.mildewhall.demon.co.uk/
 
 
-* PureFTPd User Manager (author: Solariz)
+* Pure-FTPd User Manager (author: Solariz)
 
 This is a PHP/MySQL user management script for Pure-FTPd. You cann
 add, edit remove and manage your FTP users via a web interface.
 
-Screenshot :
-http://www.solariz.de/site_gfx/pureftp_um_shot1.jpg
+  Screenshot :
+  http://www.solariz.de/site_gfx/pureftp_um_shot1.jpg
 
-Download :
-http://www.solariz.de/download.php?file=pureftp_user_manager.zip&f.htm
+  Download :
+  http://www.solariz.de/download.php?file=pureftp_user_manager.zip&f.htm
 
+
+* Another Pure-FTPd User Manager (author: Jasper van der Meulen)
+
+Another PHP/MySQL user management script.
+
+  Demo :
+  http://www.fxp.nl/PureFTPD/
+  
+  Source code :
+  http://www.fxp.nl/PureFTPD/source/
+
+
+* SFV Checker (author: Vladyslav Skarzhevskyy)
+
+An SFV upload verification script, spawned with pure-uploadscript.
+
+  URL: http://sourceforge.net/projects/pure-sfv/
+  
+  
+* Another SFV Checker (author: Maciek Dobrzanski)
+
+  UEL: http://macko.scifi.pl/pure-sfv/
+  

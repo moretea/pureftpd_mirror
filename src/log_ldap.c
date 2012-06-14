@@ -18,7 +18,9 @@
 void pw_ldap_parse(const char * const file)
 {
     if (generic_parser(file, ldap_config_keywords) != 0) {
-        die(421, LOG_ERR, MSG_CONF_ERR ": " MSG_ILLEGAL_CONFIG_FILE_LDAP ": %s" , file);
+	illegal_config:
+        die(421, LOG_ERR, MSG_CONF_ERR ": " MSG_ILLEGAL_CONFIG_FILE_LDAP 
+	    ": %s" , file);
     }
     if (ldap_host == NULL) {
         if ((ldap_host = strdup(LDAP_DEFAULT_SERVER)) == NULL) {
@@ -34,6 +36,37 @@ void pw_ldap_parse(const char * const file)
         }
         free(port_s);
         port_s = NULL;
+    }
+    if (ldap_filter == NULL) {
+        if ((ldap_filter = strdup(LDAP_DEFAULT_FILTER)) == NULL) {
+            die_mem();
+        }
+    }
+    {
+	register char *t;
+	
+	if (strchr(ldap_filter, '%') != NULL) {
+	    goto illegal_config;
+	}
+	if ((t = strchr(ldap_filter, '\\')) != NULL) {
+	    if (t[1] != 'L') {
+		goto illegal_config;
+	    }
+	    *t++ = '%';
+	    *t = 's';	    
+	}
+    }
+    if (ldap_homedirectory == NULL) {
+        if ((ldap_homedirectory = strdup(LDAP_HOMEDIRECTORY)) == NULL) {
+	    die_mem();
+        }
+    }
+    if (ldap_version_s != NULL) {
+        ldap_version = atoi(ldap_version_s);
+        free(ldap_version_s);
+	ldap_version_s = NULL;
+    } else {
+	ldap_version = LDAP_DEFAULT_VERSION;
     }
     if (default_uid_s != NULL) {
         default_uid = (uid_t) strtoul(default_uid_s, NULL, 10);        
@@ -76,6 +109,12 @@ void pw_ldap_exit(void)
         free((void *) base);
         base = NULL;
     }
+    if (ldap_filter != NULL) {
+	free((void *) ldap_filter);
+    }
+    if (ldap_homedirectory != NULL) {
+	free((void *) ldap_homedirectory);
+    }    
     if (default_uid_s != NULL) {
         free((void *) default_uid_s);
         default_uid_s = NULL;
@@ -89,13 +128,22 @@ void pw_ldap_exit(void)
 static LDAP *pw_ldap_connect(void)
 {
     LDAP *ld;
-
+# ifdef LDAP_OPT_PROTOCOL_VERSION    
+    int version = ldap_version;
+# endif
+    
     if (ldap_host == NULL || port < 0) {
         return NULL;
     }
     if ((ld = ldap_init(ldap_host, port)) == NULL) {
         return NULL;
     }
+# ifdef LDAP_OPT_PROTOCOL_VERSION
+    if (ldap_set_option(ld, LDAP_OPT_PROTOCOL_VERSION, &version) !=
+	LDAP_SUCCESS) {
+	return NULL;
+    }
+# endif
     if (ldap_bind_s(ld, root, pwd, LDAP_AUTH_SIMPLE) != LDAP_SUCCESS) {
         return NULL;
     }
@@ -120,15 +168,12 @@ static LDAPMessage *pw_ldap_uid_search(LDAP * const ld,
     if (uid_size > MAX_LDAP_UID_LENGTH) {
         return NULL;
     }
-    filter_size = 
-        (sizeof  "(&(objectClass=" LDAP_POSIXACCOUNT ")(" LDAP_UID "=" - 1U) +
-        uid_size + (sizeof "))" - 1U) + 1U;
+    filter_size = strlen(ldap_filter) + uid_size + (size_t) 1U;
     if ((alloca_filter = ALLOCA(filter_size)) == NULL) {
         return NULL;
     }
-    if (SNCHECK(snprintf(alloca_filter, filter_size, 
-                         "(&(objectClass=" LDAP_POSIXACCOUNT ")(" LDAP_UID "=%s))", 
-                         uid), filter_size)) {
+    if (SNCHECK(snprintf(alloca_filter, filter_size, ldap_filter, uid),
+		filter_size)) {    
         ALLOCA_FREE(alloca_filter);
         return NULL;
     }
@@ -202,11 +247,12 @@ static struct passwd *pw_ldap_getpwnam(const char *name,
     LDAP *ld;
     LDAPMessage *res;
     char *attrs[] = {                  /* OpenLDAP forgot a 'const' ... */
-        LDAP_UIDNUMBER, LDAP_FTPUID, LDAP_GIDNUMBER, LDAP_FTPGID,
-        LDAP_HOMEDIRECTORY, LDAP_USERPASSWORD, LDAP_LOGINSHELL, LDAP_FTPSTATUS,
-#ifdef QUOTAS
+	LDAP_HOMEDIRECTORY,
+	LDAP_UIDNUMBER, LDAP_FTPUID, LDAP_GIDNUMBER, LDAP_FTPGID,
+	LDAP_USERPASSWORD, LDAP_LOGINSHELL, LDAP_FTPSTATUS,
+# ifdef QUOTAS
 	LDAP_QUOTAFILES, LDAP_QUOTAMBYTES,
-#endif
+# endif
 #ifdef RATIOS
 	LDAP_DOWNLOADRATIO, LDAP_UPLOADRATIO,
 #endif
@@ -231,18 +277,19 @@ static struct passwd *pw_ldap_getpwnam(const char *name,
     const char *bandwidth_ul = NULL;
     const char *bandwidth_dl = NULL;
 #endif
-
+    
     memset(&pwret, 0, sizeof pwret);
     pwret.pw_name = pwret.pw_passwd = pwret.pw_gecos = pwret.pw_dir =
         pwret.pw_shell = NULL;
     pwret.pw_uid = (uid_t) 0;
-    pwret.pw_gid = (gid_t) 0;    
+    pwret.pw_gid = (gid_t) 0;
     if (pw_ldap_validate_name(name) != 0) {
         return NULL;
     }
     if ((ld = pw_ldap_connect()) == NULL) {
         return NULL;
     }
+    attrs[0] = ldap_homedirectory;
     if ((res = pw_ldap_uid_search(ld, name, attrs)) == NULL) {
         goto error;
     }
@@ -255,7 +302,7 @@ static struct passwd *pw_ldap_getpwnam(const char *name,
 #ifdef QUOTAS
     if ((quota_files = pw_ldap_getvalue(ld, res, LDAP_QUOTAFILES)) != NULL) {
 	const unsigned long long q = strtoull(quota_files, NULL, 10);
-
+	
 	if (q > 0ULL) {
 	    result->user_quota_files = q;
 	    result->quota_files_changed = 1;
@@ -274,7 +321,7 @@ static struct passwd *pw_ldap_getpwnam(const char *name,
 #ifdef RATIOS
     if ((ratio_dl = pw_ldap_getvalue(ld, res, LDAP_DOWNLOADRATIO)) != NULL) {
 	const unsigned int q = strtoul(ratio_dl, NULL, 10);
-
+	
 	if (q > 0U) {
 	    result->ratio_download = q;
 	    result->ratio_dl_changed = 1;
@@ -293,7 +340,7 @@ static struct passwd *pw_ldap_getpwnam(const char *name,
     if ((bandwidth_dl = pw_ldap_getvalue(ld, res, LDAP_DOWNLOADBANDWIDTH)) 
 	!= NULL) {
 	const unsigned long q = (unsigned long) strtoul(bandwidth_dl, NULL, 10);
-
+	
 	if (q > 0UL) {
 	    result->throttling_bandwidth_dl = q * 1024UL;
 	    result->throttling_dl_changed = 1;
@@ -302,7 +349,7 @@ static struct passwd *pw_ldap_getpwnam(const char *name,
     if ((bandwidth_ul = pw_ldap_getvalue(ld, res, LDAP_UPLOADBANDWIDTH)) 
 	!= NULL) {
 	const unsigned long q = (unsigned long) strtoul(bandwidth_ul, NULL, 10);
-
+	
 	if (q > 0UL) {
 	    result->throttling_bandwidth_ul = q * 1024UL;
 	    result->throttling_ul_changed = 1;
@@ -354,7 +401,7 @@ static struct passwd *pw_ldap_getpwnam(const char *name,
         pw_gid_s = NULL;
     }
     if ((pwret.pw_dir = 
-         pw_ldap_getvalue(ld, res, LDAP_HOMEDIRECTORY)) == NULL ||
+         pw_ldap_getvalue(ld, res, ldap_homedirectory)) == NULL ||
         *pwret.pw_dir == 0) {
         goto error;
     }    

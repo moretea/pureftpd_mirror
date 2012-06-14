@@ -114,6 +114,11 @@ Thanks a lot, dude.
 * iTooo <itooo@itooo.com> , for reporting a nasty typo in throttling code.
 * Martin Hedenfalk (mhe) - Reported that MLST shouldn't accept any option
 nor multiple file names.
+* Ying-Chieh Liao <ijliao@csie.nctu.edu.tw> for the FreeBSD port updates, and
+for reporting that simplified and traditional chinese settings were swapped
+in 1.0.12 .
+* Kyle Herbert (http://www.firstnetimpressions.com/) for reporting a typo in
+the example configuration file.
 
 
 Mailing list-members :
@@ -123,7 +128,6 @@ for CVS repositories)
 * brett@ekit-inc.com 
 * claudiuc@kde.org (romanian translator and great tester)
 * dan_c@pellin.ro 
-* forsaken@users.sourceforge.net (contributed the ftpwho and FXP code)
 * gumz@cs.uni-magdeburg.de (german translator and very nice guy)
 * herbsworld@stny.rr.com 
 * hirona@infotopia.or.jp 

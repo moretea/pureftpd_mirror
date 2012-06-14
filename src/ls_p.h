@@ -7,8 +7,8 @@
 
 #define CHUNK_SIZE page_size
 
-static int colwidth;
-static int filenames;
+static unsigned int colwidth;
+static unsigned int filenames;
 
 struct filename {
     struct filename *down;

@@ -1,5 +1,8 @@
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
+/* display only boring messages */
+#undef BORING_MODE
+
 /* realpath() is broken */
 #undef BROKEN_REALPATH
 
@@ -48,8 +51,7 @@
    this is either `int' or `gid_t'. */
 #undef GETGROUPS_T
 
-/* Define to 1 if the `getloadavg' function needs to be run setuid or setgid.
-   */
+/* Define if the `getloadavg' function needs to be run setuid or setgid. */
 #undef GETLOADAVG_PRIVILEGED
 
 /* Define to 1 if you have `alloca', as a function or macro. */
@@ -138,14 +140,8 @@
 /* Define to 1 if you have the `dl' library (-ldl). */
 #undef HAVE_LIBDL
 
-/* Define to 1 if you have the `elf' library (-lelf). */
-#undef HAVE_LIBELF
-
 /* Define to 1 if you have the `kstat' library (-lkstat). */
 #undef HAVE_LIBKSTAT
-
-/* Define to 1 if you have the `kvm' library (-lkvm). */
-#undef HAVE_LIBKVM
 
 /* Define to 1 if you have the `lber' library (-llber). */
 #undef HAVE_LIBLBER
@@ -417,12 +413,6 @@
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #undef HAVE_SYS_STAT_H
 
-/* Define to 1 if you have the <sys/sysget.h> header file. */
-#undef HAVE_SYS_SYSGET_H
-
-/* Define to 1 if you have the <sys/sysmp.h> header file. */
-#undef HAVE_SYS_SYSMP_H
-
 /* Define to 1 if you have the <sys/time.h> header file. */
 #undef HAVE_SYS_TIME_H
 
@@ -435,7 +425,7 @@
 /* Define to 1 if you have the <sys/vfs.h> header file. */
 #undef HAVE_SYS_VFS_H
 
-/* Define to 1 if you have the <sys/wait.h> header file. */
+/* Define to 1 if you have <sys/wait.h> that is POSIX.1 compatible. */
 #undef HAVE_SYS_WAIT_H
 
 /* Define to 1 if you have the <termio.h> header file. */
@@ -489,6 +479,9 @@
    slash. */
 #undef LSTAT_FOLLOWS_SLASHED_SYMLINK
 
+/* czech */
+#undef MESSAGES_CS_CZ
+
 /* danish */
 #undef MESSAGES_DA
 
@@ -537,10 +530,10 @@
 /* swedish */
 #undef MESSAGES_SV
 
-/* traditional chinese */
+/* simplified chinese */
 #undef MESSAGES_ZH_CN
 
-/* simplified chinese */
+/* traditional chinese */
 #undef MESSAGES_ZH_TW
 
 /* with minimal */
@@ -606,6 +599,9 @@
 
 /* Define as the return type of signal handlers (`int' or `void'). */
 #undef RETSIGTYPE
+
+/* Define is getgroups(0, NULL) works on your system */
+#undef SAFE_GETGROUPS_0
 
 /* define if you have a solarisish sendfilev */
 #undef SENDFILEV_SOLARIS

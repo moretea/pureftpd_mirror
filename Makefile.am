@@ -1,5 +1,3 @@
-AUTOMAKE_OPTIONS = 1.5 dist-bzip2
-
 EXTRA_DIST = \
 	pure-ftpd.spec \
 	pure-ftpd.spec.in \
@@ -31,5 +29,5 @@ SUBDIRS = \
 	man \
 	pam \
 	gui \
-	configuration-file
-
+	configuration-file \
+        m4

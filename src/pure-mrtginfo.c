@@ -6,8 +6,41 @@
 # include <dmalloc.h>
 #endif
 
+#ifdef __FreeBSD__
+# include <sys/time.h>
+# include <sys/sysctl.h>
+#endif
+
 static const char *uptime(void)
 {
+#ifdef __FreeBSD__
+    struct timeval boottime;
+    time_t now;
+    int mib[2];
+    size_t size;
+    time_t u;
+    static char buf[1025];    
+
+    (void)time(&now);
+
+    mib[0] = CTL_KERN;
+    mib[1] = KERN_BOOTTIME;
+    size = sizeof(boottime);
+    if (sysctl(mib, 2, &boottime, &size, NULL, 0) != -1 &&
+        boottime.tv_sec != 0) {
+        u = now - boottime.tv_sec;
+        if (u > 60)
+            u += 30;
+	
+        if (SNCHECK(snprintf(buf, sizeof buf, "%lu days, %lu:%02lu:%02lu",
+                             u / 86400UL, u / 3600UL % 24UL, 
+                             u / 60UL % 60UL, u % 60UL),
+                    sizeof buf)) {
+            _exit(EXIT_FAILURE);
+        }
+    }
+    return buf;
+#else
     int f;
     ssize_t r;
     unsigned long u;
@@ -29,6 +62,7 @@ static const char *uptime(void)
         _exit(EXIT_FAILURE);
     }
     return buf;
+#endif
 }
 
 static const char *name(void)

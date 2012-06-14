@@ -14,6 +14,8 @@ static char *sqlreq_getpw;
 static char *sqlreq_getuid;
 static char *sqlreq_getgid;
 static char *sqlreq_getdir;
+static char *sql_default_uid;
+static char *sql_default_gid;
 #ifdef QUOTAS
 static char *sqlreq_getqta_sz;
 static char *sqlreq_getqta_fs;
@@ -36,8 +38,10 @@ static ConfigKeywords pgsql_config_keywords[] = {
     { "PGSQLDatabase", &db },    
     { "PGSQLCrypt", &crypto },
     { "PGSQLGetPW", &sqlreq_getpw },
-    { "PGSQLGetUID", &sqlreq_getuid },    
+    { "PGSQLGetUID", &sqlreq_getuid },
+    { "PGSQLDefaultUID", &sql_default_uid },
     { "PGSQLGetGID", &sqlreq_getgid },
+    { "PGSQLDefaultGID", &sql_default_gid },
     { "PGSQLGetDir", &sqlreq_getdir },
 #ifdef QUOTAS
     { "PGSQLGetQTAFS", &sqlreq_getqta_fs },    

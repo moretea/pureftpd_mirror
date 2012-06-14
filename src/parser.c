@@ -25,7 +25,7 @@ int generic_parser(const char * const file,
     ConfigKeywords *config_keywords_pnt;
     char line[LINE_MAX];    
     
-    if (file == NULL || (fp = fopen(file, "rt")) == NULL) {
+    if (file == NULL || (fp = fopen(file, "r")) == NULL) {
         return -1;
     }
     while (fgets(line, sizeof line, fp) != NULL) {

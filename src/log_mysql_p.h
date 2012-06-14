@@ -20,8 +20,12 @@ static char *crypto;
 static char *transactions;
 static char *sqlreq_getpw;
 static char *sqlreq_getuid;
+static char *sql_default_uid;
 static char *sqlreq_getgid;
+static char *sql_default_gid;
 static char *sqlreq_getdir;
+static char *tildexp_s;
+static int tildexp;
 #ifdef QUOTAS
 static char *sqlreq_getqta_sz;
 static char *sqlreq_getqta_fs;
@@ -47,8 +51,11 @@ static ConfigKeywords mysql_config_keywords[] = {
     { "MYSQLTransactions", &transactions },    
     { "MYSQLGetPW", &sqlreq_getpw },
     { "MYSQLGetUID", &sqlreq_getuid },    
+    { "MYSQLDefaultUID", &sql_default_uid },
     { "MYSQLGetGID", &sqlreq_getgid },
+    { "MYSQLDefaultGID", &sql_default_gid },
     { "MYSQLGetDir", &sqlreq_getdir },
+    { "MYSQLForceTildeExpansion", &tildexp_s },
 #ifdef QUOTAS
     { "MYSQLGetQTAFS", &sqlreq_getqta_fs },    
     { "MYSQLGetQTASZ", &sqlreq_getqta_sz },

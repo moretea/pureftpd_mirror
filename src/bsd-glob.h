@@ -39,7 +39,7 @@
  */
 
 #ifndef __BSD_GLOB_H__
-#define    __BSD_GLOB_H__ 1
+#define __BSD_GLOB_H__ 1
 
 typedef struct {
     unsigned long gl_maxfiles;  /* Maximum number of results */

@@ -309,7 +309,7 @@ int safe_write(const int fd, const void *buf_, size_t count);
 void *aborttransfer(int);
 void parser(void);
 void stripctrl(char * const buf, size_t len);
-void dobanner(void);
+void dobanner(const int type);
 void douser(const char *name);
 void dopass(char *password);
 void docwd(const char *dir);
@@ -369,6 +369,7 @@ const char *getgroup(const gid_t gid);
 const char *getname(const uid_t uid);
 unsigned int zrand(void);
 void simplify(char *subdir);
+int checkprintable(register const char *s);
 
 #ifdef HAVE_SYS_FSUID_H
 # define usleep2 usleep
@@ -416,6 +417,8 @@ extern int opt_a, opt_C, opt_d, opt_F, opt_l, opt_R;
 
 #ifndef NON_ROOT_FTP
 # define DEFAULT_FTP_PORT_S "21"
+#elif defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__)
+# define DEFAULT_FTP_PORT_S "21"
 #else
 # define DEFAULT_FTP_PORT_S "2121"
 #endif
@@ -429,6 +432,9 @@ Warning: neither PATH_MAX nor MAXPAHLEN were found.
 Remove these lines if you really want to compile the server, but
 the server may be insecure if a wrong value is set here.    
 # endif
+#endif
+#if (MAXPATHLEN) >= (INT_MAX)
+Your platform has a very large maximum path len, we should not trust it.
 #endif
 
 #define DEFAULT_MAX_USERS 50
