@@ -1,5 +1,5 @@
 
-/*    $OpenBSD: getopt_long.c,v 1.13 2003/06/03 01:52:40 millert Exp $    */
+/*    $OpenBSD: getopt_long.c,v 1.17 2004/06/03 18:46:52 millert Exp $    */
 /*    $NetBSD: getopt_long.c,v 1.15 2002/01/31 22:43:40 tv Exp $    */
 
 /*
@@ -372,12 +372,10 @@ static int pure_getopt_internal(int nargc, char * const *nargv,
         if (nonopt_start != -1 && nonopt_end == -1)
             nonopt_end = pure_optind;
         
-        /*
-         * Check for "--" or "--foo" with no long options
-         * but if pure_place is simply "-" leave it unmolested.
-         */
+        /* If we have "-" do nothing, if "--" we are done. */
+        
         if (pure_place[1] != '\0' && *++pure_place == '-' &&
-            (pure_place[1] == '\0' || long_options == NULL)) {
+            pure_place[1] == '\0') {
             pure_optind++;
             pure_place = EMSG;
             /*
@@ -419,12 +417,12 @@ static int pure_getopt_internal(int nargc, char * const *nargv,
     if ((optchar = (int)*pure_place++) == (int)':' ||
         (oli = strchr(options, optchar)) == NULL) {
         /*
-         * If the user didn't specify '-' as an option,
-         * assume it means -1 as POSIX specifies.
+         * If the user specified "-" and '-' isn't listed in
+         * options, return -1 (non-option) as per POSIX.
+         * Otherwise, it is an unknown option character (or :').
          */
-        if (optchar == (int)'-')
+        if (optchar == (int) '-' && *pure_place == '\0')
             return -1;
-        /* option letter unknown or ':' */
         if (!*pure_place)
             ++pure_optind;
         if (PRINT_ERROR)
@@ -464,8 +462,17 @@ static int pure_getopt_internal(int nargc, char * const *nargv,
                     fprintf(stderr, recargchar, optchar);
                 pure_optopt = optchar;
                 return BADARG;
-            } else
-                pure_optarg = nargv[pure_optind];
+            } else if (!(flags & FLAG_PERMUTE)) {
+                /* 
+                 * If permutation is disabled, we can accept an
+                 * optional arg separated by whitespace so long
+                 * as it does not start with a dash (-).
+                 */
+                 if (pure_optind + 1 < nargc && pure_optind + 1 > 0 &&
+                     *nargv[pure_optind + 1] != '-') {
+                     pure_optarg = nargv[++pure_optind];
+                 }
+            }
         }
         pure_place = EMSG;
         ++pure_optind;
@@ -517,4 +524,3 @@ int pure_pure_getopt_long_only(int nargc, char * const *nargv,
 }
 
 #endif
-

@@ -61,6 +61,9 @@ void ftpwho_exit(const int ret)
 
 void ftpwho_unlock(void) 
 {
+#if defined(__OpenBSD__) || defined(__ekkoBSD__)
+    (void) msync(shm_data_cur, NULL, MS_ASYNC);
+#endif
     lock.l_type = F_UNLCK;
     while (fcntl(mmap_fd, F_SETLK, &lock) < 0) {
         if (errno != EINTR) {

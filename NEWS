@@ -1,4 +1,10 @@
 
+* Version 1.0.19:
+ - A workaround for pure-ftpwho not working on OpenBSD has been added.
+ - Real disk space is no more shown.
+ - A possible denial of service when too many users were connected should be
+fixed. Reported by Agri <agri@desnol.ru>, thanks!
+
 * Version 1.0.18:
  - A new, nice-looking PDF version of the documentation is now available from
 http://www.pureftpd.org/readme.pdf . Contributed by Torgny Wernersson.

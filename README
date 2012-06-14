@@ -1,6 +1,6 @@
 
                               .:. PURE-FTPD .:.
-                       Documentation for version 1.0.18
+                       Documentation for version 1.0.19
 
          PDF version available from http://www.pureftpd.org/readme.pdf
 
@@ -14,7 +14,7 @@ based upon Troll-FTPd.
 The server has been designed to be secure in default configuration, it has no
 known vulnerability, it is really trivial to set up and it is especially
 designed for modern kernels. It was successfully ported to Linux, FreeBSD,
-NetBSD, OpenBSD, ISOS, EkkoBSD, BSDi, Solaris, Darwin, Tru64, Irix, AIX
+NetBSD, OpenBSD, ISOS, EkkoBSD, MirBSD, BSDi, Solaris, Darwin, Tru64, Irix, AIX
 and HPUX.
 
 Features include chroot()ed and/or virtual chroot()ed home directories,
@@ -46,10 +46,10 @@ easily write new custom handlers in any language.
 
 In its current form, Pure-FTPd uses some OS-specific system calls. And altough
 some portability work has been done in order to ease its port to other
-operating systems, only Linux FreeBSD, NetBSD, OpenBSD, ISOS, EkkoBSD, BSDi,
-Darwin, Solaris, Tru64, Irix, AIX and HPUX are known to work, other operating
-systems may need some tweaks. With Linux, any modern distribution should be
-ok.
+operating systems, only Linux FreeBSD, NetBSD, OpenBSD, ISOS, EkkoBSD, MirBSD,
+BSDi, Darwin, Solaris, Tru64, Irix, AIX and HPUX are known to work, other
+operating systems may need some tweaks. With Linux, any modern distribution
+should be ok.
 
 An unofficial Windows port is available from http://www.pureftpd.org/windows/
 
@@ -1725,11 +1725,11 @@ parent over a private channel.
 Privilege separation decreases performance of loaded servers, but it
 increases theorical security.
 
-Some old broken operating systems may allow the ptrace() system call
-on processes that revoked privileges. On these platforms, enabling
-privilege separation is a bad idea if untrusted users also have shell
-access. Use the src/ptracetest program to check this. At least
-Solaris, ISOS, EkkoBSD, OpenBSD, FreeBSD and Linux are known to be safe.
+Some old broken operating systems may allow the ptrace() system call on
+processes that revoked privileges. On these platforms, enabling privilege
+separation is a bad idea if untrusted users also have shell access. Use the
+src/ptracetest program to check this. At least Solaris, ISOS, EkkoBSD, MirBSD
+OpenBSD, FreeBSD and Linux are known to be safe.
 
 
 ------------------------ OPTIMIZING FOR HIGH LOAD ------------------------

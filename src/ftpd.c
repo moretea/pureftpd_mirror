@@ -2261,7 +2261,7 @@ void opendata(void)
     socklen_t socksize;
 
     if (xferfd != -1) {
-    closedata();
+        closedata();
     }
     if (datafd == -1) {
         addreply_noformat(425, MSG_NO_DATA_CONN);        
@@ -3797,6 +3797,7 @@ void dostor(char *name, const int append, const int autorename)
             goto databroken;
         }
     } while (r > (ssize_t) 0);
+#ifdef SHOW_REAL_DISK_SPACE
     if (FSTATFS(f, &statfsbuf) == 0) {
         double space;
 
@@ -3808,6 +3809,7 @@ void dostor(char *name, const int append, const int autorename)
             addreply(0, MSG_SPACE_FREE_K, space / 1024.0);
         }    
     }
+#endif
 #ifdef QUOTAS    
     quota_exceeded:
 #endif
@@ -4215,7 +4217,6 @@ static void set_signals(void)
     (void) sigaction(SIGHUP, &sa, NULL);
     (void) sigaction(SIGQUIT, &sa, NULL);
     (void) sigaction(SIGINT, &sa, NULL);
-    (void) sigaction(SIGKILL, &sa, NULL);
 # ifdef SIGXCPU
     (void) sigaction(SIGXCPU, &sa, NULL);
 # endif
@@ -4500,6 +4501,7 @@ static void doit(void)
             die(421, LOG_ERR, MSG_ILLEGAL_FORCE_PASSIVE);            
         }
         memcpy(&force_passive_ip, res->ai_addr, res->ai_addrlen);
+        freeaddrinfo(res);
     }
     
 #ifdef WITH_PRIVSEP
@@ -4631,13 +4633,14 @@ static void accept_client(const int active_listen_fd) {
     if (STORAGE_FAMILY(sa) != AF_INET && STORAGE_FAMILY(sa) != AF_INET6) {
         (void) close(clientfd);
         return;
-    }
+    }    
     if (maxusers > 0U && nb_children >= maxusers) {
         char line[1024];
         
         snprintf(line, sizeof line, "421 " MSG_MAX_USERS "\r\n",
                  (unsigned long) maxusers);
         /* No need to check a return value to say 'fuck' */
+        (void) fcntl(clientfd, F_SETFL, fcntl(clientfd, F_GETFL) | O_NONBLOCK);
         (void) write(clientfd, line, strlen(line));
         (void) close(clientfd);
         return;
@@ -4649,6 +4652,7 @@ static void accept_client(const int active_listen_fd) {
             char hbuf[NI_MAXHOST];
             static struct sockaddr_storage old_sa;
             
+            (void) fcntl(clientfd, F_SETFL, fcntl(clientfd, F_GETFL) | O_NONBLOCK);
             if (!SNCHECK(snprintf(line, sizeof line,
                                   "421 " MSG_MAX_USERS_IP "\r\n",
                                   (unsigned long) maxip), sizeof line)) {

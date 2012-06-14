@@ -1,7 +1,7 @@
 dnl AM_ACLOCAL_INCLUDE(m4)
 
 AC_PREREQ(2.58)
-AC_INIT([pure-ftpd],[1.0.18],[bugs@pureftpd.org])
+AC_INIT([pure-ftpd],[1.0.19],[bugs@pureftpd.org])
 AC_CONFIG_SRCDIR(src/ftpd.c)
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([1.6 dist-bzip2])
@@ -1282,7 +1282,7 @@ fi
 sysconfdir="$CONFDIR"
 AC_SUBST(sysconfdir)
 
-CPPFLAGS="$CPPFLAGS -DCONFDIR='\"$sysconfdir\"'"
+CPPFLAGS="$CPPFLAGS -DCONFDIR=\\\"$sysconfdir\\\""
 
 AC_CONFIG_FILES(Makefile src/Makefile pam/Makefile man/Makefile
 gui/Makefile configuration-file/Makefile contrib/Makefile m4/Makefile
