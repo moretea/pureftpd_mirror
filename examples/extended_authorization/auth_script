@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+if test "$AUTHD_ACCOUNT" = "john"; then
+  echo 'auth_ok:1'
+  echo 'uid:1000'
+  echo 'gid:1000'
+  echo 'dir:/tmp'
+  echo "can_rmd:0"
+  echo "can_mkd:0"
+  echo "can_dele:0"
+else
+  echo 'auth_ok:0'
+fi
+
+echo 'end'
