@@ -733,6 +733,7 @@ with_sysquotas
 with_altlog
 with_puredb
 with_extauth
+with_extauthorization
 with_pam
 with_cookie
 with_throttling
@@ -1417,6 +1418,8 @@ Optional Packages:
   --with-altlog           Support alternative log format (Apache-like)
   --with-puredb           Support virtual (FTP-only) users
   --with-extauth          Support external authentication modules
+  --with-extauthorization Also send authorization requests to the external
+                          authentication module
   --with-pam              Enable PAM support (default=disabled)
   --with-cookie           Support 'fortune' cookies (-F option)
   --with-throttling       Support bandwidth throttling (disabled by default)
@@ -8827,6 +8830,17 @@ if test "${with_extauth+set}" = set; then :
   withval=$with_extauth;  if test "x$withval" = "xyes" ; then
 
 $as_echo "#define WITH_EXTAUTH /**/" >>confdefs.h
+
+  fi
+fi
+
+
+
+# Check whether --with-extauthorization was given.
+if test "${with_extauthorization+set}" = set; then :
+  withval=$with_extauthorization;  if test "x$withval" = "xyes" ; then
+
+$as_echo "#define WITH_EXTAUTHORIZATION /**/" >>confdefs.h
 
   fi
 fi

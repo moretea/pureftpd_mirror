@@ -872,6 +872,9 @@
 /* with extauth (*BETA*) */
 #undef WITH_EXTAUTH
 
+/* with extauthorization (*BETA*) */
+#undef WITH_EXTAUTHORIZATION
+
 /* with ldap */
 #undef WITH_LDAP
 
